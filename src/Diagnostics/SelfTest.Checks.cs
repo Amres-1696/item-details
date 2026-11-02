@@ -484,8 +484,22 @@ internal static partial class SelfTest
                 WaterFeatureHelper.InitWaterFeature(item);
             }
 
-            // 从干净缓存开始，测量每种水的首次真实模拟成本。
+            // Stop 同时清掉化学剂识别结论；识别新候选会主动使报告失效，
+            // 那一轮按设计不缓存，不能拿它当稳定状态下的首次结果。
             WaterAdvice.Stop();
+            int trials = PurifySources.Scan().ChemCandidates.Count;
+            int pending = trials;
+            for (int attempt = 0; pending > 0 && attempt < trials; attempt++)
+            {
+                _ = WaterAdvice.SimulateMethods(picked[0]);
+                int next = PurifySources.Scan().ChemCandidates.Count;
+                if (next >= pending)
+                    return $"water advice cache: 化学剂识别未稳定，剩余 {next} 个候选";
+                pending = next;
+            }
+            if (pending > 0) return $"water advice cache: 仍有 {pending} 个未判定候选";
+
+            // 识别稳定后，测量每种水的首次真实模拟成本；随后仍严格要求 4/4 命中。
             foreach (var item in picked)
             {
                 var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -514,7 +528,7 @@ internal static partial class SelfTest
             ok = hits == calls;
             string firstText = string.Join("/", firstMs.ConvertAll(ms => ms.ToString("0.00")));
             return $"water advice cache: items={picked.Count} firstMs={firstText} " +
-                   $"hits={hits}/{calls} hitMax={hitMaxMs:0.00}ms " +
+                   $"trialsResolved={trials} hits={hits}/{calls} hitMax={hitMaxMs:0.00}ms " +
                    $"(期望 hits 等于 calls，即交替悬停不重算)";
         }
         catch (Exception ex)
@@ -635,8 +649,13 @@ internal static partial class SelfTest
             long filterKeyB = WaterKey(filterB);
             report.CommonSignature = 333;
             long equipmentKey = WaterKey(filterA);
+            filterA.ModifyTag("DURABILITY_TAG", state => state.Enable().SetInt(0));
+            long exhaustedKey = WaterKey(filterA);
+            report.FiltersSignature = 444;
+            long replacementKey = WaterKey(filterA);
             bool waterOk = filterKeyA != 0 && filterKeyA == filterKeyAAgain
-                && filterKeyA != filterKeyB && filterKeyA != equipmentKey;
+                && filterKeyA != filterKeyB && filterKeyA != equipmentKey
+                && exhaustedKey != replacementKey;
 
             ok = waterOk;
             return $"cache key freshness: water={waterOk} (期望 True)";
@@ -1089,7 +1108,8 @@ internal static partial class SelfTest
                 if (item == null) return false;
                 sample.Add(item);
                 OwnAll(furnace!, item);
-                return GraphUtils.TryAcceptAll(storage, item) > 0;
+                // 返回未放入的剩余数量：0 才是全部放入成功，不是已放入数量。
+                return GraphUtils.TryAcceptAll(storage, item) == 0;
             }
             string Join(List<TooltipLine> ls) => string.Join(" | ", ls.ConvertAll(l => l.Text));
 

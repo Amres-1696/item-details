@@ -151,8 +151,9 @@ internal static class PurifySources
                     continue;
                 }
 
-                // 滤芯：任何带 WATER_FILTER 的物品（含第三方）
-                if (it.IsTag("WATER_FILTER") && r.Filters.Count < MaxFilters && filterIds.Add(id))
+                // 耗尽滤芯不占同型号名额，否则先扫到废滤芯会遮住后面的可用品。
+                if (it.IsTag("WATER_FILTER") && IsUsableFilter(it)
+                    && r.Filters.Count < MaxFilters && filterIds.Add(id))
                     r.Filters.Add(it);
             }
             catch { }
@@ -171,6 +172,12 @@ internal static class PurifySources
         r.FiltersSignature = filters;
         return r;
     }
+
+    /// <summary>HandleFilter 对 UV 滤芯不检查耐久；普通滤芯必须有可读的剩余耐久。
+    /// 不调用 GetRealDurability，避免缺键时原版 GetTagReadonly 往真实物品插入标签。</summary>
+    internal static bool IsUsableFilter(GameItem? filter)
+        => filter != null && (filter.identifier == "uv_filter"
+            || (GameRead.TagInt(filter, "DURABILITY_TAG") ?? 0) > 0);
 
     /// <summary>显式注册 → 原版条目 → 嗅探结论；都没有时现场嗅探一次并缓存。</summary>
     private static Kind? Resolve(GameItem it, string id, out bool needsTrial)

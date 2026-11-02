@@ -82,3 +82,42 @@ $replacement.name = $item.name
 $replacement.modifiedState.dict.Add('DURABILITY_TAG', $tag)
 $items[0] = $replacement
 Assert-True (-not [bool]$matches.Invoke($null, @($snapshot, $items))) 'same-count replacement invalidates container signature'
+
+# An exhausted installed filter must not hide changes to replacement-filter candidates.
+$waterAdvice = $candidate.GetType('ItemDetails.WaterAdvice', $true)
+$simulationSignature = $waterAdvice.GetMethod('TryFilterSignature', $static)
+$reportType = $candidate.GetType('ItemDetails.PurifySources+Report', $true)
+$report = [System.Activator]::CreateInstance($reportType, $true)
+$instance = [System.Reflection.BindingFlags]'NonPublic, Instance'
+$replacementSignature = $reportType.GetField('FiltersSignature', $instance)
+function Read-FilterKey($Installed) {
+    [object[]]$arguments = @($report, $Installed, 123L)
+    if (-not $simulationSignature.Invoke($null, $arguments)) { throw 'Filter signature could not read the fixture.' }
+    return $arguments[2]
+}
+$installed = New-ProbeItem
+$installed.modifiedState.dict.Add('DURABILITY_TAG', [TagState]::new('DURABILITY_TAG', 'Durability'))
+$replacementSignature.SetValue($report, 222L)
+$emptyKey = Read-FilterKey $installed
+$replacementSignature.SetValue($report, 333L)
+Assert-True ($emptyKey -ne (Read-FilterKey $installed)) 'exhausted installed filter includes replacement state in water cache key'
+$installed.modifiedState.dict['DURABILITY_TAG'].valueInt = 400
+$healthyKey = Read-FilterKey $installed
+$replacementSignature.SetValue($report, 444L)
+Assert-True ($healthyKey -eq (Read-FilterKey $installed)) 'usable installed filter does not depend on unused replacements'
+$installed.modifiedState.dict['DURABILITY_TAG'].valueInt = 0
+Assert-True ($healthyKey -ne (Read-FilterKey $installed)) 'installed filter exhaustion invalidates the filter selection key'
+
+$usableFilter = $candidate.GetType('ItemDetails.PurifySources', $true).GetMethod('IsUsableFilter', $static)
+function Test-UsableFilter($Filter) { return [bool]$usableFilter.Invoke($null, [object[]]@(,$Filter)) }
+Assert-True (-not (Test-UsableFilter $null)) 'missing installed filter allows replacement candidates'
+Assert-True (-not (Test-UsableFilter $installed)) 'zero-durability installed filter allows replacement candidates'
+$installed.modifiedState.dict['DURABILITY_TAG'].valueInt = -1
+Assert-True (-not (Test-UsableFilter $installed)) 'negative durability is not a usable filter'
+$installed.modifiedState.dict['DURABILITY_TAG'].valueInt = 1
+Assert-True (Test-UsableFilter $installed) 'partly worn installed filter still takes priority'
+$withoutDurability = New-ProbeItem
+Assert-True (-not (Test-UsableFilter $withoutDurability)) 'unknown ordinary-filter durability is not assumed usable'
+Assert-True ($withoutDurability.modifiedState.dict.Count -eq 0) 'filter eligibility does not insert missing durability tags'
+$withoutDurability.identifier = 'uv_filter'
+Assert-True (Test-UsableFilter $withoutDurability) 'UV filter works without a durability tag'

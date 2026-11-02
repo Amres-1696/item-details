@@ -182,8 +182,8 @@ internal static class WaterAdvice
                 RunOnProbe(sharedProbe, a, usedNames, result, (probe, _) => Dissolve(a, probe));
             }
 
-            // 4) 滤芯：容器里已装的那支优先（它才是实际能用的），否则用背包里的。
-            if (installedFilter != null)
+            // 4) 可用的罐内滤芯优先；耗尽时仍列出玩家拥有的替换滤芯。
+            if (installedFilter != null && PurifySources.IsUsableFilter(installedFilter))
             {
                 var shell = GetShell(SourceShells, installedFilter);
                 if (shell == null || !ResetSource(shell, installedFilter)) return result;
@@ -273,15 +273,20 @@ internal static class WaterAdvice
         if (!owned.SignaturesValid) return false;
 
         Mix(ref signature, owned.CommonSignature);
+        return TryFilterSignature(owned, installedFilter, ref signature);
+    }
+
+    /// <summary>罐内滤芯始终参与签名；不可用时还要包含替换候选的状态。</summary>
+    private static bool TryFilterSignature(PurifySources.Report owned,
+        GameItem? installedFilter, ref long signature)
+    {
         if (installedFilter != null)
         {
             if (!ItemValueFingerprint.TryRead(installedFilter, out long filter)) return false;
             Mix(ref signature, filter);
         }
-        else
-        {
+        if (!PurifySources.IsUsableFilter(installedFilter))
             Mix(ref signature, owned.FiltersSignature);
-        }
         return true;
     }
 

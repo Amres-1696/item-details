@@ -125,8 +125,15 @@ internal static partial class SelfTest
             var cachedExhausted = WaterAdvice.SimulateMethods(pitchers[1]);
             WaterAdvice.Stop();
             var uncachedExhausted = WaterAdvice.SimulateMethods(pitchers[1]);
+            // 耗尽滤芯应与未安装滤芯一样回退到拥有物；同名建议可能来自另一支可用滤芯。
+            var noFilter = TryCreate("water_pitcher");
+            if (noFilter == null) return "installed filter cache: cannot create fallback baseline";
+            items.Add(noFilter);
+            GeneralHelper.SetItemOwned(noFilter, true);
+            FillTestWater(noFilter, 990000, "organic_waste");
+            var fallback = WaterAdvice.SimulateMethods(noFilter);
             bool gained = healthy.Exists(method => method.Name == GameRead.ItemName(filters[0]) && method.GainPct > 0);
-            bool exhausted = !uncachedExhausted.Exists(method => method.Name == GameRead.ItemName(filters[1]));
+            bool exhausted = SameMethods(uncachedExhausted, fallback);
             bool sharingCorrect = SameMethods(cachedExhausted, uncachedExhausted);
 
             WaterAdvice.Stop();
@@ -135,7 +142,7 @@ internal static partial class SelfTest
             var afterWear = WaterAdvice.SimulateMethods(pitchers[0]);
             bool wearUpdated = SameMethods(afterWear, uncachedExhausted);
             ok = gained && exhausted && sharingCorrect && wearUpdated;
-            return $"installed filter cache: healthyGain={gained} exhaustedNoGain={exhausted} cachedMatchesUncached={sharingCorrect} wearUpdated={wearUpdated}";
+            return $"installed filter cache: healthyGain={gained} exhaustedMatchesFallback={exhausted} cachedMatchesUncached={sharingCorrect} wearUpdated={wearUpdated}";
         }
         catch (Exception ex) { return "installed filter cache: " + ex; }
         finally
