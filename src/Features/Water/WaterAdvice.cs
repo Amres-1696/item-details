@@ -43,6 +43,11 @@ internal static class WaterAdvice
     // 第三方可溶物的标准试验：悬停时每次最多做几种，其余留到下次；预热阶段放宽。
     private const int TrialsPerHover = 4;
     private const int TrialsOnPrewarm = 64;
+    // 持续悬停同一容器时，成分若每秒都在变（加热、沸腾、反应），至多每 5 秒重算一次，
+    // 其间沿用这件容器上次的结果。只在净化手段没变时沿用：滤芯磨损、设备增减照常立即重算；
+    // 鼠标离开超过 0.5 秒（拖动、换物品）也不再沿用。
+    private const float RecomputeSeconds = 5f;
+    private const float HoverGapSeconds = 0.5f;
 
     /// <summary>某种手段的模拟结果。</summary>
     internal sealed class Method
@@ -62,6 +67,19 @@ internal static class WaterAdvice
     }
 
     private static readonly List<CacheEntry> Cache = new();
+
+    /// <summary>最近一次真正模拟过的容器；只服务于持续悬停的那一件。</summary>
+    private sealed class Recent
+    {
+        internal GameItem Item = null!;
+        internal long Means;
+        internal string Locale = "";
+        internal float ComputedAt;
+        internal float SeenAt;
+        internal List<Method> Methods = new();
+    }
+
+    private static Recent? _recent;
 
     // 探针壳按 identifier 复用。DirectoryMaster.Create 实测约 4–5ms/次；
     // 标签深拷贝只有 0.1ms，因此复用壳、重灌标签才是正确优化。
@@ -94,9 +112,15 @@ internal static class WaterAdvice
             GameItem? installedFilter = null;
             try { installedFilter = WaterHelper.GetFilterItem(item); } catch { }
             bool signatureValid = TrySimulationSignature(item, owned, installedFilter, out long signature);
+            bool meansValid = TryMeansSignature(owned, installedFilter, out long means);
             string filterName = GameRead.ItemName(installedFilter);
             string locale = Loc.Code;
             float now = UnityEngine.Time.unscaledTime;
+
+            var recent = _recent;
+            bool hovering = recent != null && ReferenceEquals(recent.Item, item)
+                            && now - recent.SeenAt <= HoverGapSeconds;
+            if (recent != null && ReferenceEquals(recent.Item, item)) recent.SeenAt = now;
 
             // 过期项顺手清掉，其余按最近使用顺序从后往前找。
             for (int i = Cache.Count - 1; i >= 0; i--)
@@ -120,6 +144,10 @@ internal static class WaterAdvice
 #endif
                 return entry.Methods;
             }
+
+            if (hovering && meansValid && now - recent!.ComputedAt < RecomputeSeconds
+                && recent.Means == means && recent.Locale == locale)
+                return recent.Methods;
 
 #if ITEMDETAILS_DIAG
             TrackCache(hit: false, now);
@@ -222,6 +250,16 @@ internal static class WaterAdvice
                     Methods = result,
                 });
                 if (Cache.Count > MaxEntries) Cache.RemoveAt(0);
+                // 只沿用本可进缓存的结果：化学剂试验刚改了结论、签名不可信时下次照常重算
+                _recent = new Recent
+                {
+                    Item = item,
+                    Means = means,
+                    Locale = locale,
+                    ComputedAt = now,
+                    SeenAt = now,
+                    Methods = result,
+                };
             }
             return result;
         }
@@ -270,10 +308,19 @@ internal static class WaterAdvice
         GameItem? installedFilter, out long signature)
     {
         signature = CompositionSignature(item);
+        if (!TryMeansSignature(owned, installedFilter, out long means)) return false;
+        Mix(ref signature, means);
+        return true;
+    }
+
+    /// <summary>净化手段部分：拥有的设备与罐内滤芯状态，不含液体组成。</summary>
+    private static bool TryMeansSignature(PurifySources.Report owned, GameItem? installedFilter, out long means)
+    {
+        means = 0;
         if (!owned.SignaturesValid) return false;
 
-        Mix(ref signature, owned.CommonSignature);
-        return TryFilterSignature(owned, installedFilter, ref signature);
+        Mix(ref means, owned.CommonSignature);
+        return TryFilterSignature(owned, installedFilter, ref means);
     }
 
     /// <summary>罐内滤芯始终参与签名；不可用时还要包含替换候选的状态。</summary>
@@ -407,6 +454,7 @@ internal static class WaterAdvice
     internal static void Stop()
     {
         Cache.Clear();
+        _recent = null;
         ClearShells();
 #if ITEMDETAILS_DIAG
         _diagHits = 0;

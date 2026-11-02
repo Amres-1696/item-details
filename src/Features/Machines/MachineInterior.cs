@@ -34,7 +34,10 @@ internal static class MachineInterior
 
     private const int FailureLimit = 3;
     private const int MaxEntries = 8;
-    /// <summary>耐久、水量、进度不改变物品列表也会变，缓存只挡同一次悬停里的重复构建。</summary>
+    /// <summary>
+    /// 耐久、水量、进度不改变物品列表也会变：复核时比对机器与内容物的状态指纹，
+    /// 指纹看不到的输入（电网、全局事件）由这个时限兜底。
+    /// </summary>
     private const float CacheSeconds = 1f;
     /// <summary>
     /// tooltip 每帧重建；这段时间内同一台机器直接复用上次的行，不再逐面板读结构、比对签名。
@@ -88,6 +91,8 @@ internal static class MachineInterior
         /// <summary>上次确认内容物没变的时间。</summary>
         internal float CheckedAt;
         internal List<ContainerItemSignature> Items = new();
+        /// <summary>机器自身与全部内容物的标签/特性/价值字段指纹。</summary>
+        internal long State;
         internal List<TooltipLine> Lines = new();
     }
 
@@ -133,8 +138,9 @@ internal static class MachineInterior
             if (!ctx.IsMachine && !listing) return lines;
 
             var all = AllItems(ctx);
+            long state = StateHash(item, all);
             if (entry != null && now - entry.At <= CacheSeconds
-                && ContainerItemSignature.Matches(entry.Items, all))
+                && ContainerItemSignature.Matches(entry.Items, all) && entry.State == state)
             {
                 entry.CheckedAt = now;
                 lines.AddRange(entry.Lines);
@@ -153,7 +159,7 @@ internal static class MachineInterior
                 clean &= Stage(key, "List", () => ListRemaining(ctx, built));
             }
 
-            Store(item, locale, flags, now, all, built, entry);
+            Store(item, locale, flags, now, all, state, built, entry);
             lines.AddRange(built);
             // 只有整次构建没有任何一步失败才清零：否则某步每次都坏、其它步照常输出，
             // 失败计数会被反复清掉，永远停不下来。
@@ -595,6 +601,24 @@ internal static class MachineInterior
             Log.Warn("MachineInterior", $"「{key}」连续失败 {n} 次，本次会话不再显示它的内部摘要");
     }
 
+    /// <summary>
+    /// 加热、蒸发、耗损只改标签不改物品列表；谁改的都一样会改变这个指纹。
+    /// 单件读取失败按固定值计入，交给 <see cref="CacheSeconds"/> 兜底，不让整段摘要因此停用。
+    /// </summary>
+    private static long StateHash(GameItem machine, List<GameItem> all)
+    {
+        long hash = SelfState(machine);
+        foreach (var it in all)
+            if (it != null) ItemValueFingerprint.Mix(ref hash, SelfState(it));
+        return hash;
+    }
+
+    private static long SelfState(GameItem item)
+    {
+        try { return ItemValueFingerprint.ReadSelf(item); }
+        catch { return -1; }
+    }
+
     private static Entry? Find(GameItem item, string locale, int flags)
     {
         foreach (var e in Entries)
@@ -603,7 +627,7 @@ internal static class MachineInterior
     }
 
     private static void Store(GameItem item, string locale, int flags, float now,
-                              List<GameItem> all, List<TooltipLine> lines, Entry? entry)
+                              List<GameItem> all, long state, List<TooltipLine> lines, Entry? entry)
     {
         if (entry == null)
         {
@@ -618,6 +642,7 @@ internal static class MachineInterior
         entry.At = now;
         entry.CheckedAt = now;
         entry.Items = ContainerItemSignature.Capture(all);
+        entry.State = state;
         entry.Lines = lines;
         while (Entries.Count > MaxEntries) Entries.RemoveAt(0);
     }

@@ -88,7 +88,7 @@ internal static class StorageInfo
                 catch (Exception ex) { Log.Warn("StorageInfo.ChildItems", ex); }
             }
 
-            bool useGrid = allowGrid && items != null && items.Count > 0 && ContentsGrid.Claim(item, sealedBox: false);
+            bool useGrid = allowGrid && items != null && items.Count > 0 && ContentsGrid.Claim(item, items, sealedBox: false);
             Entry? entry = Find(item, grid, grids.Count, locale, includeRatio, includeContents, useGrid);
 
             if (entry != null && now - entry.At <= CacheSeconds

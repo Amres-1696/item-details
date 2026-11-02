@@ -13,7 +13,9 @@ namespace ItemDetails;
 ///
 /// 设计要点：
 ///   - 认领：<see cref="StorageInfo"/> / <see cref="SealedBoxInfo"/> 构建正文时调用 <see cref="Claim"/>，
-///     返回 true 才把清单缩成摘要；面板在 OverlayHandler.ShowTooltip 后缀里按认领的物品现读现画。
+///     返回 true 才把清单缩成摘要；面板在 OverlayHandler.ShowTooltip 后缀里按认领时交来的内容物画。
+///   - tooltip 每帧重建、ShowTooltip 每帧都会调用：内容物签名没变就不重新分组和建格子，
+///     正文文本没变（原版也据此跳过重排）就沿用上次找到的可见框，只重新定位。
 ///     tooltip 还从没显示过（拿不到字体模板）或面板出过错时不认领，正文保持完整清单。
 ///   - 分组口径与正文一致：按显示名合并，件数累加堆叠数；最多 15 格，超出时最后一格写「+件数」。
 ///   - 图标用物品自己的贴图（GameItemElement.background.image.sprite），不另建图集；
@@ -56,15 +58,18 @@ internal static class ContentsGrid
     private static bool? _slipLoaded;
 
     private static GameItem? _pendingItem;
+    private static List<GameItem>? _pendingItems;
     private static bool _pendingSealed;
     private static float _pendingAt = float.MinValue;
 
-    // 已画好的内容；相同就只重新定位
-    private static readonly List<Cell> Built = new();
+    // 已画好的内容；签名相同就只重新定位
+    private static List<ContainerItemSignature>? _builtItems;
     private static GameItem? _builtItem;
     private static bool _builtSealed;
     private static Transform? _builtParent;
     private static Vector2 _builtSize;
+    private static RectTransform? _box;
+    private static int _boxTextHash;
 
     internal static void Apply()
     {
@@ -106,21 +111,24 @@ internal static class ContentsGrid
         _template = null;
         _broken = false;
         _pendingItem = null;
-        Built.Clear();
+        _pendingItems = null;
+        _builtItems = null;
         _builtItem = null;
         _builtParent = null;
+        _box = null;
     }
 
     /// <summary>由 GetTooltipBasic 前缀调用：新一次构建开始，清掉上一件物品的认领。</summary>
     internal static void Begin()
     {
         _pendingItem = null;
+        _pendingItems = null;
     }
 
     /// <summary>
     /// 正文构建时调用：本次 tooltip 的内容物交给图标格显示。返回 false 时调用方照常输出完整清单。
     /// </summary>
-    internal static bool Claim(GameItem item, bool sealedBox)
+    internal static bool Claim(GameItem item, List<GameItem> items, bool sealedBox)
     {
         try
         {
@@ -130,6 +138,7 @@ internal static class ContentsGrid
             if (!sealedBox && SlipLoaded) return false;        // 未上锁容器让给估价单的内容物面板
 
             _pendingItem = item;
+            _pendingItems = items;
             _pendingSealed = sealedBox;
             _pendingAt = UnityEngine.Time.unscaledTime;
             return true;
@@ -152,7 +161,7 @@ internal static class ContentsGrid
 
     // ---------------- Harmony 回调 ----------------
 
-    private static void AfterShow(OverlayHandler __instance)
+    private static void AfterShow(OverlayHandler __instance, RichText richText)
     {
         try
         {
@@ -164,34 +173,41 @@ internal static class ContentsGrid
             if (_template == null) _template = tooltipRect.GetComponentInChildren<TMP_Text>(true);
 
             var item = _pendingItem;
-            if (item == null || _broken || !ModSettings.ContentsGrid
-                || UnityEngine.Time.unscaledTime - _pendingAt > StaleSeconds)
+            var items = _pendingItems;
+            if (item == null || items == null || items.Count == 0 || _broken || !ModSettings.ContentsGrid
+                || UnityEngine.Time.unscaledTime - _pendingAt > StaleSeconds || _template == null)
             {
                 Hide();
                 return;
             }
 
-            var cells = Group(item, out int total);
-            if (cells == null || cells.Count == 0 || _template == null) { Hide(); return; }
-
             var parent = tooltipRect.parent;
             if (parent == null) { Hide(); return; }
-            var box = FindBox(tooltipRect, _template);
-            if (box == null) { Hide(); return; }
+
+            // 与原版 ShowTooltip 同一判据：文本哈希变了，原版才重排窗口，可见框才需要重找
+            int textHash = richText?.GetHashCode() ?? 0;
+            if (_box == null || textHash != _boxTextHash)
+            {
+                _box = FindBox(tooltipRect, _template);
+                _boxTextHash = textHash;
+            }
+            if (_box == null) { Hide(); return; }
 
             if (_panel == null || _panel.transform.parent != parent || !ReferenceEquals(_builtParent, parent)
-                || !ReferenceEquals(_builtItem, item) || _builtSealed != _pendingSealed || !Same(cells))
+                || !ReferenceEquals(_builtItem, item) || _builtSealed != _pendingSealed
+                || _builtItems == null || !ContainerItemSignature.Matches(_builtItems, items))
             {
-                Build(tooltipRect, box, parent, cells, total, _pendingSealed);
+                var cells = Group(items, out int total);
+                if (cells.Count == 0) { Hide(); return; }
+                Build(tooltipRect, _box, parent, cells, total, _pendingSealed);
                 _builtItem = item;
                 _builtSealed = _pendingSealed;
                 _builtParent = parent;
-                Built.Clear();
-                Built.AddRange(cells);
+                _builtItems = ContainerItemSignature.Capture(items);
             }
 
             if (_panel == null) return;
-            Place(tooltipRect, box, parent);
+            Place(tooltipRect, _box, parent);
             _panel.transform.SetAsLastSibling();
             _panel.SetActive(true);
         }
@@ -216,19 +232,9 @@ internal static class ContentsGrid
 
     // ---------------- 数据 ----------------
 
-    private static List<Cell>? Group(GameItem item, out int total)
+    private static List<Cell> Group(List<GameItem> items, out int total)
     {
         total = 0;
-        // 与正文同一个入口：扩建储藏区的所有标签页一起算
-        List<GameItem>? items = null;
-        try
-        {
-            var grids = StorageInfo.GridStorage(item);
-            if (grids != null) items = StorageInfo.ChildItems(grids);
-        }
-        catch { }
-        if (items == null) return null;
-
         var cells = new List<Cell>();
         var byName = new Dictionary<string, Cell>(StringComparer.Ordinal);
         foreach (var child in items)
@@ -246,18 +252,6 @@ internal static class ContentsGrid
             total += stack;
         }
         return cells;
-    }
-
-    private static bool Same(List<Cell> cells)
-    {
-        if (Built.Count != cells.Count) return false;
-        for (int i = 0; i < cells.Count; i++)
-        {
-            if (Built[i].Name != cells[i].Name || Built[i].Count != cells[i].Count
-                || !ReferenceEquals(Built[i].Item, cells[i].Item))
-                return false;
-        }
-        return true;
     }
 
     // ---------------- 构建 ----------------

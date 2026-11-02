@@ -80,7 +80,7 @@ internal static class SealedBoxInfo
             if (items == null) return lines;
 
             bool useGrid = allowGrid && items.Count > 0 && items.Count <= MaxChildren
-                           && ContentsGrid.Claim(item, sealedBox: true);
+                           && ContentsGrid.Claim(item, items, sealedBox: true);
             Entry? entry = Find(item, grid, locale, useGrid);
 
             if (entry != null && now - entry.At <= CacheSeconds

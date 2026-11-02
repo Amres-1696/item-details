@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using HarmonyLib;
@@ -83,6 +84,19 @@ internal static class ManufacturerInline
         _patched = false;
         _pendingBuilder = null;
         _pendingCompany = "";
+        // 停用后不会再有 SetRichText 回调来还原，已经加过右边距的文本框在这里清回 0
+        foreach (var tmp in Adjusted)
+        {
+            try
+            {
+                if (tmp == null) continue;
+                Vector4 margin = tmp.margin;
+                margin.z = 0f;
+                tmp.margin = margin;
+            }
+            catch { }
+        }
+        Adjusted.Clear();
     }
 
     /// <summary>记录本次原版公司行的文本；不改写 builder，保留原版所有颜色与分支。</summary>
@@ -127,29 +141,42 @@ internal static class ManufacturerInline
     }
 
     /// <summary>
-    /// 每次设置文本后重设右边距：合并过的提示框用「左右内边距之和」把靠右的公司名收回内框，
-    /// 其它提示框一律清零。这样切换物品时不会把上一次的边距残留下来。
+    /// 每次设置文本后重设右边距：合并过的提示框用「左右内边距之和」把靠右的公司名收回内框；
+    /// 之前被本模组改过的文本框换成别的内容时把右边距还原为 0。只动右边距，
+    /// 从没被本模组改过的文本框不碰，其它模组设的边距原样保留。
     /// </summary>
     private static void AfterSetRichText(RichTextElement __instance, RichText richText)
     {
         try
         {
-            object? node = _textNodeField?.GetValue(__instance);
-            if (node == null || _textProp!.GetValue(node) is not TMP_Text tmp) return;
-
             string fg = richText?.richTextForeground ?? "";
             bool ours = fg.IndexOf("<align=right>", StringComparison.Ordinal) >= 0
                         && fg.IndexOf("<line-height=0>", StringComparison.Ordinal) >= 0;
+            if (!ours && Adjusted.Count == 0) return;
+
+            object? node = _textNodeField?.GetValue(__instance);
+            if (node == null || _textProp!.GetValue(node) is not TMP_Text tmp) return;
+            if (!ours && !Adjusted.Remove(tmp)) return;
+
             float right = 0f;
             if (ours)
+            {
                 right = (int)(_leftPadField!.GetValue(__instance) ?? 0) + (int)(_rightPadField!.GetValue(__instance) ?? 0);
+                Adjusted.Add(tmp);
+            }
 
             Vector4 margin = tmp.margin;
-            if (margin.x != 0f || margin.y != 0f || margin.w != 0f || margin.z != right)
-                tmp.margin = new Vector4(0f, 0f, right, 0f);
+            if (margin.z != right)
+            {
+                margin.z = right;
+                tmp.margin = margin;
+            }
         }
         catch (Exception ex) { Log.Warn("ManufacturerInline.Margin", ex); }
     }
+
+    /// <summary>当前右边距由本模组设置的文本框。</summary>
+    private static readonly HashSet<TMP_Text> Adjusted = new();
 
     private static RichText? Inline(RichTextBuilder builder, RichText r, string company)
     {
