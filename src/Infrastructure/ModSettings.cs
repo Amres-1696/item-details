@@ -90,8 +90,8 @@ internal static class ModSettings
     private static readonly Toggle SealedBoxToggle = new(false);         // 带锁容器透视
     private static readonly Toggle ResultPrefillToggle = new(false);     // 鉴定结果预填
 
-    /// <summary>液体组分分析：三档，序号即 <see cref="LiquidMode"/>。</summary>
-    private static readonly Choice LiquidChoice = new(1,
+    /// <summary>液体组分分析：三档，序号即 <see cref="LiquidMode"/>。默认「总是开启」。</summary>
+    private static readonly Choice LiquidChoice = new((int)LiquidMode.Always,
         new[] { "关闭 (Off)", "有扫描器时开启 (With scanner)", "总是开启 (Always)" },
         new[]
         {
