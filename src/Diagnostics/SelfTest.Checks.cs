@@ -701,8 +701,23 @@ internal static partial class SelfTest
             registration = null;
             bool removed = ThirdPartyProviders.Appraisal(item) == null;
 
-            ok = absent && present && removed;
-            return $"appraisal injection: absent={absent} present={present} removed={removed} (期望全部 True)";
+            // 通用信息块接管：只隐藏鉴定价值追加器，注销后同一条原生分解恢复。
+            item.ModifyTag("MOD_ID_TAG", st => st.Enable().SetString("itemdetails_appraisal_section_test"));
+            string totalLine = Loc.T("value.total_line", "Total: {0}", total);
+            string beforeSection = ModEntry.RenderTooltipText(item) ?? "";
+            registration = ItemDetailsApi.RegisterTooltipDisplay("itemdetails_appraisal_section_test",
+                ItemDetailsTooltipSection.ValueBreakdown);
+            string suppressedSection = ModEntry.RenderTooltipText(item) ?? "";
+            registration.Dispose();
+            registration = null;
+            string restoredSection = ModEntry.RenderTooltipText(item) ?? "";
+            bool sectionHidden = beforeSection.Contains(totalLine, StringComparison.Ordinal)
+                && !suppressedSection.Contains(totalLine, StringComparison.Ordinal)
+                && restoredSection.Contains(totalLine, StringComparison.Ordinal);
+
+            ok = absent && present && removed && sectionHidden;
+            return $"appraisal injection: absent={absent} present={present} removed={removed} " +
+                   $"sectionHidden={sectionHidden} (期望全部 True)";
         }
         catch (Exception ex)
         {
@@ -712,6 +727,65 @@ internal static partial class SelfTest
         {
             registration?.Dispose();
             if (item != null) { try { item.Destroy(); } catch { } }
+        }
+    }
+
+    /// <summary>容器不再有文字内容物；第三方组合接管压缩率/性价比后，注销及缓存切换恢复。</summary>
+    private static string CheckTooltipSectionInjection(out bool ok)
+    {
+        ok = false;
+        const string modId = "itemdetails_tooltip_section_test";
+        GameItem? box = null;
+        GameItem? content = null;
+        IDisposable? registration = null;
+        try
+        {
+            box = TryCreate("storage_bay");
+            content = TryCreate("scrap_metal");
+            if (box == null || content == null) return "tooltip section injection: 无法创建样本";
+            OwnAll(box, content);
+            if (GraphUtils.TryAcceptAll(box, content) != 0) return "tooltip section injection: 内容物放入失败";
+            box.ModifyTag("MOD_ID_TAG", st => st.Enable().SetString(modId));
+
+            StorageInfo.Stop();
+            var before = StorageInfo.Collect(box, includeRatio: true, includeContents: true);
+            var textOnly = StorageInfo.Collect(box, includeRatio: false, includeContents: true);
+            bool baseline = before.Count == 1 && textOnly.Count == 0;
+
+            var valueBefore = new RichTextBuilder(60);
+            bool valueBaseline = ValueEnhance.TryWrite(valueBefore, box);
+            registration = ItemDetailsApi.RegisterTooltipDisplay(modId,
+                ItemDetailsTooltipSection.Contents | ItemDetailsTooltipSection.ValueEnhance);
+            var combinedSuppressed = StorageInfo.Collect(box, includeRatio: true, includeContents: true);
+            var valueSuppressed = new RichTextBuilder(60);
+            bool combinedHidden = combinedSuppressed.Count == 0
+                && valueBaseline && !ValueEnhance.TryWrite(valueSuppressed, box);
+            registration.Dispose();
+            registration = null;
+
+            var restored = StorageInfo.Collect(box, includeRatio: true, includeContents: true);
+            var valueRestored = new RichTextBuilder(60);
+            bool storageRestored = restored.Count == 1 && ValueEnhance.TryWrite(valueRestored, box);
+
+            box.EnableTag("LOCKED_CONTAINER_TAG");
+            box.ModifyTag("LOCK_ID", st => st.Enable().SetString("LOCK_ID_SEC"));
+            box.ModifyTag("LOCK_STATUS", st => st.Enable().SetBool(true));
+            bool sealedTextSilent = SealedBoxInfo.Collect(box).Count == 0;
+
+            ok = baseline && combinedHidden && storageRestored && sealedTextSilent;
+            return $"tooltip section injection: baseline={baseline} combinedHidden={combinedHidden} " +
+                   $"storageRestored={storageRestored} sealedTextSilent={sealedTextSilent} (期望全部 True)";
+        }
+        catch (Exception ex)
+        {
+            return "tooltip section injection: 异常 " + ex.GetType().Name + " - " + ex.Message;
+        }
+        finally
+        {
+            registration?.Dispose();
+            StorageInfo.Stop();
+            if (content != null) { try { content.Destroy(); } catch { } }
+            if (box != null) { try { box.Destroy(); } catch { } }
         }
     }
 
@@ -791,7 +865,7 @@ internal static partial class SelfTest
     }
 
     /// <summary>
-    /// 上锁容器不能被“容器信息”路径展示；密封箱模块仍应能独立读到内容。
+    /// 上锁容器不能被“容器信息”路径展示；密封箱采集器也不再生成文字内容物。
     /// 直接造一个带内容的安全箱并上锁，分别跑两个采集器和完整 tooltip。
     /// </summary>
     private static string CheckLockedContainerGating(out bool ok)
@@ -821,13 +895,13 @@ internal static partial class SelfTest
             string contains = Loc.T("storage.contains", "Contains: ");
             bool tooltipLeak = contains.Length > 0 && text.Contains(contains, StringComparison.Ordinal);
             bool leaked = storage.Count > 0 || tooltipLeak;
-            bool sealedHasContent = sealedLines.Count > 0;
+            bool sealedTextSilent = sealedLines.Count == 0;
             bool contentAdded = remaining == 0
                 && ReferenceEquals(content.parentInventory, safe.contentWindow?.child);
 
-            ok = !leaked && sealedHasContent && contentAdded;
-            return $"locked container gate: remaining={remaining} inserted={contentAdded} storage={storage.Count} sealed={sealedLines.Count} " +
-                   $"tooltipLeak={tooltipLeak} (期望 0/True/0/>0/False)";
+            ok = !leaked && sealedTextSilent && contentAdded;
+            return $"locked container gate: remaining={remaining} inserted={contentAdded} storage={storage.Count} " +
+                   $"sealedTextSilent={sealedTextSilent} tooltipLeak={tooltipLeak} (期望 0/True/0/True/False)";
         }
         catch (Exception ex)
         {
@@ -837,77 +911,6 @@ internal static partial class SelfTest
         {
             if (content != null) { try { content.Destroy(); } catch { } }
             if (safe != null) { try { safe.Destroy(); } catch { } }
-        }
-    }
-
-    /// <summary>
-    /// 容器缓存必须识别堆叠变化和同数量替换；密封箱完整估价不带加号，
-    /// 遇到只计数不计价的嵌套容器时，总价必须用“+”表示仍有未计入部分。
-    /// </summary>
-    private static string CheckContainerCacheRefresh(out bool ok)
-    {
-        ok = false;
-        GameItem? box = null;
-        GameItem? content = null;
-        GameItem? nested = null;
-        try
-        {
-            // 嵌套样本用工具箱：可嵌套设备，且自带 contentWindow，按"只计数不计价"处理。
-            box = TryCreate("storage_bay");
-            content = TryCreate("scrap_metal");
-            nested = TryCreate("toolbox");
-            if (box == null || content == null || nested == null)
-                return "container cache refresh: 无法创建样本";
-            OwnAll(box, content, nested);
-
-            // TryAcceptAll 返回的是没放进去的剩余数量
-            if (GraphUtils.TryAcceptAll(box, content) != 0) return "container cache refresh: 内容物放入失败";
-
-            StorageInfo.Stop();
-            _ = StorageInfo.Collect(box, includeRatio: false, includeContents: true);
-            content.unitCount = 2;
-            var stacked = StorageInfo.Collect(box, includeRatio: false, includeContents: true);
-            string stackedText = string.Join("\n", stacked.ConvertAll(l => l.Text));
-            bool stackRefreshed = stackedText.Contains("×2", StringComparison.Ordinal);
-
-            box.EnableTag("LOCKED_CONTAINER_TAG");
-            box.ModifyTag("LOCK_ID", st => st.Enable().SetString("LOCK_ID_SEC"));
-            box.ModifyTag("LOCK_STATUS", st => st.Enable().SetBool(true));
-            SealedBoxInfo.Stop();
-            var complete = SealedBoxInfo.Collect(box);
-            // 合计写在清单行开头：「箱内（合计 140+）：…」，按模板里 {0} 与 {1} 之间的文字定位加号
-            string t = Loc.T("sealed.contents_total", "Inside (total {0}): {1}{2}", "\u0001", "\u0002", "");
-            int i0 = t.IndexOf('\u0001'), i1 = t.IndexOf('\u0002');
-            string totalHead = i0 > 0 ? t.Substring(0, i0) : "\u0001";
-            string plusMark = "+" + (i1 > i0 && i0 >= 0 ? t.Substring(i0 + 1, i1 - i0 - 1) : "\u0001");
-            string completeTotal = complete.Count > 0 ? complete[0].Text : "";
-            bool completeHasNoPlus = completeTotal.StartsWith(totalHead, StringComparison.Ordinal)
-                && !completeTotal.Contains(plusMark, StringComparison.Ordinal);
-
-            var grid = box.contentWindow?.child as GameGridInventory;
-            bool removed = grid != null && grid.Expel(content);
-            bool nestedAdded = removed && GraphUtils.TryAcceptAll(box, nested) == 0;
-            var partial = SealedBoxInfo.Collect(box);
-            string partialTotal = partial.Count > 0 ? partial[0].Text : "";
-            bool replacementRefreshed = partialTotal.Contains(plusMark, StringComparison.Ordinal)
-                && partial.Exists(l => l.Text.Contains(
-                    ContainerItemSignature.DisplayName(nested), StringComparison.Ordinal));
-
-            ok = stackRefreshed && completeHasNoPlus && nestedAdded && replacementRefreshed;
-            return $"container cache refresh: stack={stackRefreshed} completeNoPlus={completeHasNoPlus} " +
-                   $"nestedAdded={nestedAdded} replacementPlus={replacementRefreshed} (期望 True/True/True/True)";
-        }
-        catch (Exception ex)
-        {
-            return "container cache refresh: 异常 " + ex.GetType().Name + " - " + ex.Message;
-        }
-        finally
-        {
-            StorageInfo.Stop();
-            SealedBoxInfo.Stop();
-            if (content != null) { try { content.Destroy(); } catch { } }
-            if (nested != null) { try { nested.Destroy(); } catch { } }
-            if (box != null) { try { box.Destroy(); } catch { } }
         }
     }
 
@@ -1020,7 +1023,9 @@ internal static partial class SelfTest
     private static string CheckMachineInterior(out bool ok)
     {
         ok = false;
+        const string contentsModId = "itemdetails_machine_contents_test";
         GameItem? custom = null, bare = null, scrap = null, pitcher = null, filter = null;
+        IDisposable? contentsRegistration = null;
         try
         {
             const string label = "SelfTestHopper";
@@ -1061,10 +1066,27 @@ internal static partial class SelfTest
             bool filterSpent = HasLine(pitcherLines, ContainerItemSignature.DisplayName(filter))
                 && HasLine(pitcherLines, spent);
 
-            ok = remaining == 0 && filterRemaining == 0 && listed && noBattery && bareSilent && filterSpent;
+            // 接管只隐藏通用清单：自定义机器变空，水壶的滤芯状态仍保留；注销后清单恢复。
+            custom.ModifyTag("MOD_ID_TAG", st => st.Enable().SetString(contentsModId));
+            pitcher.ModifyTag("MOD_ID_TAG", st => st.Enable().SetString(contentsModId));
+            contentsRegistration = ItemDetailsApi.RegisterContentsDisplay(contentsModId);
+            var customSuppressed = MachineInterior.Collect(custom, true, true, true, false);
+            var pitcherSuppressed = MachineInterior.Collect(pitcher, true, true, true, false);
+            bool contentsHidden = customSuppressed.Count == 0;
+            bool summaryKept = HasLine(pitcherSuppressed, ContainerItemSignature.DisplayName(filter))
+                && HasLine(pitcherSuppressed, spent);
+            contentsRegistration.Dispose();
+            contentsRegistration = null;
+            var customRestored = MachineInterior.Collect(custom, true, true, true, false);
+            bool contentsRestored = HasLine(customRestored, label)
+                && HasLine(customRestored, ContainerItemSignature.DisplayName(scrap));
+
+            ok = remaining == 0 && filterRemaining == 0 && listed && noBattery && bareSilent && filterSpent
+                && contentsHidden && summaryKept && contentsRestored;
             string Join(List<TooltipLine> ls) => string.Join(" | ", ls.ConvertAll(l => l.Text));
             return $"machine interior: remaining={remaining}/{filterRemaining} listed={listed} noBattery={noBattery} " +
-                   $"bareSilent={bareSilent} filterSpent={filterSpent} (期望 0/0/True/True/True/True) " +
+                   $"bareSilent={bareSilent} filterSpent={filterSpent} contentsHidden={contentsHidden} " +
+                   $"summaryKept={summaryKept} contentsRestored={contentsRestored} (期望全部通过) " +
                    $"custom='{Join(customLines)}' pitcher='{Join(pitcherLines)}'";
         }
         catch (Exception ex)
@@ -1073,6 +1095,7 @@ internal static partial class SelfTest
         }
         finally
         {
+            contentsRegistration?.Dispose();
             MachineInterior.Stop();
             foreach (var it in new[] { scrap, filter, custom, bare, pitcher })
                 if (it != null) { try { it.Destroy(); } catch { } }

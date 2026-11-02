@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace ItemDetails;
 
@@ -8,7 +9,9 @@ internal static class ThirdPartyProviders
 {
     private static readonly Dictionary<string, ItemDetailsAppraisalProvider> Appraisals = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, ItemDetailsMachineEffectProvider> Machines = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, TooltipEntry> TooltipDisplays = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, PurifierEntry> Purifiers = new(StringComparer.Ordinal);
+    private static Func<RectTransform?>? TooltipAnchorProvider;
 
     internal static IDisposable RegisterAppraisal(string id, ItemDetailsAppraisalProvider provider)
     {
@@ -26,6 +29,42 @@ internal static class ThirdPartyProviders
         if (Machines.ContainsKey(id)) throw new InvalidOperationException($"Machine effect provider already registered: {id}");
         Machines.Add(id, provider);
         return new Subscription(() => Remove(Machines, id, provider));
+    }
+
+    internal static IDisposable RegisterTooltip(string id, ItemDetailsTooltipSection sections)
+    {
+        id = Required(id, nameof(id));
+        if (sections == ItemDetailsTooltipSection.None)
+            throw new ArgumentException("At least one tooltip section is required.", nameof(sections));
+        if ((sections & ~ItemDetailsTooltipSection.All) != 0)
+            throw new ArgumentOutOfRangeException(nameof(sections));
+        if (TooltipDisplays.ContainsKey(id))
+            throw new InvalidOperationException($"Tooltip display already registered: {id}");
+        var entry = new TooltipEntry(sections);
+        TooltipDisplays.Add(id, entry);
+        return new Subscription(() => Remove(TooltipDisplays, id, entry));
+    }
+
+    internal static IDisposable RegisterTooltipAnchor(Func<RectTransform?> provider)
+    {
+        if (provider == null) throw new ArgumentNullException(nameof(provider));
+        if (TooltipAnchorProvider != null)
+            throw new InvalidOperationException("A tooltip anchor provider is already registered.");
+        TooltipAnchorProvider = provider;
+        return new Subscription(() =>
+        {
+            if (ReferenceEquals(TooltipAnchorProvider, provider)) TooltipAnchorProvider = null;
+        });
+    }
+
+    internal static bool TryTooltipAnchor(out RectTransform? anchor)
+    {
+        anchor = null;
+        var provider = TooltipAnchorProvider;
+        if (provider == null) return false;
+        try { anchor = provider(); }
+        catch { return false; }
+        return anchor != null;
     }
 
     internal static IDisposable RegisterPurifier(string id, ItemDetailsPurifierKind kind)
@@ -48,6 +87,28 @@ internal static class ThirdPartyProviders
             PurifySources.Invalidate();
         });
     }
+
+    /// <summary>该物品被第三方接管的信息块；没有注册或读取失败时不隐藏任何信息。</summary>
+    internal static ItemDetailsTooltipSection TooltipSuppressions(GameItem item)
+    {
+        if (TooltipDisplays.Count == 0) return ItemDetailsTooltipSection.None;
+        try
+        {
+            // 与 ModSourceHelper.GetItemModName 同一来源顺序：显式标签优先，其次物品工厂所属 Mod。
+            string? id = GameRead.TagString(item, "MOD_ID_TAG");
+            if (string.IsNullOrEmpty(id))
+            {
+                var factory = DirectoryMaster.GetFactory<GameItem>(item.identifier);
+                id = ModSourceHelper.FindModByDelegate(factory)?.Manifest?.ID;
+            }
+            return !string.IsNullOrEmpty(id) && TooltipDisplays.TryGetValue(id, out var entry)
+                ? entry.Sections : ItemDetailsTooltipSection.None;
+        }
+        catch { return ItemDetailsTooltipSection.None; }
+    }
+
+    internal static bool HandlesTooltip(GameItem item, ItemDetailsTooltipSection section)
+        => (TooltipSuppressions(item) & section) != 0;
 
     internal static bool TryPurifier(string id, out PurifySources.Kind kind)
     {
@@ -126,6 +187,12 @@ internal static class ThirdPartyProviders
     private static void Remove<T>(Dictionary<string, T> registry, string id, T provider) where T : class
     {
         if (registry.TryGetValue(id, out var current) && ReferenceEquals(current, provider)) registry.Remove(id);
+    }
+
+    private sealed class TooltipEntry
+    {
+        internal readonly ItemDetailsTooltipSection Sections;
+        internal TooltipEntry(ItemDetailsTooltipSection sections) => Sections = sections;
     }
 
     private sealed class PurifierEntry

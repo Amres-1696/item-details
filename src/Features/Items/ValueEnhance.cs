@@ -56,6 +56,7 @@ internal static class ValueEnhance
     internal static bool Applies(GameItem? item)
     {
         if (item == null || !ModSettings.ValueEnhance) return false;
+        if (ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.ValueEnhance)) return false;
         if (GameRead.IsTag(item, "APPRAISAL_ITEM")) return false;
         try { if (item.IsTag("LIQUID_CONTAINER_TAG")) return false; }
         catch { }

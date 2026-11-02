@@ -109,11 +109,13 @@ internal static class MachineInterior
     /// <param name="adapters">专门适配：剩余几天、用水、冷藏、陈化（「信息增强」开关）。</param>
     /// <param name="hiddenTruth">滤芯显示真实耐久（「透视」开关）；关闭时与物品自身 tooltip 一致。</param>
     /// <param name="purity">液体容器附带水质纯度。</param>
+    /// <param name="listContents">是否输出最后的通用内容物清单；不影响滤芯、液体等状态摘要。</param>
     internal static List<TooltipLine> Collect(GameItem? item, bool listing, bool adapters,
-                                              bool hiddenTruth, bool purity)
+                                              bool hiddenTruth, bool purity, bool listContents = true)
     {
         var lines = new List<TooltipLine>();
         if (item == null || (!listing && !adapters)) return lines;
+        listContents &= !ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.Contents);
 
         string key = KindKey(item);
         if (Failures.TryGetValue(key, out int failed) && failed >= FailureLimit) return lines;
@@ -122,7 +124,8 @@ internal static class MachineInterior
         {
             if (LockedContainer.IsLocked(item)) return lines;
 
-            int flags = (listing ? 1 : 0) | (adapters ? 2 : 0) | (hiddenTruth ? 4 : 0) | (purity ? 8 : 0);
+            int flags = (listing ? 1 : 0) | (adapters ? 2 : 0) | (hiddenTruth ? 4 : 0) | (purity ? 8 : 0)
+                        | (listContents ? 16 : 0);
             string locale = Loc.Code;
             float now = UnityEngine.Time.unscaledTime;
 
@@ -156,7 +159,7 @@ internal static class MachineInterior
                 clean &= Stage(key, "Liquids", () => SummarizeLiquids(ctx, built, purity));
                 clean &= Stage(key, "Tools", () => SummarizeTools(ctx, built));
                 clean &= Stage(key, "Batteries", () => SummarizeBatteries(ctx, built));
-                clean &= Stage(key, "List", () => ListRemaining(ctx, built));
+                if (listContents) clean &= Stage(key, "List", () => ListRemaining(ctx, built));
             }
 
             Store(item, locale, flags, now, all, state, built, entry);

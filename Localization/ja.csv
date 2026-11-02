@@ -106,22 +106,15 @@ ribwich.reason_year_range,製造年 {0} は 425-429/432-438 外
 scratcher.no_prize,スクラッチカード：はずれ
 scratcher.progress_part,、削り済み {0}/3
 scratcher.win,スクラッチカード：当たり {0}（{1}個一致）
-sealed.contents,中身: {0}{1}
-sealed.empty,中身: 空
-sealed.more," …計{0}点"
-sealed.contents_total,中身(価値{0}): {1}{2}
-sealed.summary,中身: {0}種 {1}点
-sealed.summary_total,中身(価値{0}): {1}種 {2}点
-sealed.count,{0}[{1}]
 seed.line,形質（未分析）：{0}
 seed.more,…ほか {0} 件
 seed.trait_rank,{0}（ランク {1}）
 storage.contains,中身：
-storage.summary,中身：{0}種 {1}点
 storage.more_kinds," など計{0}種"
 storage.ratio,圧縮率：{0}（{1}/{2} マス）
 grid.title,中身 {0}
 grid.title_sealed,中身 {0}
+grid.title_sealed_value,中身 {0}（推定価値 {1}）
 title.appraisal_suffix,{0} 定価{1}、最良提示{2}
 value.from,出所：
 value.cost_perf,コスパ：{0}
@@ -169,9 +162,16 @@ config.valuation.tip,鑑定アイテムの真の価値の内訳と完璧な価�
 config.cost_performance,マス単価
 config.cost_performance.tip,1マスあたりの価値とコンテナの圧縮率を表示します。
 config.container_contents,コンテナ内容
-config.container_contents.tip,"ロックされていないコンテナの中身を表示し、合計価値は別途表示しません。"
+config.container_contents.tip,ロックされていないコンテナの中身を別ウィンドウのアイコンで表示します。
+config.section.info,アイテム情報強化
 config.info_enhance,追加アイテム情報
-config.info_enhance.tip,ラベルやモジュールの効果、バッテリー残量、市場補正、宝くじの結果、説明文の淡色表示、分かりやすい価格表記など、アイテムに応じた情報を追加します。 ワインのスコアと成分も表示します。
+config.info_enhance.tip,このセクションの総合スイッチです。オフにすると、アイテム情報強化の全機能が無効になります。
+config.tooltip_formatting,ツールチップ文章の整形
+config.tooltip_formatting.tip,価格表記、説明文の折り返し、液量単位、カロリー注記、価格ブロックの間隔を最適化します。オフで原版のレイアウトを維持します。
+config.water_warmup,水質プローブの事前準備
+config.water_warmup.tip,セーブデータ読み込み時に水質計算プローブを事前作成し、初回ホバー時の遅延を防ぎます。追加情報は表示しません。
+config.water_localization_fix,水質ローカライズ修正
+config.water_localization_fix.tip,他Modの早期パッチによって誤った言語で固定された水質ランク文字列を修復します。Mod有効化時またはゲーム再起動時に適用されます。
 config.type_badge,アイテム分類バッジ
 config.type_badge.tip,"ツールチップ上部にアイテム分類を表示します。"
 config.type_badge_muted,バッジの色を控えめに

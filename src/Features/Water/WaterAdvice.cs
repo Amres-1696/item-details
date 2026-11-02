@@ -911,6 +911,7 @@ internal static class WaterWarmupPatch
         // 场景里的 UI 节点已经更换：旧壳不能继续池化，先清理再按当前拥有物预热。
         try { WaterAdvice.Stop(); }
         catch (Exception ex) { Log.Warn("WaterWarmup.Reset", ex); }
+        if (!ModSettings.WaterWarmupEnabled) return;
         try { WaterAdvice.PrewarmOwned(); }
         catch (Exception ex) { Log.Warn("WaterWarmup.AfterStart", ex); }
     }

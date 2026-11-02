@@ -106,22 +106,15 @@ ribwich.reason_year_range,Rok {0} poza 425-429 / 432-438
 scratcher.no_prize,Zdrapka: bez nagrody
 scratcher.progress_part,", zdrapano {0}/3"
 scratcher.win,Zdrapka: wygrana {0} ({1} zgodnych)
-sealed.contents,W środku: {0}{1}
-sealed.empty,W środku: pusto
-sealed.more," …łącznie {0} szt."
-sealed.contents_total,W środku (wartość {0}): {1}{2}
-sealed.summary,"W środku: {0} rodz., {1} szt."
-sealed.summary_total,"W środku (wartość {0}): {1} rodz., {2} szt."
-sealed.count,{0}[{1}]
 seed.line,Cechy (niezbadane): {0}
 seed.more,... i jeszcze {0}
 seed.trait_rank,{0} (ranga {1})
 storage.contains,"Zawiera: "
-storage.summary,"Zawiera: {0} rodz., {1} szt."
 storage.more_kinds," ... łącznie rodzajów: {0}"
 storage.ratio,Kompresja: {0} ({1}/{2} {2|kratka|kratki|kratek})
 grid.title,Zawartość {0}
 grid.title_sealed,W środku {0}
+grid.title_sealed_value,W środku {0} (szac. {1})
 title.appraisal_suffix,"{0} cena {1}, najlepsza oferta {2}"
 value.from,"Źródło: "
 value.cost_perf,Wartość na kratkę: {0}
@@ -169,9 +162,16 @@ config.valuation.tip,Pokazuje rozbicie prawdziwej wartości i idealny przedział
 config.cost_performance,Wartość na kratkę
 config.cost_performance.tip,Pokazuje wartość na kratkę ekwipunku i stopień kompresji pojemników.
 config.container_contents,Zawartość pojemnika
-config.container_contents.tip,"Wyświetla zawartość odblokowanych pojemników bez osobnej łącznej wartości."
+config.container_contents.tip,Pokazuje zawartość odblokowanych pojemników w osobnym oknie ikon.
+config.section.info,Informacje o przedmiotach
 config.info_enhance,Dodatkowe informacje
-config.info_enhance.tip,"Dodaje szczegóły zależne od przedmiotu: działanie etykiet i modułów, energię baterii, modyfikatory rynkowe, wyniki loterii, przygaszone opisy i czytelniejsze oznaczenia cen. Pokazuje też ocenę i skład wina."
+config.info_enhance.tip,Główny przełącznik tej sekcji. Wyłącza wszystkie funkcje informacji o przedmiotach.
+config.tooltip_formatting,Formatowanie tekstu podpowiedzi
+config.tooltip_formatting.tip,Czytelniejsze ceny, zawijanie opisów, jednostki objętości, adnotacje kalorii i odstępy bloku ceny. Wyłącz, aby zachować oryginalny układ tekstu.
+config.water_warmup,Wstępne przygotowanie sond wody
+config.water_warmup.tip,Tworzy sondy obliczeń wody podczas wczytywania zapisu, aby uniknąć opóźnienia przy pierwszej podpowiedzi. Nie wyświetla dodatkowych informacji.
+config.water_localization_fix,Naprawa lokalizacji wody
+config.water_localization_fix.tip,Naprawia teksty poziomów wody zamrożone w niewłaściwym języku przez wczesne poprawki innych modów. Stosowane przy włączeniu moda lub ponownym uruchomieniu gry.
 config.type_badge,Plakietki kategorii
 config.type_badge.tip,"Pokazuje kategorie przedmiotu nad podpowiedzią."
 config.type_badge_muted,Stonowane kolory plakietek

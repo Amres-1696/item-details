@@ -13,6 +13,7 @@ namespace ItemDetails;
 ///   "显示内容"   —— tooltip 里补充的客观信息，同一件事只留一个开关
 ///   "顾客提示"   —— 顾客维度的提示
 ///   "透视"       —— 揭示本应靠鉴定/分析才能知道的东西（会降低难度）
+///   "信息增强"   —— 位于透视之后；原信息增强为总开关，物品信息与外观子项独立控制
 ///   "交互与外观" —— 操作方式与视觉权重
 ///
 /// 拆分过的项（旧值迁移到全部新键，见 <see cref="MigrateLegacyAppraisalToggle"/>）：
@@ -60,6 +61,8 @@ internal static class ModSettings
     private const string SecDisplayEn = "Display";
     private const string SecRevealKey = "config.section.reveal";
     private const string SecRevealEn = "Reveal";
+    private const string SecInfoKey = "config.section.info";
+    private const string SecInfoEn = "Item Info";
     private const string SecInteractionKey = "config.section.interaction";
     private const string SecInteractionEn = "Controls";
 
@@ -71,7 +74,10 @@ internal static class ModSettings
     // ---- 显示优化 ----
     private static readonly Toggle CostPerformanceToggle = new(true);    // 性价比 + 压缩率
     private static readonly Toggle ContainerContentsToggle = new(true);  // 容器内容
-    private static readonly Toggle InfoEnhanceToggle = new(true);        // 标签/模块/电池/黑市/彩票/描述/价格
+    private static readonly Toggle InfoEnhanceToggle = new(true);        // 信息增强组总开关
+    private static readonly Toggle TooltipFormattingToggle = new(true);  // 价格/描述/液量等文字与间距优化
+    private static readonly Toggle WaterWarmupToggle = new(true);        // 存档加载时预建水质探针
+    private static readonly Toggle WaterLocalizationFixToggle = new(true); // 语言就绪后的水质静态表修复
     private static readonly Toggle TypeBadgeToggle = new(true);          // tooltip 上方分类标签
     private static readonly Toggle TypeBadgeMutedToggle = new(false);    // 非违禁标签淡化配色
     private static readonly Toggle ContainerNameToggle = new(false);     // 容器和机器外显文本
@@ -122,38 +128,6 @@ internal static class ModSettings
             Sections.Clear();
 
             // ================= 显示优化 =================
-            CostPerformanceToggle.Define(_cfg, "show_cost_performance", SecDisplayKey, SecDisplayEn,
-                Text("config.cost_performance", "Value per Cell"),
-                Text("config.cost_performance.tip", "Shows value per inventory cell and the compression ratio of containers."));
-
-            ContainerContentsToggle.Define(_cfg, "show_container_contents", SecDisplayKey, SecDisplayEn,
-                Text("config.container_contents", "Container Contents"),
-                Text("config.container_contents.tip", "Lists unlocked container contents; no separate total value."));
-
-            InfoEnhanceToggle.Define(_cfg, "show_info_enhance", SecDisplayKey, SecDisplayEn,
-                Text("config.info_enhance", "Extra Item Info"),
-                Text("config.info_enhance.tip", "Adds item-specific details such as label and module effects, battery " +
-                     "life, market modifiers, lottery results, dimmed descriptions and clearer price labels."));
-
-            TypeBadgeToggle.Define(_cfg, "show_type_badge", SecDisplayKey, SecDisplayEn,
-                Text("config.type_badge", "Item Type Badges"),
-                Text("config.type_badge.tip", "Shows the item's categories above the tooltip."));
-
-            TypeBadgeMutedToggle.Define(_cfg, "mute_type_badge_colors", SecDisplayKey, SecDisplayEn,
-                Text("config.type_badge_muted", "Muted Badge Colors"),
-                Text("config.type_badge_muted.tip", "Non-contraband badges use the tooltip's dark background and a " +
-                     "brightened category color. Contraband keeps its red warning text."));
-
-            ContainerNameToggle.Define(_cfg, "show_container_name_display", SecDisplayKey, SecDisplayEn,
-                Text("config.container_name", "Container & Machine Labels"),
-                Text("config.container_name.tip", "Shows the name at the bottom of container and machine icons."));
-
-            // 有范围的 int 条目，面板渲染成整数滑条。
-            _nameBgOpacity = _cfg.Define("container_name_bg_opacity", DefaultNameBgOpacity, SecDisplayEn,
-                Text("config.container_name_bg", "Label Background"), 0, 100,
-                Text("config.container_name_bg.tip", "Opacity of the black background behind the label (0–100%). " +
-                     "At 0 there is no background."));
-
             CustomerHistoryToggle.Define(_cfg, "show_customer_history", SecDisplayKey, SecDisplayEn,
                 Text("config.customer_history", "Customer Dialogue on Hover"),
                 Text("config.customer_history.tip", "Hover a customer in the store to see what was said during this " +
@@ -227,6 +201,53 @@ internal static class ModSettings
                 Text("config.result_prefill_source.tip",
                      "True value fills the game's real value; best offer fills the top of the perfect range. " +
                      "Same rule the tooltip shows."));
+
+            // ================= 信息增强（透视组之后） =================
+            InfoEnhanceToggle.Define(_cfg, "show_info_enhance", SecInfoKey, SecInfoEn,
+                Text("config.info_enhance", "Extra Item Info"),
+                Text("config.info_enhance.tip", "Master switch for this section. Disable it to turn off every item-info feature."));
+
+            CostPerformanceToggle.Define(_cfg, "show_cost_performance", SecInfoKey, SecInfoEn,
+                Text("config.cost_performance", "Value per Cell"),
+                Text("config.cost_performance.tip", "Shows value per inventory cell and the compression ratio of containers."));
+
+            ContainerContentsToggle.Define(_cfg, "show_container_contents", SecInfoKey, SecInfoEn,
+                Text("config.container_contents", "Container Contents"),
+                Text("config.container_contents.tip", "Shows unlocked container contents in the separate icon window."));
+
+            TooltipFormattingToggle.Define(_cfg, "tooltip_text_formatting", SecInfoKey, SecInfoEn,
+                Text("config.tooltip_formatting", "Tooltip Text Formatting"),
+                Text("config.tooltip_formatting.tip", "Clearer price labels, wrapped descriptions, liquid volume units, " +
+                     "calorie annotations and price-block spacing. Disable to preserve the vanilla text layout."));
+
+            TypeBadgeToggle.Define(_cfg, "show_type_badge", SecInfoKey, SecInfoEn,
+                Text("config.type_badge", "Item Type Badges"),
+                Text("config.type_badge.tip", "Shows the item's categories above the tooltip."));
+
+            TypeBadgeMutedToggle.Define(_cfg, "mute_type_badge_colors", SecInfoKey, SecInfoEn,
+                Text("config.type_badge_muted", "Muted Badge Colors"),
+                Text("config.type_badge_muted.tip", "Non-contraband badges use the tooltip's dark background and a " +
+                     "brightened category color. Contraband keeps its red warning text."));
+
+            ContainerNameToggle.Define(_cfg, "show_container_name_display", SecInfoKey, SecInfoEn,
+                Text("config.container_name", "Container & Machine Labels"),
+                Text("config.container_name.tip", "Shows the name at the bottom of container and machine icons."));
+
+            // 有范围的 int 条目，面板渲染成整数滑条。
+            _nameBgOpacity = _cfg.Define("container_name_bg_opacity", DefaultNameBgOpacity, SecInfoEn,
+                Text("config.container_name_bg", "Label Background"), 0, 100,
+                Text("config.container_name_bg.tip", "Opacity of the black background behind the label (0–100%). " +
+                     "At 0 there is no background."));
+
+            WaterWarmupToggle.Define(_cfg, "water_probe_prewarm", SecInfoKey, SecInfoEn,
+                Text("config.water_warmup", "Water Probe Prewarm"),
+                Text("config.water_warmup.tip", "Creates water-calculation probes when a save loads to avoid the first " +
+                     "tooltip's creation cost. This only warms up data and shows no extra information."));
+
+            WaterLocalizationFixToggle.Define(_cfg, "water_localization_fix", SecInfoKey, SecInfoEn,
+                Text("config.water_localization_fix", "Water Localization Fix"),
+                Text("config.water_localization_fix.tip", "Repairs water-tier text frozen in the wrong language by other " +
+                     "mods' early patches. Applied when the mod is enabled or the game restarts."));
 
             MigrateLegacyAppraisalToggle();
             MigrateLegacyNameBgToggle();
@@ -393,6 +414,7 @@ internal static class ModSettings
     {
         (SecDisplayEn, SecDisplayKey),
         (SecRevealEn, SecRevealKey),
+        (SecInfoEn, SecInfoKey),
         (SecInteractionEn, SecInteractionKey),
     };
 
@@ -471,16 +493,19 @@ internal static class ModSettings
     internal static bool Value => ValuationToggle.Value;
     internal static bool Plant => AuthenticityToggle.Value;
     internal static bool InfoEnhance => InfoEnhanceToggle.Value;
-    internal static bool ValueEnhance => CostPerformanceToggle.Value;
-    internal static bool Container => ContainerContentsToggle.Value;
-    internal static bool ContentsGrid => true;   // 图标格常开，默认按图标显示内容物
-    internal static bool ModuleEffects => InfoEnhanceToggle.Value;
-    internal static bool MachineBattery => InfoEnhanceToggle.Value;
-    internal static bool PriceImpact => InfoEnhanceToggle.Value;
-    internal static bool Contraband => InfoEnhanceToggle.Value;
-    internal static bool Lottery => InfoEnhanceToggle.Value;
-    internal static bool HideEstimate => InfoEnhanceToggle.Value;
-    internal static bool DimDescription => InfoEnhanceToggle.Value;
+    internal static bool ValueEnhance => InfoEnhance && CostPerformanceToggle.Value;
+    internal static bool Container => InfoEnhance && ContainerContentsToggle.Value;
+    internal static bool ContentsGrid => Container || SealedBox;
+    internal static bool TooltipFormatting => InfoEnhance && TooltipFormattingToggle.Value;
+    internal static bool WaterWarmupEnabled => InfoEnhance && WaterWarmupToggle.Value;
+    internal static bool WaterLocalizationFix => InfoEnhance && WaterLocalizationFixToggle.Value;
+    internal static bool ModuleEffects => InfoEnhance;
+    internal static bool MachineBattery => InfoEnhance;
+    internal static bool PriceImpact => InfoEnhance;
+    internal static bool Contraband => InfoEnhance;
+    internal static bool Lottery => InfoEnhance;
+    internal static bool HideEstimate => TooltipFormatting;
+    internal static bool DimDescription => TooltipFormatting;
     internal static bool CustomerAlert => CustomerAlertToggle.Value;
     internal static bool CustomerHistory => CustomerHistoryToggle.Value;
     internal static bool HiddenTruth => HiddenTruthToggle.Value;
@@ -488,6 +513,11 @@ internal static class ModSettings
     internal static bool Scratcher => ScratcherToggle.Value;
     internal static bool SealedBox => SealedBoxToggle.Value;
     internal static bool ResultPrefill => ResultPrefillToggle.Value;
+
+    /// <summary>是否还有任何玩家功能生效；全部关闭时渲染器与后台能力按未启用处理。</summary>
+    internal static bool AnyEnabled => InfoEnhance || CustomerHistory || DoubleClickInspect || DoubleClickScan
+        || ContextMenuScan || AuthenticityToggle.Value || ValuationToggle.Value || CustomerAlert
+        || HiddenTruth || Scratcher || SealedBox || ResultPrefill || LiquidChoice.Index != (int)LiquidMode.Off;
 
     /// <summary>液体组分分析的三档。显示与否还要过 <see cref="LiquidGate"/>（“有扫描器”要查拥有关系）。</summary>
     internal enum LiquidMode
@@ -523,11 +553,11 @@ internal static class ModSettings
     internal static bool DoubleClickInspect => DoubleClickInspectToggle.Value;
     internal static bool DoubleClickScan => DoubleClickScanToggle.Value;
     internal static bool ContextMenuScan => ContextMenuScanToggle.Value;
-    internal static bool TypeBadge => TypeBadgeToggle.Value;
+    internal static bool TypeBadge => InfoEnhance && TypeBadgeToggle.Value;
     internal static bool TypeBadgeMuted => TypeBadgeMutedToggle.Value;
-    internal static bool BlockProgressBar => InfoEnhanceToggle.Value;
-    internal static bool ManufacturerInline => InfoEnhanceToggle.Value;
-    internal static string ItemNameMode => ContainerNameToggle.Value ? "容器名 (Containers)" : "无 (Off)";
+    internal static bool BlockProgressBar => InfoEnhance;
+    internal static bool ManufacturerInline => InfoEnhance;
+    internal static string ItemNameMode => InfoEnhance && ContainerNameToggle.Value ? "容器名 (Containers)" : "无 (Off)";
     internal static string ItemNamePosition => "底部 (Bottom)";
     internal static bool ItemNameBackground => NameBgOpacity > 0;
     internal static float ItemNameBackgroundAlpha => NameBgOpacity / 100f;

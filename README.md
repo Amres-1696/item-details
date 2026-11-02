@@ -60,10 +60,10 @@
 | 揭示伪装与真实属性 | 被伪装特性的真实情况、真实耐久度与纯度 | 开 |
 | 液体组分分析 | 水质与杂质、药物和化学试剂的成分（含拆封出来的酸/碱溶液瓶） | 开 |
 | 刮刮乐预知 | 刮开前就知道能否中奖、奖金多少 | 关 |
-| 带锁容器透视 | 保险箱、枪柜未开锁时也能看到内容物与总价值 | 关 |
+| 带锁容器透视 | 保险箱、枪柜未开锁时也能在额外窗口看到内容物图标，标题显示箱内估价 | 关 |
 | 鉴定结果预填 | 打开检视面板时勾好赝品问题、填好报价，不会替你提交 | 关 |
 
-所有功能都能在游戏「模组」菜单里本模组的设置中单独开关，改完立即生效。
+所有功能都能在游戏「模组」菜单里本模组的设置中单独开关，改完立即生效。「信息增强」组位于「透视」下方，原信息增强开关是该组总开关；水质本地化兼容修复在启用模组或重启时应用。关闭所有功能开关后，模组不追加或改写提示框，不启用扫描交互、图标窗口、水质探针预热或兼容修复，效果等同未启用。
 
 ## 设计原则
 
@@ -120,7 +120,7 @@ A *Probably Stolen* mod: hover over an item and its tooltip shows authenticity, 
 - **Add Scan to context menu** (on by default) — independently adds a Scan entry to the right-click menu for the same item types; both controls may be enabled together.
 - **Reveal (optional)** — Authenticity Check, Appraisal Calculator, Customer Arrival Alert and Reveal Disguises & True Stats are on by default. Liquid Composition Analysis turns on when you own a scanner. Scratcher Preview, Locked Container X-Ray and Prefill Inspection Result are off, because they make the game noticeably easier.
 
-Every feature can be toggled in this mod's settings in the game's Mods menu.
+Every feature can be toggled in this mod's settings in the game's Mods menu. The Item Info section sits below Reveal, and Extra Item Info is its master switch; the water localization fix applies when the mod is enabled or the game restarts. With every feature switch off, the mod does not append or rewrite tooltips, enable scan interactions or icon windows, prewarm water probes, or apply compatibility fixes, matching a disabled mod.
 
 **Design** — read-only: no price, customer or save changes. No capabilities, network access or processes; the only file written is the game's own mod settings. A breakdown is shown only when it exactly matches the game's own value. Other mods register their own breakdowns and effect notes instead of being guessed at.
 

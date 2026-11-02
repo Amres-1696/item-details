@@ -106,22 +106,15 @@ ribwich.reason_year_range,Año {0} fuera de 425-429 / 432-438
 scratcher.no_prize,Rasca y Gana: sin premio
 scratcher.progress_part,", rascado {0}/3"
 scratcher.win,Rasca y Gana: gana {0} ({1} coincidencias)
-sealed.contents,Contenido: {0}{1}
-sealed.empty,Contenido: vacío
-sealed.more," …{0} {0|objeto|objetos} en total"
-sealed.contents_total,Contenido (valor {0}): {1}{2}
-sealed.summary,"Contenido: {0} {0|tipo|tipos}, {1} {1|objeto|objetos}"
-sealed.summary_total,"Valor {0}: {1} {1|tipo|tipos}, {2} {2|objeto|objetos}"
-sealed.count,{0}[{1}]
 seed.line,Rasgos (sin analizar): {0}
 seed.more,... y {0} más
 seed.trait_rank,{0} (rango {1})
 storage.contains,"Contiene: "
-storage.summary,"Contiene: {0} {0|tipo|tipos}, {1} {1|objeto|objetos}"
 storage.more_kinds," ... {0} {0|tipo|tipos} en total"
 storage.ratio,Compresión: {0} ({1}/{2} {2|celda|celdas})
 grid.title,Contenido {0}
 grid.title_sealed,Contenido {0}
+grid.title_sealed_value,Contenido {0} (valor est. {1})
 title.appraisal_suffix,"{0} Precio {1}, mejor oferta {2}"
 value.from,"Origen: "
 value.cost_perf,Valor por celda: {0}
@@ -169,9 +162,16 @@ config.valuation.tip,"Muestra el desglose del valor real y el rango de precio pe
 config.cost_performance,Valor por celda
 config.cost_performance.tip,Muestra el valor por celda del inventario y la compresión de los contenedores.
 config.container_contents,Contenido del contenedor
-config.container_contents.tip,"Enumera el contenido de contenedores desbloqueados, sin un valor total aparte."
+config.container_contents.tip,Muestra el contenido de contenedores desbloqueados en la ventana de iconos separada.
+config.section.info,Información de objetos
 config.info_enhance,Información adicional
-config.info_enhance.tip,"Añade datos según el objeto: efectos de etiquetas y módulos, carga de baterías, modificadores de mercado, resultados de lotería, descripciones atenuadas y etiquetas de precio más claras. También muestra la puntuación y la composición del vino."
+config.info_enhance.tip,Interruptor principal de esta sección. Desactívalo para apagar todas las funciones de información de objetos.
+config.tooltip_formatting,Formato del texto emergente
+config.tooltip_formatting.tip,Etiquetas de precio más claras, descripciones ajustadas, unidades de volumen, notas de calorías y espaciado del bloque de precio. Desactívalo para conservar el diseño original.
+config.water_warmup,Preparación de sondas de agua
+config.water_warmup.tip,Crea sondas de cálculo de agua al cargar una partida para evitar la pausa del primer tooltip. No muestra información adicional.
+config.water_localization_fix,Corrección de localización del agua
+config.water_localization_fix.tip,Repara textos de calidad del agua congelados en otro idioma por parches tempranos de otros mods. Se aplica al activar el mod o reiniciar el juego.
 config.type_badge,Etiquetas de categoría
 config.type_badge.tip,Muestra las categorías del objeto sobre la descripción emergente.
 config.type_badge_muted,Atenuar colores de etiquetas

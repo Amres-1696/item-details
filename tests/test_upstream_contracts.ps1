@@ -121,3 +121,92 @@ Assert-True (-not (Test-UsableFilter $withoutDurability)) 'unknown ordinary-filt
 Assert-True ($withoutDurability.modifiedState.dict.Count -eq 0) 'filter eligibility does not insert missing durability tags'
 $withoutDurability.identifier = 'uv_filter'
 Assert-True (Test-UsableFilter $withoutDurability) 'UV filter works without a durability tag'
+
+# Public tooltip takeover: composable sections, native MOD_ID_TAG matching, duplicate rejection,
+# restoration on Dispose, and the contents-only convenience API.
+function Set-SourceModId($Item, [string]$ModId) {
+    $sourceTag = [TagState]::new('MOD_ID_TAG', 'Mod ID')
+    $sourceTag.valueEnabled = $true
+    $sourceTag.valueString = $ModId
+    $Item.modifiedState.dict['MOD_ID_TAG'] = $sourceTag
+}
+$api = $candidate.GetType('ItemDetails.ItemDetailsApi', $true)
+$sectionType = $candidate.GetType('ItemDetails.ItemDetailsTooltipSection', $true)
+$publicStatic = [System.Reflection.BindingFlags]'Public, Static'
+$registerTooltip = $api.GetMethod('RegisterTooltipDisplay', $publicStatic)
+$registerContents = $api.GetMethod('RegisterContentsDisplay', $publicStatic)
+Assert-True ($null -ne $registerTooltip) 'RegisterTooltipDisplay is public'
+Assert-True ($sectionType.IsDefined([System.FlagsAttribute], $false)) 'tooltip sections are composable flags'
+$parameters = $registerTooltip.GetParameters()
+$signatureOk = $parameters.Count -eq 2 -and $parameters[0].ParameterType -eq [string]
+$signatureOk = $signatureOk -and $parameters[1].ParameterType -eq $sectionType
+$signatureOk = $signatureOk -and $registerTooltip.ReturnType -eq [System.IDisposable]
+Assert-True $signatureOk 'RegisterTooltipDisplay has the promised signature'
+$handlesTooltip = $candidate.GetType('ItemDetails.ThirdPartyProviders', $true).GetMethod('HandlesTooltip', $static)
+$contents = [System.Enum]::Parse($sectionType, 'Contents')
+$liquid = [System.Enum]::Parse($sectionType, 'LiquidAnalysis')
+$authenticity = [System.Enum]::Parse($sectionType, 'Authenticity')
+$combined = [System.Enum]::Parse($sectionType, 'Contents, LiquidAnalysis')
+$contentsItem = New-ProbeItem
+Set-SourceModId $contentsItem 'offline_contents_mod'
+Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'tooltip display is unchanged before registration'
+$tooltipRegistration = $registerTooltip.Invoke($null, @(' offline_contents_mod ', $combined))
+try {
+    Assert-True ([bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'combined registration includes contents'
+    Assert-True ([bool]$handlesTooltip.Invoke($null, @($contentsItem, $liquid))) 'combined registration includes liquid analysis'
+    Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $authenticity))) 'unselected sections remain visible'
+    $otherItem = New-ProbeItem
+    Set-SourceModId $otherItem 'other_mod'
+    Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($otherItem, $contents))) 'tooltip takeover does not affect other mods'
+    $duplicateRejected = $false
+    try { $registerTooltip.Invoke($null, @('offline_contents_mod', $combined)) | Out-Null }
+    catch {
+        for ($ex = $_.Exception; $null -ne $ex; $ex = $ex.InnerException) {
+            if ($ex -is [System.InvalidOperationException]) { $duplicateRejected = $true; break }
+        }
+    }
+    Assert-True $duplicateRejected 'duplicate tooltip registration is rejected'
+}
+finally { $tooltipRegistration.Dispose() }
+Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'disposing restores tooltip display'
+$tooltipRegistration.Dispose()
+Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $liquid))) 'tooltip registration disposal is idempotent'
+
+$contentsRegistration = $registerContents.Invoke($null, @('offline_contents_mod'))
+try {
+    Assert-True ([bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'contents convenience API suppresses contents'
+    Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $liquid))) 'contents convenience API selects no other section'
+}
+finally { $contentsRegistration.Dispose() }
+Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'contents convenience disposal restores display'
+
+# External tooltip anchors: fixed and dynamic public overloads, duplicate rejection,
+# null/exception fallback, and restoration after Dispose.
+$anchorOverloads = @($api.GetMethods($publicStatic) | Where-Object Name -eq 'RegisterTooltipAnchor')
+Assert-True ($anchorOverloads.Count -eq 2) 'RegisterTooltipAnchor has fixed and dynamic overloads'
+$providerType = [System.Func[UnityEngine.RectTransform]]
+$registerAnchor = $anchorOverloads | Where-Object { $_.GetParameters()[0].ParameterType -eq $providerType }
+Assert-True ($null -ne $registerAnchor) 'dynamic tooltip anchor registration is public'
+$resolveAnchor = $candidate.GetType('ItemDetails.TypeBadge', $true).GetMethod('ResolveTooltipAnchor', $static)
+Assert-True ($null -eq $resolveAnchor.Invoke($null, @($null))) 'badge uses no external anchor before registration'
+$anchorProvider = [System.Func[UnityEngine.RectTransform]] { $null }
+$anchorRegistration = $registerAnchor.Invoke($null, @($anchorProvider))
+try {
+    Assert-True ($null -eq $resolveAnchor.Invoke($null, @($null))) 'null dynamic anchor falls back to the native tooltip'
+    $duplicateAnchorRejected = $false
+    try { $registerAnchor.Invoke($null, @($anchorProvider)) | Out-Null }
+    catch {
+        for ($ex = $_.Exception; $null -ne $ex; $ex = $ex.InnerException) {
+            if ($ex -is [System.InvalidOperationException]) { $duplicateAnchorRejected = $true; break }
+        }
+    }
+    Assert-True $duplicateAnchorRejected 'duplicate tooltip anchor registration is rejected'
+}
+finally { $anchorRegistration.Dispose() }
+Assert-True ($null -eq $resolveAnchor.Invoke($null, @($null))) 'disposing restores native tooltip anchoring'
+$throwingProvider = [System.Func[UnityEngine.RectTransform]] { throw [System.InvalidOperationException]::new('probe') }
+$anchorRegistration = $registerAnchor.Invoke($null, @($throwingProvider))
+try {
+    Assert-True ($null -eq $resolveAnchor.Invoke($null, @($null))) 'anchor provider exceptions fall back to the native tooltip'
+}
+finally { $anchorRegistration.Dispose() }

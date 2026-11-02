@@ -199,7 +199,7 @@ internal static class TooltipPipeline
     /// <summary>液量超过 3 L 时把原版液体容器行改写成 L；单位沿用原版不本地化的写法。</summary>
     private static void RewriteLiquidVolume(ref string text, GameItem item)
     {
-        if (!ModSettings.InfoEnhance || !text.EndsWith(" ml", StringComparison.Ordinal)) return;
+        if (!ModSettings.TooltipFormatting || !text.EndsWith(" ml", StringComparison.Ordinal)) return;
         if (!GameRead.IsTag(item, "LIQUID_CONTAINER_TAG")) return;
         var m = LiquidLine.Match(text);
         if (!m.Success
@@ -219,7 +219,7 @@ internal static class TooltipPipeline
     {
         try
         {
-            if (!ModSettings.InfoEnhance || text.Length == 0 || text.IndexOf('<') >= 0) return;
+            if (!ModSettings.TooltipFormatting || text.Length == 0 || text.IndexOf('<') >= 0) return;
             bool isDesc = string.Equals(text, item.shortDescription, StringComparison.Ordinal)
                 || (!string.IsNullOrEmpty(item.flavorText)
                     && string.Equals(text, " " + item.flavorText, StringComparison.Ordinal));
@@ -243,7 +243,7 @@ internal static class TooltipPipeline
     {
         try
         {
-            if (heightPixels == PriceBlockSpacerHeight
+            if (ModSettings.TooltipFormatting && heightPixels == PriceBlockSpacerHeight
                 && _current != null && WillShowPriceLine(_current))
                 return false;
         }
@@ -300,7 +300,7 @@ internal static class TooltipPipeline
     {
         try
         {
-            if (!ModSettings.InfoEnhance) return true;
+            if (!ModSettings.TooltipFormatting) return true;
             EnsurePriceTerms();
             if (text == null) return true;
 
@@ -365,7 +365,7 @@ internal static class TooltipPipeline
     {
         try
         {
-            if (!ModSettings.InfoEnhance) return true;
+            if (!ModSettings.TooltipFormatting) return true;
             var item = _current;
             if (item == null || string.IsNullOrEmpty(text)) return true;
             if (!item.IsTag("CALORIE_VALUE_TAG")) return true;

@@ -106,22 +106,15 @@ ribwich.reason_year_range,Ano {0} fora de 425-429 / 432-438
 scratcher.no_prize,Raspadinha: sem prêmio
 scratcher.progress_part,", raspado {0}/3"
 scratcher.win,Raspadinha: ganha {0} ({1} iguais)
-sealed.contents,Conteúdo: {0}{1}
-sealed.empty,Conteúdo: vazio
-sealed.more," …{0} {0|item|itens} no total"
-sealed.contents_total,Conteúdo (valor {0}): {1}{2}
-sealed.summary,"Conteúdo: {0} {0|tipo|tipos}, {1} {1|item|itens}"
-sealed.summary_total,"Conteúdo (valor {0}): {1} {1|tipo|tipos}, {2} {2|item|itens}"
-sealed.count,{0}[{1}]
 seed.line,Características (não analisadas): {0}
 seed.more,... e mais {0}
 seed.trait_rank,{0} (nível {1})
 storage.contains,"Contém: "
-storage.summary,"Contém: {0} {0|tipo|tipos}, {1} {1|item|itens}"
 storage.more_kinds," ... {0} {0|tipo|tipos} no total"
 storage.ratio,Compressão: {0} ({1}/{2} {2|célula|células})
 grid.title,Conteúdo {0}
 grid.title_sealed,Conteúdo {0}
+grid.title_sealed_value,Conteúdo {0} (estim. {1})
 title.appraisal_suffix,"{0} Preço pedido {1}, melhor oferta {2}"
 value.from,"Origem: "
 value.cost_perf,Valor por célula: {0}
@@ -169,9 +162,16 @@ config.valuation.tip,"Mostra o detalhamento do valor real e a faixa de preço pe
 config.cost_performance,Valor por célula
 config.cost_performance.tip,Mostra o valor por célula do inventário e a compressão dos contêineres.
 config.container_contents,Conteúdo do contêiner
-config.container_contents.tip,"Lista o conteúdo de contêineres desbloqueados, sem um valor total separado."
+config.container_contents.tip,Mostra o conteúdo de contêineres desbloqueados na janela de ícones separada.
+config.section.info,Informações de itens
 config.info_enhance,Informações extras
-config.info_enhance.tip,"Adiciona detalhes conforme o item: efeitos de rótulos e módulos, carga de baterias, modificadores de mercado, resultados da loteria, descrições esmaecidas e rótulos de preço mais claros. Também mostra a pontuação e a composição do vinho."
+config.info_enhance.tip,Interruptor principal desta seção. Desative para desligar todos os recursos de informação de itens.
+config.tooltip_formatting,Formatação do texto das dicas
+config.tooltip_formatting.tip,Rótulos de preço mais claros, quebra de descrições, unidades de volume, notas de calorias e espaçamento do bloco de preço. Desative para manter o layout original.
+config.water_warmup,Preparação de sondas de água
+config.water_warmup.tip,Cria sondas de cálculo de água ao carregar um save para evitar travamento na primeira dica. Não mostra informações adicionais.
+config.water_localization_fix,Correção de localização da água
+config.water_localization_fix.tip,Corrige textos de qualidade da água congelados no idioma errado por patches antecipados de outros mods. Aplicado ao ativar o mod ou reiniciar o jogo.
 config.type_badge,Selos de categoria
 config.type_badge.tip,"Mostra as categorias do item acima da dica."
 config.type_badge_muted,Cores de selos suavizadas

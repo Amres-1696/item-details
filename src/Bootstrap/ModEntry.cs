@@ -48,48 +48,50 @@ public sealed partial class ModEntry : IMod
     }
 #endif
 
-    /// <summary>一个 tooltip 追加器：名字只用于日志定位，执行顺序即 <see cref="Renderers"/> 的顺序。</summary>
+    /// <summary>一个 tooltip 追加器：名字用于日志，信息块用于第三方接管，执行顺序即数组顺序。</summary>
     private readonly struct RendererDef
     {
         internal readonly string Name;
+        internal readonly ItemDetailsTooltipSection Section;
         internal readonly Action<ModEntry, RichTextBuilder, GameItem> Append;
 
-        internal RendererDef(string name, Action<ModEntry, RichTextBuilder, GameItem> append)
+        internal RendererDef(string name, ItemDetailsTooltipSection section,
+            Action<ModEntry, RichTextBuilder, GameItem> append)
         {
             Name = name;
+            Section = section;
             Append = append;
         }
     }
 
     /// <summary>
     /// tooltip 追加器按固定顺序执行；新增模块只改这里和对应方法。
-    /// 用 Action 而不是 Func&lt;bool&gt;：追加成功与否没有调用方消费，
-    /// 返回值只会变成没人读的摆设（旧版就是如此）。
+    /// storage 同时含压缩率和内容物，在采集器内分别判断，因此这里标为 None。
     /// </summary>
     private static readonly RendererDef[] Renderers =
     {
-        new("auth", (m, b, i) => m.TryAppendAuthenticity(b, i)),
-        new("value", (m, b, i) => m.TryAppendValue(b, i)),
-        new("ribwich", (m, b, i) => m.TryAppendRibwichReasons(b, i)),
-        new("injected-value", (m, b, i) => m.TryAppendInjectedValue(b, i)),
-        new("berry", (m, b, i) => m.TryAppendBerry(b, i)),
-        new("hidden", (m, b, i) => m.TryAppendHidden(b, i)),
-        new("value-enhance", (m, b, i) => m.TryAppendValueEnhance(b, i)),
-        new("feature-reveal", (m, b, i) => m.TryAppendFeatureReveal(b, i)),
-        new("storage", (m, b, i) => m.TryAppendStorage(b, i)),
-        new("machine-interior", (m, b, i) => m.TryAppendMachineInterior(b, i)),
-        new("module-learning", (m, b, i) => m.TryAppendModuleLearning(b, i)),
-        new("conditions", (m, b, i) => m.TryAppendConditions(b, i)),
-        new("contraband", (m, b, i) => m.TryAppendContraband(b, i)),
-        new("lottery", (m, b, i) => m.TryAppendLottery(b, i)),
-        new("water", (m, b, i) => m.TryAppendWater(b, i)),
-        new("sealed-box", (m, b, i) => m.TryAppendSealedBox(b, i)),
-        new("scratcher", (m, b, i) => m.TryAppendScratcher(b, i)),
-        new("seed", (m, b, i) => m.TryAppendSeed(b, i)),
-        new("water-advice", (m, b, i) => m.TryAppendWaterAdvice(b, i)),
-        new("wine", (m, b, i) => m.TryAppendWine(b, i)),
-        new("meat", (m, b, i) => m.TryAppendMeat(b, i)),
-        new("market", (m, b, i) => m.TryAppendMarket(b, i)),
+        new("auth", ItemDetailsTooltipSection.Authenticity, (m, b, i) => m.TryAppendAuthenticity(b, i)),
+        new("value", ItemDetailsTooltipSection.ValueBreakdown, (m, b, i) => m.TryAppendValue(b, i)),
+        new("ribwich", ItemDetailsTooltipSection.Authenticity, (m, b, i) => m.TryAppendRibwichReasons(b, i)),
+        new("injected-value", ItemDetailsTooltipSection.ValueBreakdown, (m, b, i) => m.TryAppendInjectedValue(b, i)),
+        new("berry", ItemDetailsTooltipSection.BerryQuality, (m, b, i) => m.TryAppendBerry(b, i)),
+        new("hidden", ItemDetailsTooltipSection.HiddenInfo, (m, b, i) => m.TryAppendHidden(b, i)),
+        new("value-enhance", ItemDetailsTooltipSection.ValueEnhance, (m, b, i) => m.TryAppendValueEnhance(b, i)),
+        new("feature-reveal", ItemDetailsTooltipSection.HiddenInfo, (m, b, i) => m.TryAppendFeatureReveal(b, i)),
+        new("storage", ItemDetailsTooltipSection.None, (m, b, i) => m.TryAppendStorage(b, i)),
+        new("machine-interior", ItemDetailsTooltipSection.MachineInterior, (m, b, i) => m.TryAppendMachineInterior(b, i)),
+        new("module-learning", ItemDetailsTooltipSection.ModuleLearning, (m, b, i) => m.TryAppendModuleLearning(b, i)),
+        new("conditions", ItemDetailsTooltipSection.ConditionEffects, (m, b, i) => m.TryAppendConditions(b, i)),
+        new("contraband", ItemDetailsTooltipSection.Contraband, (m, b, i) => m.TryAppendContraband(b, i)),
+        new("lottery", ItemDetailsTooltipSection.Lottery, (m, b, i) => m.TryAppendLottery(b, i)),
+        new("water", ItemDetailsTooltipSection.LiquidAnalysis, (m, b, i) => m.TryAppendWater(b, i)),
+        new("sealed-box", ItemDetailsTooltipSection.Contents, (m, b, i) => m.TryAppendSealedBox(b, i)),
+        new("scratcher", ItemDetailsTooltipSection.Scratcher, (m, b, i) => m.TryAppendScratcher(b, i)),
+        new("seed", ItemDetailsTooltipSection.Seed, (m, b, i) => m.TryAppendSeed(b, i)),
+        new("water-advice", ItemDetailsTooltipSection.WaterAdvice, (m, b, i) => m.TryAppendWaterAdvice(b, i)),
+        new("wine", ItemDetailsTooltipSection.Wine, (m, b, i) => m.TryAppendWine(b, i)),
+        new("meat", ItemDetailsTooltipSection.Meat, (m, b, i) => m.TryAppendMeat(b, i)),
+        new("market", ItemDetailsTooltipSection.Market, (m, b, i) => m.TryAppendMarket(b, i)),
     };
 
     /// <summary>连续失败到这个次数就停用该模块：坏的逻辑不该每次悬停都拖累整段 tooltip。</summary>
@@ -186,9 +188,9 @@ public sealed partial class ModEntry : IMod
         Quiet(ItemValueCache.Reset);
         Quiet(ValueEnhance.Stop);
         Quiet(StorageInfo.Stop);
+        Quiet(SealedBoxInfo.Stop);
         Quiet(MachineInterior.Stop);
         Quiet(ModuleStatEffects.Stop);
-        Quiet(SealedBoxInfo.Stop);
         Quiet(ScannerInventory.Stop);
         Quiet(LabelImpact.Remove);
         Quiet(DoubleClickInspect.Remove);
@@ -256,15 +258,18 @@ public sealed partial class ModEntry : IMod
     /// </summary>
     private void RunRenderers(RichTextBuilder builder, GameItem item)
     {
+        if (!ModSettings.AnyEnabled) return;
+        var suppressed = ThirdPartyProviders.TooltipSuppressions(item);
 #if ITEMDETAILS_DIAG
         double totalMs = 0;
 #endif
 
         for (int i = 0; i < Renderers.Length; i++)
         {
-            if (_rendererFailures[i] >= RendererFailureLimit) continue;
-
             RendererDef def = Renderers[i];
+            if (_rendererFailures[i] >= RendererFailureLimit) continue;
+            if ((suppressed & def.Section) != 0) continue;
+
 #if ITEMDETAILS_DIAG
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif

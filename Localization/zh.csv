@@ -106,22 +106,15 @@ ribwich.reason_year_range,年份 {0} 不在 425-429/432-438
 scratcher.no_prize,刮刮乐：不中奖
 scratcher.progress_part,，已刮开 {0}/3
 scratcher.win,刮刮乐：中奖 {0}（{1} 个相同）
-sealed.contents,箱内: {0}{1}
-sealed.empty,箱内: 空
-sealed.more," …共{0}件"
-sealed.contents_total,箱内(价值{0}): {1}{2}
-sealed.summary,箱内: {0} 类 {1} 件
-sealed.summary_total,箱内(价值{0}): {1} 类 {2} 件
-sealed.count,{0}[{1}]
 seed.line,性状（未分析）：{0}
 seed.more,…另有 {0} 项
 seed.trait_rank,{0}（等级 {1}）
 storage.contains,内含：
-storage.summary,内含：{0} 类 {1} 件
 storage.more_kinds," 等 {0} 类"
 storage.ratio,压缩率：{0}（{1}/{2} 格）
 grid.title,内容物 {0}
 grid.title_sealed,箱内 {0}
+grid.title_sealed_value,箱内 {0}（估价 {1}）
 title.appraisal_suffix,{0} 标价{1}，最优报价{2}
 value.from,来源：
 value.cost_perf,性价比：{0}
@@ -169,9 +162,16 @@ config.valuation.tip,显示待鉴定物品的真实价值构成与完美报价�
 config.cost_performance,性价比
 config.cost_performance.tip,显示每格价值与容器压缩率。
 config.container_contents,容器内容物
-config.container_contents.tip,"列出未上锁容器内的物品，不单独显示合计价值。"
+config.container_contents.tip,在额外窗口显示未上锁容器的内容物图标。
+config.section.info,信息增强
 config.info_enhance,信息增强
-config.info_enhance.tip,补充随物品变化的附加信息：标签与模组效果、电池续航、市场修正、彩票结果、淡化的描述文字，以及更清楚的价格用词。 另外显示果酿的分数与成分。
+config.info_enhance.tip,本组总开关。关闭后，信息增强组里的所有功能都不生效。
+config.tooltip_formatting,提示框文字优化
+config.tooltip_formatting.tip,优化价格用词、描述折行、液量单位、卡路里注释和价格块间距。关闭后保持原版文字布局。
+config.water_warmup,水质探针预热
+config.water_warmup.tip,读档时预建水质试算探针，避免首次悬停时创建探针造成卡顿；只预热数据，不显示额外信息。
+config.water_localization_fix,水质本地化兼容修复
+config.water_localization_fix.tip,修复其它模组过早补丁导致的水质档位文本冻结在错误语言的问题；启用模组或重启游戏时应用。
 config.type_badge,物品分类标签
 config.type_badge.tip,在物品提示框上方显示物品分类。
 config.type_badge_muted,淡化标签颜色

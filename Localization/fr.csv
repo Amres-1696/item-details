@@ -106,22 +106,15 @@ ribwich.reason_year_range,Année {0} hors de 425-429 / 432-438
 scratcher.no_prize,Ticket à gratter : aucun gain
 scratcher.progress_part,", gratté {0}/3"
 scratcher.win,Ticket à gratter : gain {0} ({1} identiques)
-sealed.contents,Contenu: {0}{1}
-sealed.empty,Contenu: vide
-sealed.more," …{0} {0|objet|objets} au total"
-sealed.contents_total,Contenu (valeur {0}): {1}{2}
-sealed.summary,"Contenu : {0} {0|type|types}, {1} {1|objet|objets}"
-sealed.summary_total,"Valeur {0} : {1} {1|type|types}, {2} {2|objet|objets}"
-sealed.count,{0}[{1}]
 seed.line,Traits (non analysés) : {0}
 seed.more,... et {0} de plus
 seed.trait_rank,{0} (rang {1})
 storage.contains,"Contient : "
-storage.summary,"Contient : {0} {0|type|types}, {1} {1|objet|objets}"
 storage.more_kinds," ... {0} {0|type|types} au total"
 storage.ratio,Compression : {0} ({1}/{2} {2|case|cases})
 grid.title,Contenu {0}
 grid.title_sealed,Contenu {0}
+grid.title_sealed_value,Contenu {0} (estimation {1})
 title.appraisal_suffix,"{0} Prix {1}, meilleure offre {2}"
 value.from,"Source : "
 value.cost_perf,Valeur par case : {0}
@@ -169,9 +162,16 @@ config.valuation.tip,"Affiche la décomposition de la vraie valeur et la fourche
 config.cost_performance,Valeur par case
 config.cost_performance.tip,Affiche la valeur par case d'inventaire et le taux de compression des conteneurs.
 config.container_contents,Contenu du conteneur
-config.container_contents.tip,"Liste le contenu des conteneurs déverrouillés, sans valeur totale distincte."
+config.container_contents.tip,Affiche le contenu des conteneurs déverrouillés dans la fenêtre d'icônes séparée.
+config.section.info,Infos sur les objets
 config.info_enhance,Infos supplémentaires
-config.info_enhance.tip,"Ajoute des détails propres à chaque objet : effets des étiquettes et modules, autonomie des batteries, modificateurs de marché, résultats de loterie, descriptions atténuées et libellés de prix plus clairs. Affiche aussi la note et la composition du vin."
+config.info_enhance.tip,Interrupteur principal de cette section. Désactive toutes les fonctions d'information sur les objets.
+config.tooltip_formatting,Mise en forme du texte des infobulles
+config.tooltip_formatting.tip,Libellés de prix plus clairs, descriptions à la ligne, unités de volume, annotations caloriques et espacement du bloc de prix. Désactivez pour conserver la mise en page d'origine.
+config.water_warmup,Préchauffage des sondes d'eau
+config.water_warmup.tip,Crée les sondes de calcul de l'eau au chargement d'une sauvegarde pour éviter un à-coup au premier survol. N'affiche aucune information supplémentaire.
+config.water_localization_fix,Correction de localisation de l'eau
+config.water_localization_fix.tip,Répare les textes de qualité de l'eau figés dans la mauvaise langue par les patchs précoces d'autres mods. Appliqué à l'activation du mod ou au redémarrage.
 config.type_badge,Badges de catégorie
 config.type_badge.tip,"Affiche les catégories de l'objet au-dessus de l'infobulle."
 config.type_badge_muted,Couleurs de badges atténuées

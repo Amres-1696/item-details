@@ -31,6 +31,7 @@ internal static class WaterStaticLocalizationFix
 
     internal static void Refresh()
     {
+        if (!ModSettings.WaterLocalizationFix) return;
         try
         {
             var names = new string[MechanicKeys.Length];

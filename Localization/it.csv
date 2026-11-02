@@ -106,22 +106,15 @@ ribwich.reason_year_range,Anno {0} fuori da 425-429 / 432-438
 scratcher.no_prize,Gratta e vinci: nessun premio
 scratcher.progress_part,", grattato {0}/3"
 scratcher.win,Gratta e vinci: vince {0} ({1} uguali)
-sealed.contents,Contenuto: {0}{1}
-sealed.empty,Contenuto: vuoto
-sealed.more," …{0} {0|oggetto|oggetti} in totale"
-sealed.contents_total,Contenuto (valore {0}): {1}{2}
-sealed.summary,"Contenuto: {0} {0|tipo|tipi}, {1} {1|oggetto|oggetti}"
-sealed.summary_total,"Valore {0}: {1} {1|tipo|tipi}, {2} {2|oggetto|oggetti}"
-sealed.count,{0}[{1}]
 seed.line,Tratti (non analizzati): {0}
 seed.more,... e altri {0}
 seed.trait_rank,{0} (rango {1})
 storage.contains,"Contiene: "
-storage.summary,"Contiene: {0} {0|tipo|tipi}, {1} {1|oggetto|oggetti}"
 storage.more_kinds," ... {0} {0|tipo|tipi} in totale"
 storage.ratio,Compressione: {0} ({1}/{2} {2|cella|celle})
 grid.title,Contenuto {0}
 grid.title_sealed,Contenuto {0}
+grid.title_sealed_value,Contenuto {0} (stima {1})
 title.appraisal_suffix,"{0} Prezzo {1}, offerta migliore {2}"
 value.from,"Origine: "
 value.cost_perf,Valore per cella: {0}
@@ -169,9 +162,16 @@ config.valuation.tip,"Mostra la ripartizione del valore reale e la fascia di pre
 config.cost_performance,Valore per cella
 config.cost_performance.tip,Mostra il valore per cella dell'inventario e la compressione dei contenitori.
 config.container_contents,Contenuto del contenitore
-config.container_contents.tip,"Elenca il contenuto dei contenitori sbloccati, senza un valore totale separato."
+config.container_contents.tip,Mostra il contenuto dei contenitori sbloccati nella finestra di icone separata.
+config.section.info,Informazioni sugli oggetti
 config.info_enhance,Informazioni extra
-config.info_enhance.tip,"Aggiunge dettagli specifici per oggetto: effetti di etichette e moduli, carica delle batterie, modificatori di mercato, risultati della lotteria, descrizioni attenuate ed etichette di prezzo più chiare. Mostra anche il punteggio e la composizione del vino."
+config.info_enhance.tip,Interruttore principale di questa sezione. Disattiva tutte le funzioni informative sugli oggetti.
+config.tooltip_formatting,Formattazione del testo dei tooltip
+config.tooltip_formatting.tip,Etichette di prezzo più chiare, descrizioni a capo, unità di volume, note caloriche e spaziatura del blocco prezzo. Disattiva per mantenere il layout originale.
+config.water_warmup,Preparazione delle sonde d'acqua
+config.water_warmup.tip,Crea le sonde di calcolo dell'acqua al caricamento di un salvataggio per evitare un rallentamento al primo tooltip. Non mostra informazioni aggiuntive.
+config.water_localization_fix,Correzione localizzazione dell'acqua
+config.water_localization_fix.tip,Ripara i testi della qualità dell'acqua bloccati nella lingua errata dalle patch anticipate di altre mod. Si applica all'attivazione della mod o al riavvio.
 config.type_badge,Badge di categoria
 config.type_badge.tip,Mostra le categorie dell'oggetto sopra il riquadro informativo.
 config.type_badge_muted,Colori dei badge attenuati

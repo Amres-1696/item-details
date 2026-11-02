@@ -22,7 +22,8 @@ namespace ItemDetails;
 ///     把粉色/灰色压成暗红/棕色。
 ///   - 开关：设置里的「物品分类标签」（`show_type_badge`）。关闭后本模块不再抑制
 ///     原版正文里的「[类型]」，也不会创建标签，等于完全回到原版。
-///   - 显隐跟随 OverlayHandler.ShowTooltip / HideTooltip。
+///   - 显隐跟随 OverlayHandler.ShowTooltip / HideTooltip；第三方可用 RegisterTooltipAnchor
+///     提供美化后的提示框，定位、父节点和字体模板随之切换，注销后回退原版。
 ///   - 记录时机在 GetTooltipBasic 前缀（见 TooltipPipeline.BasicPrefix）：原版分类行在
 ///     构建早期就写进正文，晚了既抑制不到，也会让浮窗用到上一件物品的残留。
 ///   - 拿不到分类名/颜色/模板时不显示，不做占位兜底。
@@ -83,6 +84,7 @@ internal static class TypeBadge
     private static readonly List<Entry> Built = new();
     private static readonly List<float> Widths = new();
     private static Transform? _builtParent;
+    private static RectTransform? _builtAnchor;
     private static bool _builtMuted;
     private static float _pendingAt = float.MinValue;
 
@@ -219,11 +221,11 @@ internal static class TypeBadge
                 return;
             }
 
-            var win = __instance?.GetTooltipWindow();
-            if (win == null) { Hide(); return; }
+            var tooltipRect = ResolveTooltipAnchor(__instance);
+            if (tooltipRect == null || !tooltipRect.gameObject.activeInHierarchy) { Hide(); return; }
 
-            if (!BuildChips(win.rectTransform, out laidOut)) { Hide(); return; }
-            Place(win.rectTransform);
+            if (!BuildChips(tooltipRect, out laidOut)) { Hide(); return; }
+            Place(tooltipRect);
             if (_badge != null) _badge.SetActive(true);
         }
         catch (Exception ex)
@@ -237,6 +239,14 @@ internal static class TypeBadge
             TrackShowPerf(started, laidOut);
         }
 #endif
+    }
+
+    /// <summary>优先使用第三方提示框，未提供或调用失败时回退原版窗口。</summary>
+    internal static RectTransform? ResolveTooltipAnchor(OverlayHandler? handler)
+    {
+        if (ThirdPartyProviders.TryTooltipAnchor(out var external)) return external;
+        var win = handler?.GetTooltipWindow();
+        return win != null ? win.rectTransform : null;
     }
 
 #if ITEMDETAILS_DIAG
@@ -286,6 +296,10 @@ internal static class TypeBadge
         var parent = tooltipRect.parent;
         if (parent == null) return false;
 
+        // 美化 Mod 换提示框实例时，字体模板和布局也必须重新取，不能沿用旧锚点。
+        bool anchorChanged = !ReferenceEquals(_builtAnchor, tooltipRect);
+        if (anchorChanged) _textTemplate = null;
+
         // Unity 的"假 null"：界面重建后这些引用会变成已销毁对象，必须重新取。
         if (_textTemplate == null)
             _textTemplate = tooltipRect.GetComponentInChildren<TMP_Text>(true);
@@ -305,7 +319,7 @@ internal static class TypeBadge
 
         // tooltip 每次重建都会走到这里。分类没变时整排复用，避免反复 Instantiate/Destroy；
         // 分类变化时也只增减必要节点，并更新现有 TMP。
-        if (container.parent == parent && ReferenceEquals(_builtParent, parent)
+        if (!anchorChanged && container.parent == parent && ReferenceEquals(_builtParent, parent)
             && _builtMuted == ModSettings.TypeBadgeMuted
             && container.childCount == Pending.Count && SameContent())
             return true;
@@ -367,6 +381,7 @@ internal static class TypeBadge
             Built.Clear();
             Built.AddRange(Pending);
             _builtParent = parent;
+            _builtAnchor = tooltipRect;
             _builtMuted = ModSettings.TypeBadgeMuted;
         }
         return count > 0;
@@ -641,6 +656,7 @@ internal static class TypeBadge
         _badge = null;
         _textTemplate = null;
         _builtParent = null;
+        _builtAnchor = null;
         _builtMuted = false;
         Pending.Clear();
         Built.Clear();

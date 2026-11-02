@@ -416,8 +416,18 @@ internal static partial class SelfTest
             Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
+
+        // 额外验证：容器不写文字内容物，第三方组合接管的信息在注销后恢复
         {
-            string line = CheckPartialContainerTotals(out bool ok);
+            string line = CheckTooltipSectionInjection(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
+        // 额外验证：密封箱标题估价区分完整/部分总价并跟随堆叠刷新
+        {
+            string line = CheckSealedBoxTitleEstimate(out bool ok);
             if (ok) pass++; else fail++;
             Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
@@ -471,7 +481,7 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
-        // 额外验证：上锁容器不能被“容器信息”路径展示，密封箱模块仍独立可见
+        // 额外验证：上锁容器不能经普通路径泄漏，密封箱也不再输出文字内容物
         {
             string line = CheckLockedContainerGating(out bool ok);
             if (ok) pass++; else fail++;
@@ -479,17 +489,26 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
-        // 额外验证：容器签名刷新，以及密封箱部分估价的“+”标记
+
+        // 额外验证：扩建储藏区（根是 MachineryPanelRow）仍按容器识别：名称标签、容器信息、全部标签页
         {
-            string line = CheckContainerCacheRefresh(out bool ok);
+            string line = CheckExpandedStorageBay(out bool ok);
             if (ok) pass++; else fail++;
             Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
-        // 额外验证：扩建储藏区（根是 MachineryPanelRow）仍按容器识别：名称标签、容器信息、全部标签页
+        // 额外验证：第三方动态提示框锚点可被采用，null 与注销回退原版
         {
-            string line = CheckExpandedStorageBay(out bool ok);
+            string line = CheckTooltipAnchorInjection(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
+        // 额外验证：信息增强组位于透视后，全部设置关闭时不执行渲染器
+        {
+            string line = CheckSettingsLayoutAndDisable(out bool ok);
             if (ok) pass++; else fail++;
             Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);

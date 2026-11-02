@@ -9,15 +9,15 @@ namespace ItemDetails;
 
 /// <summary>
 /// 容器内容物图标格：tooltip 右侧一块独立面板，按物品图标 + 件数列出箱内物品，
-/// 正文里的长清单随之缩成一行「N 类 M 件」。
+/// 密封箱标题附带估价；正文没有文字清单或数量摘要。
 ///
 /// 设计要点：
 ///   - 认领：<see cref="StorageInfo"/> / <see cref="SealedBoxInfo"/> 构建正文时调用 <see cref="Claim"/>，
-///     返回 true 才把清单缩成摘要；面板在 OverlayHandler.ShowTooltip 后缀里按认领时交来的内容物画。
-///   - tooltip 每帧重建、ShowTooltip 每帧都会调用：内容物签名没变就不重新分组和建格子，
+///     面板在 OverlayHandler.ShowTooltip 后缀里按认领时交来的内容物与估价画。
+///   - tooltip 每帧重建、ShowTooltip 每帧都会调用：内容物签名和估价没变就不重新分组和建格子，
 ///     正文文本没变（原版也据此跳过重排）就沿用上次找到的可见框，只重新定位。
-///     tooltip 还从没显示过（拿不到字体模板）或面板出过错时不认领，正文保持完整清单。
-///   - 分组口径与正文一致：按显示名合并，件数累加堆叠数；最多 15 格，超出时最后一格写「+件数」。
+///     tooltip 还从没显示过（拿不到字体模板）或面板出过错时不认领，也没有文字回退。
+///   - 分组按显示名合并，件数累加堆叠数；最多 15 格，超出时最后一格写「+件数」。
 ///   - 图标用物品自己的贴图（GameItemElement.background.image.sprite），不另建图集；
 ///     按整数倍缩放，保持像素风清晰。
 ///   - GetTooltipWindow().rectTransform 本身几乎没有尺寸（窗口靠子 Image 撑开），所以定位与取外框都以
@@ -60,12 +60,14 @@ internal static class ContentsGrid
     private static GameItem? _pendingItem;
     private static List<GameItem>? _pendingItems;
     private static bool _pendingSealed;
+    private static string? _pendingSealedEstimate;
     private static float _pendingAt = float.MinValue;
 
     // 已画好的内容；签名相同就只重新定位
     private static List<ContainerItemSignature>? _builtItems;
     private static GameItem? _builtItem;
     private static bool _builtSealed;
+    private static string? _builtSealedEstimate;
     private static Transform? _builtParent;
     private static Vector2 _builtSize;
     private static RectTransform? _box;
@@ -112,6 +114,8 @@ internal static class ContentsGrid
         _broken = false;
         _pendingItem = null;
         _pendingItems = null;
+        _pendingSealedEstimate = null;
+        _builtSealedEstimate = null;
         _builtItems = null;
         _builtItem = null;
         _builtParent = null;
@@ -123,12 +127,14 @@ internal static class ContentsGrid
     {
         _pendingItem = null;
         _pendingItems = null;
+        _pendingSealedEstimate = null;
     }
 
     /// <summary>
-    /// 正文构建时调用：本次 tooltip 的内容物交给图标格显示。返回 false 时调用方照常输出完整清单。
+    /// 正文构建时调用：本次 tooltip 的内容物交给图标格显示。调用方没有文字回退。
     /// </summary>
-    internal static bool Claim(GameItem item, List<GameItem> items, bool sealedBox)
+    internal static bool Claim(GameItem item, List<GameItem> items, bool sealedBox,
+        string? sealedEstimate = null)
     {
         try
         {
@@ -140,6 +146,7 @@ internal static class ContentsGrid
             _pendingItem = item;
             _pendingItems = items;
             _pendingSealed = sealedBox;
+            _pendingSealedEstimate = sealedBox ? sealedEstimate : null;
             _pendingAt = UnityEngine.Time.unscaledTime;
             return true;
         }
@@ -195,13 +202,15 @@ internal static class ContentsGrid
 
             if (_panel == null || _panel.transform.parent != parent || !ReferenceEquals(_builtParent, parent)
                 || !ReferenceEquals(_builtItem, item) || _builtSealed != _pendingSealed
+                || !string.Equals(_builtSealedEstimate, _pendingSealedEstimate, StringComparison.Ordinal)
                 || _builtItems == null || !ContainerItemSignature.Matches(_builtItems, items))
             {
                 var cells = Group(items, out int total);
                 if (cells.Count == 0) { Hide(); return; }
-                Build(tooltipRect, _box, parent, cells, total, _pendingSealed);
+                Build(tooltipRect, _box, parent, cells, total, _pendingSealed, _pendingSealedEstimate);
                 _builtItem = item;
                 _builtSealed = _pendingSealed;
+                _builtSealedEstimate = _pendingSealedEstimate;
                 _builtParent = parent;
                 _builtItems = ContainerItemSignature.Capture(items);
             }
@@ -213,7 +222,7 @@ internal static class ContentsGrid
         }
         catch (Exception ex)
         {
-            // 画不出来就停用：之后的 tooltip 不再认领，正文恢复完整清单
+            // 画不出来就停用：之后的 tooltip 不再认领，也没有文字回退
             _broken = true;
             Log.Warn("ContentsGrid.Show", ex);
             Hide();
@@ -257,7 +266,7 @@ internal static class ContentsGrid
     // ---------------- 构建 ----------------
 
     private static void Build(RectTransform tooltipRect, RectTransform box, Transform parent, List<Cell> cells,
-        int total, bool sealedBox)
+        int total, bool sealedBox, string? sealedEstimate)
     {
         var tmp = _template!;
 
@@ -298,9 +307,17 @@ internal static class ContentsGrid
         int cols = Math.Min(MaxColumns, slots);
         int rows = (slots + cols - 1) / cols;
 
-        string title = sealedBox
-            ? Loc.T("grid.title_sealed", "Inside {0}", total)
-            : Loc.T("grid.title", "Contents {0}", total);
+        string title;
+        if (sealedBox)
+        {
+            title = string.IsNullOrEmpty(sealedEstimate)
+                ? Loc.T("grid.title_sealed", "Inside {0}", total)
+                : Loc.T("grid.title_sealed_value", "Inside {0} (est. {1})", total, sealedEstimate);
+        }
+        else
+        {
+            title = Loc.T("grid.title", "Contents {0}", total);
+        }
         float titleWidth = Mathf.Ceil(Measure(title, font));
 
         float gridWidth = cols * cellSize + (cols - 1) * gap;

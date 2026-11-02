@@ -66,7 +66,7 @@ internal static class LineAnnotations
 
     internal static void TryAppend(ref string text, GameItem item)
     {
-        if (!ModSettings.InfoEnhance || string.IsNullOrEmpty(text)) return;
+        if (!ModSettings.TooltipFormatting || string.IsNullOrEmpty(text)) return;
 
         string id = item.identifier ?? "";
         if (id.Length == 0 || !ById.TryGetValue(id, out var rules)) return;

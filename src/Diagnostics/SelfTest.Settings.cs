@@ -22,7 +22,7 @@ internal static partial class SelfTest
                 ?? throw new MissingMethodException("ConfigEntry.ApplyBoxed");
             try
             {
-                foreach (string key in new[] { "show_authenticity", "show_valuation", "show_info_enhance", "double_click_inspect", "double_click_scan", "context_menu_scan" })
+                foreach (string key in new[] { "show_authenticity", "show_valuation", "show_info_enhance", "show_cost_performance", "show_container_contents", "tooltip_text_formatting", "show_type_badge", "show_container_name_display", "water_probe_prewarm", "water_localization_fix", "double_click_inspect", "double_click_scan", "context_menu_scan" })
                 {
                     var entry = config.Get(key)
                         ?? throw new InvalidOperationException("Missing self-test setting: " + key);

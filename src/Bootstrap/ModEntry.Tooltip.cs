@@ -193,7 +193,7 @@ public sealed partial class ModEntry
         return AppendLines(builder, FeatureReveal.Collect(item));
     }
 
-    // ---------------- 储存容器：压缩率 + 内容物 ----------------
+    // ---------------- 储存容器：压缩率 + 内容物图标格 ----------------
     private bool TryAppendStorage(RichTextBuilder builder, GameItem item)
     {
         if (!ModSettings.ValueEnhance && !ModSettings.Container) return false;

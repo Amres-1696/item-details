@@ -106,22 +106,15 @@ ribwich.reason_year_range,Jahr {0} nicht in 425-429 / 432-438
 scratcher.no_prize,Rubbellos: kein Gewinn
 scratcher.progress_part,", gerubbelt {0}/3"
 scratcher.win,Rubbellos: gewinnt {0} ({1} Treffer)
-sealed.contents,Inhalt: {0}{1}
-sealed.empty,Inhalt: leer
-sealed.more," …insgesamt {0} Stück"
-sealed.contents_total,Inhalt (Wert {0}): {1}{2}
-sealed.summary,"Inhalt: {0} {0|Sorte|Sorten}, {1} Stück"
-sealed.summary_total,"Inhalt (Wert {0}): {1} {1|Sorte|Sorten}, {2} Stück"
-sealed.count,{0}[{1}]
 seed.line,Merkmale (unanalysiert): {0}
 seed.more,... und {0} weitere
 seed.trait_rank,{0} (Rang {1})
 storage.contains,"Enthält: "
-storage.summary,"Enthält: {0} {0|Sorte|Sorten}, {1} Stück"
 storage.more_kinds," ... insgesamt {0} {0|Sorte|Sorten}"
 storage.ratio,Kompressionsrate: {0} ({1}/{2} {2|Feld|Felder})
 grid.title,Inhalt {0}
 grid.title_sealed,Inhalt {0}
+grid.title_sealed_value,Inhalt {0} (Schätzwert {1})
 title.appraisal_suffix,"{0} Preis {1}, bestes Angebot {2}"
 value.from,"Quelle: "
 value.cost_perf,Wert pro Feld: {0}
@@ -169,9 +162,16 @@ config.valuation.tip,Zeigt die Aufschlüsselung des wahren Werts und den perfekt
 config.cost_performance,Wert pro Feld
 config.cost_performance.tip,Zeigt den Wert pro Inventarfeld und das Kompressionsverhältnis von Behältern.
 config.container_contents,Behälterinhalt
-config.container_contents.tip,"Listet den Inhalt unverschlossener Behälter auf, ohne separaten Gesamtwert."
+config.container_contents.tip,Zeigt den Inhalt unverschlossener Behälter im separaten Symbolfenster.
+config.section.info,Gegenstandsinfos
 config.info_enhance,Zusätzliche Gegenstandsinfos
-config.info_enhance.tip,"Ergänzt je nach Gegenstand Etiketten- und Moduleffekte, Batterielaufzeit, Marktmodifikatoren, Lotterieergebnisse, abgedunkelte Beschreibungen und klarere Preisangaben. Zeigt außerdem Weinbewertung und -zusammensetzung."
+config.info_enhance.tip,Hauptschalter für diesen Bereich. Deaktiviert alle Gegenstandsinfo-Funktionen.
+config.tooltip_formatting,Tooltip-Textformatierung
+config.tooltip_formatting.tip,Klarere Preisangaben, Beschreibungsumbrüche, Volumeneinheiten, Kalorienhinweise und Preisblockabstände. Deaktivieren erhält das originale Textlayout.
+config.water_warmup,Wassersonden vorbereiten
+config.water_warmup.tip,Erstellt Wasserberechnungssonden beim Laden eines Spielstands vorab, damit der erste Tooltip nicht stockt. Zeigt keine zusätzlichen Informationen.
+config.water_localization_fix,Wasser-Lokalisierungskorrektur
+config.water_localization_fix.tip,Korrigiert Wasserstufentexte, die durch frühe Patches anderer Mods in der falschen Sprache eingefroren wurden. Wird beim Aktivieren der Mod oder einem Neustart angewendet.
 config.type_badge,Kategorie-Plaketten
 config.type_badge.tip,"Zeigt die Kategorien des Gegenstands über dem Tooltip."
 config.type_badge_muted,Plakettenfarben dämpfen
