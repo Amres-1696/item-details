@@ -12,6 +12,7 @@ internal static class ThirdPartyProviders
     private static readonly Dictionary<string, TooltipEntry> TooltipDisplays = new(StringComparer.Ordinal);
     private static readonly Dictionary<string, PurifierEntry> Purifiers = new(StringComparer.Ordinal);
     private static Func<RectTransform?>? TooltipAnchorProvider;
+    private static readonly List<ItemTooltipEntry> ItemTooltipDisplays = new();
 
     internal static IDisposable RegisterAppraisal(string id, ItemDetailsAppraisalProvider provider)
     {
@@ -67,6 +68,28 @@ internal static class ThirdPartyProviders
         return anchor != null;
     }
 
+    internal static IDisposable RegisterTooltip(Func<GameItem, ItemDetailsTooltipSection> sections)
+    {
+        if (sections == null) throw new ArgumentNullException(nameof(sections));
+        var entry = new ItemTooltipEntry(sections);
+        ItemTooltipDisplays.Add(entry);
+        return new Subscription(() => ItemTooltipDisplays.Remove(entry));
+    }
+
+    internal static bool HasItemTooltipDisplays => ItemTooltipDisplays.Count > 0;
+
+    /// <summary>逐件注册的接管合在一起；回调抛错的那一个这次算不接管。</summary>
+    private static ItemDetailsTooltipSection ItemSuppressions(GameItem item)
+    {
+        var sections = ItemDetailsTooltipSection.None;
+        foreach (var entry in ItemTooltipDisplays)
+        {
+            try { sections |= entry.Sections(item); }
+            catch { }
+        }
+        return sections & ItemDetailsTooltipSection.All;
+    }
+
     internal static IDisposable RegisterPurifier(string id, ItemDetailsPurifierKind kind)
     {
         id = Required(id, nameof(id));
@@ -91,7 +114,8 @@ internal static class ThirdPartyProviders
     /// <summary>该物品被第三方接管的信息块；没有注册或读取失败时不隐藏任何信息。</summary>
     internal static ItemDetailsTooltipSection TooltipSuppressions(GameItem item)
     {
-        if (TooltipDisplays.Count == 0) return ItemDetailsTooltipSection.None;
+        var byItem = ItemSuppressions(item);
+        if (TooltipDisplays.Count == 0) return byItem;
         try
         {
             // 与 ModSourceHelper.GetItemModName 同一来源顺序：显式标签优先，其次物品工厂所属 Mod。
@@ -101,10 +125,10 @@ internal static class ThirdPartyProviders
                 var factory = DirectoryMaster.GetFactory<GameItem>(item.identifier);
                 id = ModSourceHelper.FindModByDelegate(factory)?.Manifest?.ID;
             }
-            return !string.IsNullOrEmpty(id) && TooltipDisplays.TryGetValue(id, out var entry)
-                ? entry.Sections : ItemDetailsTooltipSection.None;
+            return byItem | (!string.IsNullOrEmpty(id) && TooltipDisplays.TryGetValue(id, out var entry)
+                ? entry.Sections : ItemDetailsTooltipSection.None);
         }
-        catch { return ItemDetailsTooltipSection.None; }
+        catch { return byItem; }
     }
 
     internal static bool HandlesTooltip(GameItem item, ItemDetailsTooltipSection section)
@@ -193,6 +217,12 @@ internal static class ThirdPartyProviders
     {
         internal readonly ItemDetailsTooltipSection Sections;
         internal TooltipEntry(ItemDetailsTooltipSection sections) => Sections = sections;
+    }
+
+    private sealed class ItemTooltipEntry
+    {
+        internal readonly Func<GameItem, ItemDetailsTooltipSection> Sections;
+        internal ItemTooltipEntry(Func<GameItem, ItemDetailsTooltipSection> sections) => Sections = sections;
     }
 
     private sealed class PurifierEntry

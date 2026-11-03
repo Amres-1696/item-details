@@ -129,6 +129,14 @@ public static class ItemDetailsApi
     public static IDisposable RegisterTooltipDisplay(string modId, ItemDetailsTooltipSection sections)
         => ThirdPartyProviders.RegisterTooltip(modId, sections);
 
+    /// <summary>
+    /// 逐件决定接管哪些信息块，不看来源 Mod，原版物品也能接管。每次构建 tooltip 时调用，
+    /// 返回 None 表示这件不接管。给重画所有物品的美化 Mod 用，比如只对自己画了内容物的物品返回 Contents。
+    /// 可以有多个注册，结果按位或；回调抛错的那个这次算不接管。注销后恢复。
+    /// </summary>
+    public static IDisposable RegisterTooltipDisplay(Func<GameItem, ItemDetailsTooltipSection> sections)
+        => ThirdPartyProviders.RegisterTooltip(sections);
+
     /// <summary>只接管内容物显示；等同于 RegisterTooltipDisplay(modId, Contents)。</summary>
     public static IDisposable RegisterContentsDisplay(string modId)
         => RegisterTooltipDisplay(modId, ItemDetailsTooltipSection.Contents);
@@ -150,6 +158,7 @@ public static class ItemDetailsApi
     /// </summary>
     public static IDisposable RegisterTooltipAnchor(Func<RectTransform?> provider)
         => ThirdPartyProviders.RegisterTooltipAnchor(provider);
+
 
     /// <summary>
     /// 按物品 identifier 声明它是哪种净水手段，水质建议会用对应的原版函数模拟收益。

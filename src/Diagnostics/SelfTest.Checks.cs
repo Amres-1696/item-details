@@ -1025,7 +1025,7 @@ internal static partial class SelfTest
         ok = false;
         const string contentsModId = "itemdetails_machine_contents_test";
         GameItem? custom = null, bare = null, scrap = null, pitcher = null, filter = null;
-        IDisposable? contentsRegistration = null;
+        IDisposable? contentsRegistration = null, itemRegistration = null;
         try
         {
             const string label = "SelfTestHopper";
@@ -1081,12 +1081,23 @@ internal static partial class SelfTest
             bool contentsRestored = HasLine(customRestored, label)
                 && HasLine(customRestored, ContainerItemSignature.DisplayName(scrap));
 
+            // 逐件接管：只接管自定义机器，它的清单消失，水壶照旧；注销后恢复。
+            var claimed = custom;
+            itemRegistration = ItemDetailsApi.RegisterTooltipDisplay(it => ReferenceEquals(it, claimed)
+                ? ItemDetailsTooltipSection.Contents : ItemDetailsTooltipSection.None);
+            bool itemHidden = MachineInterior.Collect(custom, true, true, true, false).Count == 0;
+            bool itemSpared = HasLine(MachineInterior.Collect(pitcher, true, true, true, false), spent);
+            itemRegistration.Dispose();
+            itemRegistration = null;
+            bool itemRestored = HasLine(MachineInterior.Collect(custom, true, true, true, false), label);
+
             ok = remaining == 0 && filterRemaining == 0 && listed && noBattery && bareSilent && filterSpent
-                && contentsHidden && summaryKept && contentsRestored;
+                && contentsHidden && summaryKept && contentsRestored && itemHidden && itemSpared && itemRestored;
             string Join(List<TooltipLine> ls) => string.Join(" | ", ls.ConvertAll(l => l.Text));
             return $"machine interior: remaining={remaining}/{filterRemaining} listed={listed} noBattery={noBattery} " +
                    $"bareSilent={bareSilent} filterSpent={filterSpent} contentsHidden={contentsHidden} " +
-                   $"summaryKept={summaryKept} contentsRestored={contentsRestored} (期望全部通过) " +
+                   $"summaryKept={summaryKept} contentsRestored={contentsRestored} " +
+                   $"itemHidden={itemHidden} itemSpared={itemSpared} itemRestored={itemRestored} (期望全部通过) " +
                    $"custom='{Join(customLines)}' pitcher='{Join(pitcherLines)}'";
         }
         catch (Exception ex)
@@ -1096,6 +1107,7 @@ internal static partial class SelfTest
         finally
         {
             contentsRegistration?.Dispose();
+            itemRegistration?.Dispose();
             MachineInterior.Stop();
             foreach (var it in new[] { scrap, filter, custom, bare, pitcher })
                 if (it != null) { try { it.Destroy(); } catch { } }
