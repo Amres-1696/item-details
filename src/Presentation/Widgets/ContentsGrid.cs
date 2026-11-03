@@ -24,6 +24,7 @@ namespace ItemDetails;
 ///     窗口里面积最大的 Image 作为「可见框」。
 ///   - 底板复制可见框和覆盖它大半的 Image（外框与底色），和原版窗口一个样子；找不到时用纯色兜底。
 ///   - 放在 tooltip 右侧顶对齐，右边放不下就换到左侧；纵向不出屏幕。
+///     第三方注册了提示框锚点时改贴着锚点，底板照旧复制原版窗口
 ///   - 与「当铺估价单」(amres.sectioned_tooltips) 共存：它也在右侧画未上锁容器的内容物网格，
 ///     载入它时未上锁容器让给它，只画它不画的带锁容器（透视）。
 ///   - 超过 StaleSeconds 没有重新构建（缓存 tooltip）时不显示，避免画成上一件物品。
@@ -216,7 +217,7 @@ internal static class ContentsGrid
             }
 
             if (_panel == null) return;
-            Place(tooltipRect, _box, parent);
+            Place(tooltipRect, PlacementBox(__instance, tooltipRect, _box), parent);
             _panel.transform.SetAsLastSibling();
             _panel.SetActive(true);
         }
@@ -446,6 +447,16 @@ internal static class ContentsGrid
             img.material = src.material;
             Stretch(img, part.Left, part.Bottom, part.Right, part.Top);
         }
+    }
+
+    /// <summary>
+    /// 位置：有可见的第三方锚点就贴它，没有就贴原版窗口
+    /// 只借位置，底板不从锚点复制，锚点可能是浅色的，标题会看不清
+    /// </summary>
+    private static RectTransform PlacementBox(OverlayHandler? handler, RectTransform win, RectTransform box)
+    {
+        var anchor = TypeBadge.ResolveTooltipAnchor(handler);
+        return anchor != null && !ReferenceEquals(anchor, win) && anchor.gameObject.activeInHierarchy ? anchor : box;
     }
 
     /// <summary>放在可见框右侧顶对齐；右边出屏就换到左侧，纵向夹在屏幕内。</summary>
