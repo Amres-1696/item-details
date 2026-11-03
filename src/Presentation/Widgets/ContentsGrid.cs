@@ -27,6 +27,7 @@ namespace ItemDetails;
 ///     第三方注册了提示框锚点时改贴着锚点，底板照旧复制原版窗口
 ///   - 与「当铺估价单」(amres.sectioned_tooltips) 共存：它也在右侧画未上锁容器的内容物网格，
 ///     载入它时未上锁容器让给它，只画它不画的带锁容器（透视）。
+///     它逐件注册了 RegisterTooltipDisplay 就按注册来，按程序集名让路只留给没注册的旧版
 ///   - 超过 StaleSeconds 没有重新构建（缓存 tooltip）时不显示，避免画成上一件物品。
 /// </summary>
 internal static class ContentsGrid
@@ -142,7 +143,8 @@ internal static class ContentsGrid
             if (!_patched || _broken || !ModSettings.ContentsGrid) return false;
             if (!TooltipPipeline.IsBuilding) return false;
             if (_template == null) return false;              // tooltip 还没显示过，画不出来
-            if (!sealedBox && SlipLoaded) return false;        // 未上锁容器让给估价单的内容物面板
+            // 未上锁容器让给估价单的内容物面板；它逐件注册了接管就按注册走，这里只管没注册的旧版
+            if (!sealedBox && !ThirdPartyProviders.HasItemTooltipDisplays && SlipLoaded) return false;
 
             _pendingItem = item;
             _pendingItems = items;
@@ -217,8 +219,11 @@ internal static class ContentsGrid
             }
 
             if (_panel == null) return;
-            Place(tooltipRect, PlacementBox(__instance, tooltipRect, _box), parent);
-            _panel.transform.SetAsLastSibling();
+            var placeBox = PlacementBox(__instance, tooltipRect, _box);
+            Place(tooltipRect, placeBox, parent);
+            // 原版窗口每帧都会置顶，贴着它时得跟着压上去；贴第三方锚点时在它旁边，
+            // 不用每帧抢最上层，不然锚点那边也置顶的话两边每帧来回换
+            if (ReferenceEquals(placeBox, _box)) _panel.transform.SetAsLastSibling();
             _panel.SetActive(true);
         }
         catch (Exception ex)

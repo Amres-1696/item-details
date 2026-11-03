@@ -133,7 +133,7 @@ function Set-SourceModId($Item, [string]$ModId) {
 $api = $candidate.GetType('ItemDetails.ItemDetailsApi', $true)
 $sectionType = $candidate.GetType('ItemDetails.ItemDetailsTooltipSection', $true)
 $publicStatic = [System.Reflection.BindingFlags]'Public, Static'
-$registerTooltip = $api.GetMethod('RegisterTooltipDisplay', $publicStatic)
+$registerTooltip = $api.GetMethod('RegisterTooltipDisplay', [type[]]@([string], $sectionType))
 $registerContents = $api.GetMethod('RegisterContentsDisplay', $publicStatic)
 Assert-True ($null -ne $registerTooltip) 'RegisterTooltipDisplay is public'
 Assert-True ($sectionType.IsDefined([System.FlagsAttribute], $false)) 'tooltip sections are composable flags'
@@ -179,6 +179,30 @@ try {
 }
 finally { $contentsRegistration.Dispose() }
 Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'contents convenience disposal restores display'
+
+# Per-item takeover: ignores the source mod, several registrations combine,
+# a throwing callback only loses its own part, and Dispose restores.
+$itemFunc = [System.Func`2].MakeGenericType([GameItem], $sectionType)
+$registerItemTooltip = $api.GetMethod('RegisterTooltipDisplay', [type[]]@($itemFunc))
+Assert-True ($null -ne $registerItemTooltip) 'per-item RegisterTooltipDisplay is public'
+function New-ItemTakeover([scriptblock]$Body) { [System.Management.Automation.LanguagePrimitives]::ConvertTo($Body, $itemFunc) }
+$none = [System.Enum]::Parse($sectionType, 'None')
+$ownedItem = New-ProbeItem
+$contentsTakeover = New-ItemTakeover { param($it) if ([object]::ReferenceEquals($it, $ownedItem)) { $contents } else { $none } }
+$liquidTakeover = New-ItemTakeover { param($it) if ([object]::ReferenceEquals($it, $ownedItem)) { $liquid } else { $none } }
+$throwingTakeover = New-ItemTakeover { param($it) throw 'takeover failed' }
+$itemRegistrations = @(
+    $registerItemTooltip.Invoke($null, @($contentsTakeover)),
+    $registerItemTooltip.Invoke($null, @($liquidTakeover)),
+    $registerItemTooltip.Invoke($null, @($throwingTakeover)))
+try {
+    Assert-True ([bool]$handlesTooltip.Invoke($null, @($ownedItem, $contents))) 'per-item takeover covers its item'
+    Assert-True ([bool]$handlesTooltip.Invoke($null, @($ownedItem, $liquid))) 'per-item registrations combine'
+    Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($ownedItem, $authenticity))) 'per-item takeover selects nothing else'
+    Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($contentsItem, $contents))) 'per-item takeover leaves other items alone'
+}
+finally { foreach ($r in $itemRegistrations) { $r.Dispose() } }
+Assert-True (-not [bool]$handlesTooltip.Invoke($null, @($ownedItem, $contents))) 'disposing per-item takeover restores display'
 
 # External tooltip anchors: fixed and dynamic public overloads, duplicate rejection,
 # null/exception fallback, and restoration after Dispose.
