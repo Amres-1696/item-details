@@ -135,6 +135,7 @@ public static class ItemDetailsApi
 
     /// <summary>
     /// 注册分类徽章使用的固定提示框锚点。徽章贴在它上方，父节点和字体也取自该提示框。
+    /// 内容物图标窗口也贴在它旁边
     /// 同时只允许一个锚点提供方；Dispose 后恢复原版提示框。
     /// </summary>
     public static IDisposable RegisterTooltipAnchor(RectTransform tooltip)

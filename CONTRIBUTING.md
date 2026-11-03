@@ -140,7 +140,7 @@ public void OnDisable()
 - 净水手段注册键是物品的 `identifier`，种类决定水质建议用哪个原版函数模拟：`Machine` → `MachinePurifier.PurifyContainer`，`Portable` → `WaterHelper.PurifyToBaseWater`，`ChemicalAgent` → `ChemicalHelper.DissolveInto` 加反应链。不注册也会自动识别回调直接调用这些函数的物品（化学剂还要在标准试验水里确实提纯），注册后以注册为准；净化逻辑是自己写的、不走这些函数时，不要注册，水质建议也不会模拟它。
 - `RegisterTooltipDisplay(modId, sections)` 按物品来源 Mod 接管选中的信息块。`modId` 通常填自己 manifest 的 ID，不是物品 `identifier`；来源识别与原版一致，优先读 `MOD_ID_TAG`，否则查官方物品工厂所属的 Mod。同一 ID 只允许一个注册，重复注册会抛错，注销后恢复。`sections` 是 `[Flags]`，可用 `|` 组合 `Authenticity`、`ValueBreakdown`、`BerryQuality`、`HiddenInfo`、`ValueEnhance`、`Contents`、`MachineInterior`、`ModuleLearning`、`ConditionEffects`、`Contraband`、`Lottery`、`LiquidAnalysis`、`Scratcher`、`Seed`、`WaterAdvice`、`Wine`、`Meat`、`Market`，或选 `All`。各值的精确范围见公开枚举注释；未选中的信息块不受影响。`RegisterContentsDisplay(modId)` 是只选 `Contents` 的便捷入口。
 - 普通/密封容器的内容物只显示在额外图标窗口，不再有文字清单、数量摘要或独立箱内价值行；密封箱估价显示在图标窗口标题，嵌套容器或读取失败时用 `+` 表示下限额。`Contents` 接管会跳过这些图标窗口以及机器的通用内容物文字清单；`ValueEnhance` 单独控制压缩率，`MachineInterior` 单独控制滤芯、水量等状态。这个接口只避免 Item Details 重复追加信息，第三方替代内容仍通过官方 `ModHook.OnCreateTooltipLate` 添加。`All` 也不删除原版 tooltip，不禁用分类徽章、价格行改写等界面补丁。
-- `RegisterTooltipAnchor` 用于美化 Mod 告诉分类徽章当前 tooltip 在哪里。固定实例可传 `RectTransform`；会重建 tooltip 时传 `Func<RectTransform?>`，每次显示都会调用。徽章贴在该提示框上方，父节点与 TMP 字体也取自它。提供器返回 `null` 或抛错会回退原版；同时只允许一个锚点提供方，`Dispose` 后恢复原版定位。
+- `RegisterTooltipAnchor` 用于美化 Mod 告诉分类徽章当前 tooltip 在哪里。固定实例可传 `RectTransform`；会重建 tooltip 时传 `Func<RectTransform?>`，每次显示都会调用。徽章贴在该提示框上方，父节点与 TMP 字体也取自它。内容物图标窗口也贴在它旁边。提供器返回 `null` 或抛错会回退原版；同时只允许一个锚点提供方，`Dispose` 后恢复原版定位。
 - 回调在游戏主线程、构建 tooltip 时执行，应保持只读和轻量。第三方私有状态与缓存由提供方自己管理。
 - 只需要追加独立 tooltip 行时，直接使用游戏官方 `ModHook.OnCreateTooltipLate` 即可，不必注册到这里。
 
