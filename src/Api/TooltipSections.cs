@@ -93,6 +93,11 @@ internal static class TooltipSections
         }
 
         internal void Add(string text, Color color) => Write(("text", text, color, 0, 0, default, ""));
+        internal void Add(string text, Color color, string end)
+        {
+            // end 是下次 Add 前插入的续行前缀（nextBegin）；不记录就无法逐字回放。
+            Write(("text", text, color, 0, 0, default, end));
+        }
         internal void AddLine(string text, Color color) => Write(("line", text, color, 0, 0, default, ""));
         internal void NextLine() => Write(("break", "", default, 0, 0, default, ""));
         internal void Bar(TooltipLine line) => Write(("bar", line.Text, line.Color, line.Bar, line.BarLength, line.BarDark, line.Tail ?? ""));
@@ -107,6 +112,15 @@ internal static class TooltipSections
         {
             if (buffer == null) Native.maxCharWidth = Math.Max(width, Native.maxCharWidth);
             else buffer.Width = Math.Max(width, buffer.Width);
+        }
+
+        // 方法已经自己把这一行写进原生 builder（原地改写行）。回放照常进行，只要没有接管方，
+        // 观察者看到的输出就与无观察者时一致；接管方接管后跳过回放，避免重复。
+        internal void Emit()
+        {
+            if (buffer == null) return;
+            buffer.Written = true;
+            Finish();
         }
 
         // A native method owns this line or overlay. Expose its data without changing its rendering.
@@ -134,15 +148,17 @@ internal static class TooltipSections
             if (observeOnly) Field("canReplace", false);
             Fields fields = buffer.Fields == null ? EmptyFields : new ReadOnlyDictionary<string, object>(buffer.Fields);
             frame?.Sections.Add(new TooltipSection(buffer.Id, runs, fields));
-            if (buffer.Displays != null)
+            bool claimed = false;
+            if (buffer.Displays != null && !observeOnly)
             {
                 foreach (Display prepare in buffer.Displays.GetInvocationList())
                 {
-                    try { if (prepare(buffer.Item, Native, buffer.Id, runs, fields) && !observeOnly) return true; }
+                    try { if (prepare(buffer.Item, Native, buffer.Id, runs, fields)) { claimed = true; break; } }
                     catch (Exception ex) { Log.Warn("TooltipDisplay." + buffer.Id, ex); }
                 }
             }
-            if (observeOnly) return buffer.Handled;
+            if (observeOnly) return false;
+            if (claimed) return true;
             if (buffer.Width > 0) Native.maxCharWidth = Math.Max(buffer.Width, Native.maxCharWidth);
             foreach (var run in runs) Replay(Native, run);
             return false;
@@ -152,7 +168,7 @@ internal static class TooltipSections
         {
             switch (run.Kind)
             {
-                case "text": builder.Add(run.Text, run.Color); break;
+                case "text": builder.Add(run.Text, run.Color, run.Tail); break;
                 case "line": ModEntry.AddLine(builder, run.Text, run.Color); break;
                 case "break": builder.NextLine(); break;
                 case "bar": ModEntry.AddBarLine(builder, new TooltipLine(run.Text, run.Ratio, run.Length,
@@ -168,6 +184,8 @@ internal static class TooltipSections
         internal readonly Display? Displays;
         internal readonly bool Watch;
         internal bool Handled;
+        /// <summary>本区块的默认输出已由方法自己写出（原地改写行）：无接管时仍回放，接管时不再重复。</summary>
+        internal bool Written;
         internal int Width;
         internal List<Run>? Runs;
         internal Dictionary<string, object>? Fields;

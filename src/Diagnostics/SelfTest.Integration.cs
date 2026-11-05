@@ -390,6 +390,7 @@ internal static partial class SelfTest
     /// <summary>
     /// 区块协议实机保真：同一物品、同一状态下，观察者的捕获+回放必须逐字复现无观察者的原生输出；
     /// 接管区块后原生正文不再包含该区块，但快照仍保留它的结构化字段。
+    /// 样本用 price：普通物品都有价格行，且它是可替换的原地改写区块。
     /// </summary>
     private static string CheckSectionReplay(out bool ok)
     {
@@ -398,13 +399,15 @@ internal static partial class SelfTest
         IDisposable? watch = null, claim = null;
         try
         {
-            item = TryCreate("mirage_projector");
+            // 评估价（price）区块必然出现在普通物品上，用它的可替换性验证接管。
+            item = TryCreate("plasma_fuel");
             if (item == null) return "section replay: 无法创建样本";
             var get = AccessTools.Method(typeof(GameItemElement), "GetTooltipBasic", Type.EmptyTypes)
                 ?? throw new MissingMethodException("GameItemElement.GetTooltipBasic");
             RichTextBuilder Build() => (RichTextBuilder)get.Invoke(item, null)!;
             string Text(RichTextBuilder b) => b.Build()?.richTextForeground ?? "";
 
+            // 只观察：不应回放任何内容，原生输出保持不变。
             string direct = Text(Build());
             watch = Integration.ItemDetailsClient.WatchTooltipSections();
             var watchedBuilder = Build();
@@ -413,17 +416,25 @@ internal static partial class SelfTest
             bool snapshot = Integration.ItemDetailsClient.TryGetTooltipSections(watchedBuilder, out var sections)
                 && sections.Count > 0;
 
+            // 有接管方但全部拒绝：同样不应回放，输出与只观察一致。
             claim = Integration.ItemDetailsClient.RegisterTooltipSections(
-                (gameItem, builder, section) => section.Id == Integration.TooltipSectionIds.MachineSpeed);
+                (gameItem, builder, section) => false);
+            var rejectedBuilder = Build();
+            bool rejectedKeeps = Text(rejectedBuilder) == watched;
+
+            // 真接管：price 区块被抑制，字段仍可从快照取到。
+            claim.Dispose();
+            claim = Integration.ItemDetailsClient.RegisterTooltipSections(
+                (gameItem, builder, section) => section.Id == Integration.TooltipSectionIds.Price);
             var claimedBuilder = Build();
             bool suppressed = Text(claimedBuilder).Length < watched.Length;
             bool kept = Integration.ItemDetailsClient.TryGetTooltipSections(claimedBuilder, out var claimed)
-                && claimed.Any(s => s.Id == Integration.TooltipSectionIds.MachineSpeed
-                    && s.TryGet<int>("basePerDay", out _));
+                && claimed.Any(s => s.Id == Integration.TooltipSectionIds.Price);
 
-            ok = identical && snapshot && suppressed && kept;
-            return $"section replay: identical={identical} snapshot={snapshot} suppressed={suppressed} kept={kept} " +
-                   $"lengths={direct.Length}/{watched.Length} (期望全部 True 且等长)";
+            ok = identical && snapshot && rejectedKeeps && suppressed && kept;
+            return $"section replay: identical={identical} snapshot={snapshot} rejectedKeeps={rejectedKeeps} " +
+                   $"suppressed={suppressed} kept={kept} " +
+                   $"lengths={direct.Length}/{watched.Length}/{Text(rejectedBuilder).Length} (期望全部 True 且三份等长)";
         }
         catch (Exception ex) { return "section replay: " + ex; }
         finally

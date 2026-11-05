@@ -192,7 +192,8 @@ internal static class TypeBadge
         var output = new TooltipSections.Writer(builder, item, "categories");
         if (!output.Capturing) return;
         output.Field("types", Pending.ConvertAll(e => (e.TypeConst, e.Display)).AsReadOnly());
-        _externalDisplay = output.Finish();
+        // 分类徽章本身已由 AfterShow 画在原生提示框上；这里只暴露数据，接管方负责隐藏原生「[类型]」。
+        output.Emit();
     }
 
     private static bool _externalDisplay;

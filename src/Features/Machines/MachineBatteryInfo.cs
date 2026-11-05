@@ -180,7 +180,7 @@ internal static class MachineBatteryInfo
             output.Add(battery.Value.Text, battery.Value.Color);
         }
         output.NextLine();
-        output.Finish();
+        output.Emit();
     }
 
     private static void Reset()

@@ -154,7 +154,7 @@ internal static class MachineSpeedLine
             output.Add(speed + unit, RenderHandler.ColorPalette.LightCyan);
         }
         output.NextLine();
-        output.Finish();
+        output.Emit();
     }
 
     private static void Reset()

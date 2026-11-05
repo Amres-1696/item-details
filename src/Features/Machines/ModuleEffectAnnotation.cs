@@ -61,7 +61,7 @@ internal static class ModuleEffectAnnotation
             output.Add(text, color);
             output.Add(" (" + note + ")", RenderHandler.ColorPalette.Gray);
             output.NextLine();
-            output.Finish();
+            output.Emit();
             return true;
         }
         catch { return false; }

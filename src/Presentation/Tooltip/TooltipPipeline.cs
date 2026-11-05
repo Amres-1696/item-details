@@ -448,7 +448,7 @@ internal static class TooltipPipeline
             }
 
             output.NextLine();
-            output.Finish();
+            output.Emit();
             return false;   // 已自行输出，丢弃原行
         }
         catch { return true; }
@@ -528,7 +528,7 @@ internal static class TooltipPipeline
             }
 
             output.NextLine();
-            output.Finish();
+            output.Emit();
             _priceEmbeddedBuy = buy != 0;
 
             // 性价比紧跟价格行，与它的来源放在一起

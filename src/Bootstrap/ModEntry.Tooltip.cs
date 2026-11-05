@@ -288,11 +288,8 @@ public sealed partial class ModEntry
         var r = LiquidQueries.Analyze(item);
         if (r == null) return false;
         builder.Field("analysis", r.Data);
-        if (LiquidQueries.TryDisplay(ItemDetailsClient.AnalysisDisplay, item, r.Data))
-        {
-            if (!builder.Capturing) return true;
-            builder.AlreadyHandled();
-        }
+        // 专属的液体显示方也走区块接管：回调拿到同一份分段数据，返回 true 表示本次由它绘制。
+        if (LiquidQueries.TryDisplay(ItemDetailsClient.AnalysisDisplay, item, r.Data)) return true;
 
         bool wrote = false;
 
@@ -389,11 +386,7 @@ public sealed partial class ModEntry
         var methods = LiquidQueries.GetAdvice(item);
         if (methods == null) return false;
         builder.Field("methods", methods);
-        if (LiquidQueries.TryDisplay(ItemDetailsClient.AdviceDisplay, item, methods))
-        {
-            if (!builder.Capturing) return true;
-            builder.AlreadyHandled();
-        }
+        if (LiquidQueries.TryDisplay(ItemDetailsClient.AdviceDisplay, item, methods)) return true;
         if (methods.Count == 0) return builder.Capturing;
 
         bool wrote = false;
