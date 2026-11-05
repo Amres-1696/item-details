@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 
 namespace ItemDetails;
@@ -158,31 +159,95 @@ internal static class MachineBatteryInfo
         var output = new TooltipSections.Writer(builder, machine, "machine-power");
         output.Field("basePerDay", baseDrawn);
         output.Field("currentPerDay", drawn);
-        output.Add(Loc.T("machine.energy_label", "Power: "), RenderHandler.ColorPalette.LightCyan);
+
+        // 冒号连同其前的空格一起去掉：整行读作「耗能 4→5/天 ▇▇▇ 22/25kJ (4天)」。
+        // 中文模板的「耗能：」不会命中下面的模式，单独处理。
+        // Some locales also write the colon with a non-breaking space before it.
+        string raw = Loc.T("machine.energy_label", "Power: ");
+        string label = raw.TrimStart().Replace('\u00A0', ' ');
+        label = System.Text.RegularExpressions.Regex.Replace(label, "\\s*[:：]$", "").TrimEnd() + " ";
+        var head = new List<(string Text, RenderHandler.ColorPalette Color)>
+        {
+            (label, RenderHandler.ColorPalette.LightCyan),
+        };
         if (baseDrawn > 0 && baseDrawn != drawn)
         {
-            output.Add(baseDrawn + " → ", RenderHandler.ColorPalette.Gray);
-            var color = drawn < baseDrawn
+            head.Add((baseDrawn + " → ", RenderHandler.ColorPalette.Gray));
+            head.Add((drawn + unit, drawn < baseDrawn
                 ? RenderHandler.ColorPalette.LightGreen   // 比基础省电
-                : RenderHandler.ColorPalette.LightRed;    // 比基础费电
-            output.Add(drawn + unit, color);
+                : RenderHandler.ColorPalette.LightRed));  // 比基础费电
         }
         else
         {
-            output.Add(drawn + unit, RenderHandler.ColorPalette.LightCyan);
+            head.Add((drawn + unit, RenderHandler.ColorPalette.LightCyan));
         }
 
-        var battery = Collect(machine, out int remaining, out int days);
-        if (battery != null)
+        var battery = Collect(machine, out int energy, out int maxEnergy, out int days);
+        if (battery == null)
         {
-            output.Field("remaining", remaining);
-            output.Field("days", days);
-            output.Add(battery.Value.Text, battery.Value.Color);
+            foreach (var part in head) output.Direct(part.Text, part.Color);
+            output.DirectNextLine();
+            output.Emit();
+            return;
         }
-        output.NextLine();
+
+        output.Field("remaining", energy);
+        output.Field("maxEnergy", maxEnergy);
+        output.Field("days", days);
+        // 条画的是剩余/最大电量；括号是按可运行天数着色的「22/25kJ (4天)」。
+        // 头部已由上面的 Direct 逐段写出，这里只画条与尾部：TooltipLine 的 Text 必须传空，
+        // 否则 AddInlineBarLine/AddBarLine 会把头部再写一遍（实测「耗能 4/天」出现两次）。
+        foreach (var part in head) output.Direct(part.Text, part.Color);
+        output.Direct(" ", RenderHandler.ColorPalette.LightCyan);
+        output.Direct(new TooltipLine("", (float)energy / maxEnergy, EnergyBarLength,
+            battery.Value.Text.TrimStart(),
+            RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan));
+        output.DirectNextLine();
         output.Emit();
     }
 
+    private const int EnergyBarLength = 6;
+
+    /// <summary>
+    /// 电池段：剩余/最大 kJ 与可运行天数。普通电池才返回非空。
+    /// 上限读不到或为 0 时只写剩余量，条的比例记 0（调用处会退化成空条）。
+    /// </summary>
+    private static TooltipLine? Collect(GameItem? item, out int energy, out int maxEnergy, out int days)
+    {
+        energy = maxEnergy = days = 0;
+        if (item == null) return null;
+        try
+        {
+            if (!item.IsGameItemType("MACHINE")) return null;
+
+            // 不用原版 GetBatterySlot（固定取第 0 个槽）：没有电池面板的机器第 0 格是投料口或模块格。
+            // 转换器、超科技电池的能量标签恒为 0，按普通电池读会误报"0 天"。
+            var battery = MachineInterior.FindPowerSource(item);
+            if (!MachineInterior.IsPlainBattery(battery)) return null;
+
+            energy = GameRead.TagInt(battery, "power_source_item_energy") ?? 0;
+            if (energy < 0) energy = 0;
+            maxEnergy = GameRead.TagInt(battery, "power_source_item_max_energy") ?? 0;
+            if (maxEnergy < energy) maxEnergy = energy;
+            int drawn = GameRead.TagInt(item, "machinery_drawn_power") ?? 0;
+            if (drawn <= 0) return null;
+
+            days = energy / drawn;
+            var color = days >= 3 ? RenderHandler.ColorPalette.LightGreen
+                      : days >= 1 ? RenderHandler.ColorPalette.LightYellow
+                      : RenderHandler.ColorPalette.LightRed;
+
+            return new TooltipLine(maxEnergy > 0
+                ? Loc.T("machine.energy_battery", " ({0}/{1}kJ ({2} day))", energy, maxEnergy, days)
+                : Loc.T("machine.energy_left", " ({0}kJ, {1} day)", energy, days),
+                color);
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("MachineBattery.Collect", ex);
+            return null;
+        }
+    }
     private static void Reset()
     {
         _machine = null;
@@ -205,39 +270,5 @@ internal static class MachineBatteryInfo
     }
 
     /// <summary>能量行末尾的括号：剩余能量 + 按当前每日耗能向下取整的可运行天数。</summary>
-    internal static TooltipLine? Collect(GameItem? item) => Collect(item, out _, out _);
-
-    private static TooltipLine? Collect(GameItem? item, out int energy, out int days)
-    {
-        energy = days = 0;
-        if (item == null) return null;
-        try
-        {
-            if (!item.IsGameItemType("MACHINE")) return null;
-
-            // 不用原版 GetBatterySlot（固定取第 0 个槽）：没有电池面板的机器第 0 格是投料口或模块格。
-            // 转换器、超科技电池的能量标签恒为 0，按普通电池读会误报"0 天"。
-            var battery = MachineInterior.FindPowerSource(item);
-            if (!MachineInterior.IsPlainBattery(battery)) return null;
-
-            energy = GameRead.TagInt(battery, "power_source_item_energy") ?? 0;
-            int drawn = GameRead.TagInt(item, "machinery_drawn_power") ?? 0;
-            if (energy < 0) energy = 0;
-            if (drawn <= 0) return null;
-
-            days = energy / drawn;
-            var color = days >= 3 ? RenderHandler.ColorPalette.LightGreen
-                      : days >= 1 ? RenderHandler.ColorPalette.LightYellow
-                      : RenderHandler.ColorPalette.LightRed;
-
-            return new TooltipLine(
-                Loc.T("machine.energy_battery", " ({0} left, lasts {1} {1|day|days})", energy, days),
-                color);
-        }
-        catch (Exception ex)
-        {
-            Log.Warn("MachineBattery.Collect", ex);
-            return null;
-        }
-    }
+    internal static TooltipLine? Collect(GameItem? item) => Collect(item, out _, out _, out _);
 }

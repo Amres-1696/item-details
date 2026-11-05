@@ -445,5 +445,52 @@ internal static partial class SelfTest
         }
     }
 
+    /// <summary>
+    /// 原地改写行（Direct* + Emit）在观察者开启时的两条硬要求：
+    ///   1. 真实 builder 仍要写出这一行——否则一开捕获，售价/耗能/作业速度行就整段消失；
+    ///   2. 快照里要留下同样的 runs——否则接管方拿到空数据，画不出自己的面板。
+    /// 样本用 machine-power：它完全走 Direct，是唯一不经过 AddLine 改写路径的区块。
+    /// </summary>
+    private static string CheckInPlaceSection(out bool ok)
+    {
+        ok = false;
+        GameItem? item = null;
+        IDisposable? watch = null;
+        try
+        {
+            item = TryCreate("plasma_fuel");
+            if (item == null) return "in-place section: 无法创建样本";
+            const string line = "耗能 4/天";
+
+            var plain = new RichTextBuilder(40);
+            var direct = new TooltipSections.Writer(plain, item, Integration.TooltipSectionIds.MachinePower);
+            direct.Field("currentPerDay", 4);
+            direct.Direct(line, RenderHandler.ColorPalette.LightCyan);
+            direct.DirectNextLine();
+            direct.Emit();
+            bool written = (plain.Build()?.nakedText ?? "").IndexOf(line, StringComparison.Ordinal) >= 0;
+
+            watch = Integration.ItemDetailsClient.WatchTooltipSections();
+            var captured = new RichTextBuilder(40);
+            var output = new TooltipSections.Writer(captured, item, Integration.TooltipSectionIds.MachinePower);
+            output.Field("currentPerDay", 4);
+            output.Direct(line, RenderHandler.ColorPalette.LightCyan);
+            output.DirectNextLine();
+            output.Emit();
+            bool kept = (captured.Build()?.nakedText ?? "").IndexOf(line, StringComparison.Ordinal) >= 0;
+            bool snapshot = Integration.ItemDetailsClient.TryGetTooltipSections(captured, out var sections)
+                && sections.Any(s => s.Id == Integration.TooltipSectionIds.MachinePower && s.Runs.Count >= 2);
+
+            ok = written && kept && snapshot;
+            return $"in-place section: written={written} keptUnderWatch={kept} snapshotRuns={snapshot}";
+        }
+        catch (Exception ex) { return "in-place section: " + ex; }
+        finally
+        {
+            watch?.Dispose();
+            if (item != null) { try { item.Destroy(); } catch { } }
+        }
+    }
+
 }
 #endif

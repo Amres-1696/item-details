@@ -990,19 +990,28 @@ internal static partial class SelfTest
             int days = drawn > 0 ? 100 / drawn : 0;
             string required = "";
             try { required = LocHelper.GetLocalizedMechanic("mech_machinery_required_energy") ?? ""; } catch { }
-            string energyLine = Loc.T("machine.energy_label", "Power: ")
+            int maxEnergy = GameRead.TagInt(battery, "power_source_item_max_energy") ?? 0;
+            // 条画在耗能数值与括号之间：文本里夹着 █ 与空格，比对时先去掉。
+            string energyLine = Loc.T("machine.energy_label", "Power: ").TrimStart().TrimEnd('：', ':').TrimEnd() + " "
                 + (baseDrawn > 0 && baseDrawn != drawn ? baseDrawn + " → " : "")
-                + drawn + Loc.T("machine.energy_unit", "/day")
-                + Loc.T("machine.energy_battery", " ({0} left, lasts {1} {1|day|days})", 100, days);
-
-            bool merged = text.IndexOf(energyLine, StringComparison.Ordinal) >= 0;
+                + drawn + Loc.T("machine.energy_unit", "/day") + " "
+                + Loc.T("machine.energy_battery", " ({0}/{1}kJ ({2} day))", 100, maxEnergy, days).TrimStart();
+            // 条夹在耗能数值与括号之间；把条从比对文本里去掉，只看文字是否按新格式拼好。
+            string withoutBar = System.Text.RegularExpressions.Regex.Replace(text, @"█+|<[^>]*>|<sprite[^>]*>", "");
+            int paren = withoutBar.IndexOf('(');
+            string head = paren > 0 ? withoutBar.Substring(0, paren).TrimEnd() : withoutBar;
+            bool merged = head.IndexOf(drawn + Loc.T("machine.energy_unit", "/day"), StringComparison.Ordinal) >= 0
+                && withoutBar.IndexOf("100/" + maxEnergy + "kJ", StringComparison.Ordinal) >= 0;
             bool vanillaGone = required.Trim().Length == 0
                 || text.IndexOf(required.Trim(), StringComparison.Ordinal) < 0;
 
+            bool energyGone = text.IndexOf("剩余", StringComparison.Ordinal) < 0
+                && text.IndexOf(" left", StringComparison.Ordinal) < 0;
+
             bool inserted = remaining == 0 && ReferenceEquals(slot.childItem, battery);
-            ok = inserted && merged && vanillaGone;
+            ok = inserted && merged && vanillaGone && energyGone;
             return $"machine battery: remaining={remaining} inserted={inserted} drawn={drawn} base={baseDrawn} " +
-                   $"merged={merged} vanillaGone={vanillaGone} text='{text.Replace('\n', ' ')}' " +
+                   $"merged={merged} vanillaGone={vanillaGone} energyGone={energyGone} text='{text.Replace('\n', ' ')}' " +
                    $"(期望原版所需能量行被合并为「{energyLine}」)";
         }
         catch (Exception ex)

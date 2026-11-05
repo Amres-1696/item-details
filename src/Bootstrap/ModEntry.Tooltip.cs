@@ -455,6 +455,34 @@ public sealed partial class ModEntry
         }
     }
 
+    /// <summary>
+    /// 原地改写行的进度条：条直接放在文字后面，不再另起一行说明。
+    /// 不带不折行标记，折行预算与普通文本一致；放不下一行时退回 addProgressBar 的默认渲染。
+    /// </summary>
+    internal static void AddInlineBarLine(RichTextBuilder builder, TooltipLine ln)
+    {
+        try
+        {
+            if (SectionedLayout.UsesNativeBars)
+            {
+                AddBarLine(builder, ln);
+                return;
+            }
+            int visible = ProgressBarStyle.VisibleLength(ln.Text) + ln.BarLength + 2
+                + ProgressBarStyle.VisibleLength(ln.Tail);
+            bool fits = ProgressBarStyle.FitsOneLine(builder, visible);
+            if (ln.Text.Length > 0) builder.Add(ln.Text, ln.Color);
+            builder.Add(ProgressBarStyle.Format(ln.Bar, ln.BarLength, ln.BarDark,
+                fullLength: true, allowSprite: fits), ln.Color, end: " ");
+            if (!string.IsNullOrEmpty(ln.Tail)) builder.Add(ln.Tail, ln.Color);
+            builder.NextLine();
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("AddInlineBarLine", ex);
+        }
+    }
+
     /// <summary>输出同色的一组纯文本行（未做本地化的模块用）。</summary>
     private static bool AppendLines(TooltipSections.Writer builder, List<string> lines, RenderHandler.ColorPalette color)
     {

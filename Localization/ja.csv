@@ -153,7 +153,8 @@ wine.yeast_effect,果実酒 +{0}（重複なし）、{1} 回で発酵
 wine.yeast_illegal,偽造品になる
 machine.energy_label,消費電力：
 machine.energy_unit,/日
-machine.energy_battery,（残り{0}、{1}日分）
+machine.energy_battery," ({0}/{1}kJ、{2}日分)"
+machine.energy_left," ({0}kJ、{1}日分)"
 config.section.display,表示
 config.authenticity,真偽鑑定
 config.authenticity.tip,本物か偽物かを判定し、欠陥と偽物の理由、ブルームベリーの品質、未分析の種の形質を表示します。

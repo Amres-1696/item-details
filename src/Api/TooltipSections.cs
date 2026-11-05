@@ -101,6 +101,7 @@ internal static class TooltipSections
         internal void AddLine(string text, Color color) => Write(("line", text, color, 0, 0, default, ""));
         internal void NextLine() => Write(("break", "", default, 0, 0, default, ""));
         internal void Bar(TooltipLine line) => Write(("bar", line.Text, line.Color, line.Bar, line.BarLength, line.BarDark, line.Tail ?? ""));
+        internal void InlineBar(TooltipLine line) => Write(("inline-bar", line.Text, line.Color, line.Bar, line.BarLength, line.BarDark, line.Tail ?? ""));
 
         private void Write(Run run)
         {
@@ -108,19 +109,22 @@ internal static class TooltipSections
             else (buffer.Runs ??= new List<Run>()).Add(run);
         }
 
+#if ITEMDETAILS_DIAG
+        internal bool Buffered => buffer != null;
+#endif
+
+        // 原地改写行专用：方法自己决定怎么写出这一行。
+        // 无观察者时 Add/NextLine 已经直写；有观察者时它们只进缓冲，Emit 负责回放一次。
+        internal void Direct(string text, Color color) => Write(("text", text, color, 0, 0, default, ""));
+        internal void Direct(TooltipLine line) => InlineBar(line);
+        internal void DirectNextLine() => NextLine();
+
+
+
         internal void RequireWidth(int width)
         {
             if (buffer == null) Native.maxCharWidth = Math.Max(width, Native.maxCharWidth);
             else buffer.Width = Math.Max(width, buffer.Width);
-        }
-
-        // 方法已经自己把这一行写进原生 builder（原地改写行）。回放照常进行，只要没有接管方，
-        // 观察者看到的输出就与无观察者时一致；接管方接管后跳过回放，避免重复。
-        internal void Emit()
-        {
-            if (buffer == null) return;
-            buffer.Written = true;
-            Finish();
         }
 
         // A native method owns this line or overlay. Expose its data without changing its rendering.
@@ -130,7 +134,15 @@ internal static class TooltipSections
             Finish(observeOnly: true);
         }
 
-        internal void AlreadyHandled() { if (buffer != null) buffer.Handled = true; }
+        // 原地改写行的收尾。无观察者时上面的 Add/NextLine 已经直写；有观察者时只进了缓冲，
+        // 由 Finish 决定：接管方认领就由它画，没人认领就原样回放——输出与无观察者时逐字一致。
+        // 不要在这里设 Handled：那会走 observeOnly 分支，在回放之前就返回，缓冲里的内容会整段消失。
+        internal void Emit()
+        {
+            if (buffer == null) return;
+            Finish();
+        }
+
 
         // true means a replacement actually claimed the section (also used by the contents overlay).
         internal bool Finish(bool observeOnly = false)
@@ -144,7 +156,6 @@ internal static class TooltipSections
                 frame.Build = TooltipPipeline.BuildId;
             }
             if (runs.Count == 0 && buffer.Fields == null) return false;
-            observeOnly |= buffer.Handled;
             if (observeOnly) Field("canReplace", false);
             Fields fields = buffer.Fields == null ? EmptyFields : new ReadOnlyDictionary<string, object>(buffer.Fields);
             frame?.Sections.Add(new TooltipSection(buffer.Id, runs, fields));
@@ -173,6 +184,8 @@ internal static class TooltipSections
                 case "break": builder.NextLine(); break;
                 case "bar": ModEntry.AddBarLine(builder, new TooltipLine(run.Text, run.Ratio, run.Length,
                     run.Tail, run.Color, run.Background)); break;
+                case "inline-bar": ModEntry.AddInlineBarLine(builder, new TooltipLine(run.Text, run.Ratio, run.Length,
+                    run.Tail, run.Color, run.Background)); break;
             }
         }
     }
@@ -183,9 +196,6 @@ internal static class TooltipSections
         internal readonly string Id;
         internal readonly Display? Displays;
         internal readonly bool Watch;
-        internal bool Handled;
-        /// <summary>本区块的默认输出已由方法自己写出（原地改写行）：无接管时仍回放，接管时不再重复。</summary>
-        internal bool Written;
         internal int Width;
         internal List<Run>? Runs;
         internal Dictionary<string, object>? Fields;
