@@ -314,8 +314,8 @@ public sealed partial class ModEntry
         else
         {
             // 固体化学品（药片、作物、粪便等）：没有容器与体积，所以不画条；
-            // 成分与液体容器共用同一份行数据，列位置一致。
-            var table = WaterColumns.BuildSolid(r, visible);
+            // 成分与液体容器共用同一份行数据，也照同一份布局声明输出。
+            var table = WaterColumns.BuildSolid(r, visible, flowing: SectionedLayout.UsesFlowingText(item));
             PublishWaterRows(builder, visible);
             AppendLines(builder, table);
             wrote = true;

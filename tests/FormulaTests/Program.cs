@@ -109,6 +109,28 @@ Check("solid components reuse the same rows with their own amount format", () =>
     Require(table.Rows[0].Amount == "1500.00 mL", "solid amount comes from the injected formatter, got " + table.Rows[0].Amount);
     Require(table.Rows[0].Name == "水" && table.Rows[1].Name == "化学污染物", "names pass through untouched");
 });
+Check("a near-full bar matches either fill convention", () =>
+{
+    // 原生 AddProgressBar 截断：0.9996 × 10 只画 9 格；本模组自己的条把接近满的补成 10 格。
+    Require(ProgressFill.Native(0.9996f, 10) == 9, "native fill truncates");
+    Require(ProgressFill.Filled(0.9996f, 10) == 10, "our bars snap a near-full ratio to full");
+    Require(ProgressFill.Accepts(0.9996f, 10, 9), "truncated text still finds its record");
+    Require(ProgressFill.Accepts(0.9996f, 10, 10), "snapped text finds it too");
+    Require(!ProgressFill.Accepts(0.5f, 10, 9), "a different ratio must not borrow the record");
+    Require(ProgressFill.Accepts(0.5f, 10, 5), "a half-filled bar matches");
+});
+Check("flowing rows always keep three cells, hint included", () =>
+{
+    var table = WaterTable.Build(Components(), 1_908_000, expanded: false, hintWithoutFolded: false,
+        "Ctrl to expand", parts => parts + "u", System.Globalization.CultureInfo.InvariantCulture);
+    string[] component = WaterTable.JoinCells(table.Rows[0], '　').Split('　');
+    Require(component.Length == 3 && component[1] == "1500000u", "component keeps name, amount, percent");
+    string[] hint = WaterTable.JoinCells(table.Rows[table.Rows.Count - 1], '　').Split('　');
+    Require(hint.Length == 3, "hint row must not collapse to two cells, got " + hint.Length);
+    Require(hint[0] == "Ctrl to expand", "hint text stays in the first cell");
+    Require(hint[1] == WaterTable.EmptyCell, "empty amount cell holds the placeholder");
+    Require(hint[2] == "0.42%", "percent stays in the last cell");
+});
 return failures == 0 ? 0 : 1;
 
 static IReadOnlyList<(string Name, int Parts)> Components() => new List<(string Name, int Parts)>

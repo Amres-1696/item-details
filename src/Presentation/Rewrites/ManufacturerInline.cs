@@ -209,7 +209,11 @@ internal static class ManufacturerInline
         bg[c - 1] += "<line-height=0>";
         bg[c] = "</line-height>" + bg[c];
 
-        return Rebuild(r, string.Join("\n", fg), string.Join("\n", bg));
+        // 合并换了 RichText 实例，进度条记录还挂在旧实例上：带过去，
+        // 否则同一张提示框里的条会退回按字符数还原的精度。
+        RichText rebuilt = Rebuild(r, string.Join("\n", fg), string.Join("\n", bg));
+        ProgressBarStyle.Carry(r, rebuilt);
+        return rebuilt;
     }
 
     private static RichText Rebuild(RichText r, string foreground, string background)

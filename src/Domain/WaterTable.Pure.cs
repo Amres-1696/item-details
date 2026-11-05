@@ -104,4 +104,15 @@ internal static class WaterTable
     /// <summary>百分比列的文案（含 %）。</summary>
     internal static string Percent(int parts, int total, IFormatProvider? culture)
         => WaterLayout.PercentText(parts, total, culture) + "%";
+
+    /// <summary>
+    /// 空格子的占位。流式布局按分隔符切列，空格子如果什么都不放，相邻两个分隔符会并成一段，
+    /// 消费方就把「提示 + 百分比」数成两格、当成普通标签对，百分比落进数值列而不是末列。
+    /// 零宽空格不占宽度，也不参与切列。
+    /// </summary>
+    internal const string EmptyCell = "\u200B";
+
+    /// <summary>流式布局的一行：三格用分隔符连起来，空格子放 <see cref="EmptyCell"/>。</summary>
+    internal static string JoinCells(WaterRow row, char separator)
+        => row.Name + separator + (row.Amount.Length > 0 ? row.Amount : EmptyCell) + separator + row.Percent;
 }

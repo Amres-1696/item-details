@@ -206,17 +206,17 @@ internal static class WaterColumns
     /// 没有容器与体积，所以这里不写表头，直接从第一行成分开始；末尾补一行低于显示阈值的数量。
     /// </summary>
     /// <param name="visible">非 null 时填入这一帧实际画出的行，供区块协议发布。</param>
-    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis, List<WaterRow>? visible = null)
+    /// <param name="flowing">美化布局声明了 FlowingText：按它的切列方式输出，不用 &lt;pos&gt;，
+    /// 否则它重排文字时三列定位会失效。固体与液体都照这个声明走。</param>
+    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis, List<WaterRow>? visible = null,
+        bool flowing = false)
     {
         var comps = Components(analysis, waterMismatch: false);
         var plan = WaterTable.Build(Pairs(comps), analysis.TotalMicroliters, Expanded(),
             hintWithoutFolded: false, FoldHint, WaterInfo.Amount, Loc.Culture);
         visible?.AddRange(plan.Rows);
 
-        var layout = Measure(plan.Rows);
-        var lines = new List<TooltipLine>(plan.Rows.Count + 1);
-        foreach (var row in plan.Rows)
-            lines.Add(new TooltipLine(Row(row, layout), ColorOf(comps, row)));
+        var lines = RowLines(plan.Rows, comps, flowing);
         if (analysis.HiddenComponents > 0)
             lines.Add(new TooltipLine(Loc.T("water.trace_count", "(+{0} more below display threshold)", analysis.HiddenComponents),
                 RenderHandler.ColorPalette.Gray));
@@ -267,25 +267,39 @@ internal static class WaterColumns
                 new(tail.TrimStart(), ratio, 6, "",
                     RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
             };
-            foreach (var row in plan.Rows)
-                plain.Add(new TooltipLine(RowCells(row), ColorOf(comps, row)));
+            plain.AddRange(RowLines(plan.Rows, comps, flowing: true));
             return plain;
         }
 
-        var layout = Measure(plan.Rows);
         var lines = new List<TooltipLine>(plan.Rows.Count + 1)
         {
             new("", ratio, 6, tail,
                 RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
         };
-        foreach (var row in plan.Rows)
-            lines.Add(new TooltipLine(Row(row, layout), ColorOf(comps, row)));
+        lines.AddRange(RowLines(plan.Rows, comps, flowing: false));
         return lines;
     }
 
-    /// <summary>流式布局的一行：三个格子用全角空格隔开，空格子留成连续分隔符。</summary>
-    private static string RowCells(WaterRow row)
-        => row.Name + FlowingSeparator + row.Amount + FlowingSeparator + row.Percent;
+    /// <summary>
+    /// 把行数据画成 tooltip 行。美化布局声明了 FlowingText 时按全角空格切列（它自己排），
+    /// 否则用 &lt;pos&gt; 精确定位。液体与固体都走这里，两条路径不会再各写一套。
+    /// </summary>
+    private static List<TooltipLine> RowLines(IReadOnlyList<WaterRow> rows,
+        List<(string Name, int Parts, RenderHandler.ColorPalette Color)> comps, bool flowing)
+    {
+        var lines = new List<TooltipLine>(rows.Count);
+        if (flowing)
+        {
+            foreach (var row in rows)
+                lines.Add(new TooltipLine(WaterTable.JoinCells(row, FlowingSeparator), ColorOf(comps, row)));
+            return lines;
+        }
+
+        var layout = Measure(rows);
+        foreach (var row in rows)
+            lines.Add(new TooltipLine(Row(row, layout), ColorOf(comps, row)));
+        return lines;
+    }
 
     private static List<(string Name, int Parts)> Pairs(
         List<(string Name, int Parts, RenderHandler.ColorPalette Color)> comps)

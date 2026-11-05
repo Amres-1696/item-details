@@ -133,7 +133,7 @@ _layout = ItemDetailsClient.RegisterTooltipLayout(item =>
 _anchor = ItemDetailsClient.RegisterTooltipAnchor(() => currentVisibleTooltipRect);
 ```
 
-`NativeProgressBars` 让自学习等附加条也通过游戏的 `AddProgressBar` 输出，便于读取准确比例。`FlowingText` 让液体表使用可自然换行的文字。`DrawsContents` 只对本次物品让出内容物区块，声明前应确认本次能展示该区块（包括上锁容器的显示资格）。布局回调返回 null 时依次尝试其他显示方，首个非 null 声明用于本次构建；返回 `None` 表示本次由你绘制并使用默认样式。回调只读取本次排版状态。未接入协议的 SectionedTooltips 1.6.2 仍按其排版和内容物面板开关兼容。
+`NativeProgressBars` 让自学习等附加条也通过游戏的 `AddProgressBar` 输出，便于读取准确比例。`FlowingText` 让成分表（液体与固体都算）使用可自然换行的文字，而不是 `<pos>` 定位。`DrawsContents` 只对本次物品让出内容物区块，声明前应确认本次能展示该区块（包括上锁容器的显示资格）。布局回调返回 null 时依次尝试其他显示方，首个非 null 声明用于本次构建；返回 `None` 表示本次由你绘制并使用默认样式。回调只读取本次排版状态。未接入协议的 SectionedTooltips 1.6.2 仍按其排版和内容物面板开关兼容。
 
 锚点用于分类徽章与旁边的内容物浮窗。回调每次返回当前可见的提示框，无可用窗口时返回 null。已有直接引用接口的锚点优先；使用可选客户端时优先采用首个有效锚点。
 

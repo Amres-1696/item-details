@@ -228,7 +228,7 @@ internal static class ProgressBarStyle
     }
 
     /// <summary>
-    /// 找这条 [=====  ] 对应的记录：长度与填充格数都要一致才算同一根条。
+    /// 找这条 [=====  ] 对应的记录：长度相同、格数按记录的比例算得出来（原版截断或补满都认）。
     /// 只按长度、或干脆取第一条，会在第三方改写了填充格数后套上别的比例和底色；
     /// 匹配不上就返回 null，由调用方按文字自己的比例画。
     /// </summary>
@@ -239,13 +239,28 @@ internal static class ProgressBarStyle
         for (int i = 0; i < bars.Count; i++)
         {
             var b = bars[i];
-            if (b.Length == length && ProgressFill.Filled(b.Ratio, b.Length) == equalsCount)
-            {
-                bars.RemoveAt(i);
-                return b;
-            }
+            if (b.Length != length || !ProgressFill.Accepts(b.Ratio, b.Length, equalsCount)) continue;
+            bars.RemoveAt(i);
+            return b;
         }
         return null;
+    }
+
+    /// <summary>
+    /// 把记录从旧的 <see cref="RichText"/> 带到替换后的新实例上。
+    /// 公司名合并之类的改写会重建 RichText，文字里的条没有变，记录跟着走才不会退回按格数还原。
+    /// 旧实例没有记录时什么都不做。
+    /// </summary>
+    internal static void Carry(RichText? from, RichText? to)
+    {
+        if (from == null || to == null || ReferenceEquals(from, to)) return;
+        lock (RichTextBars)
+        {
+            if (!RichTextBars.TryGetValue(from, out var bars) || bars.Count == 0) return;
+            var copy = new List<BarRecord>(bars);
+            if (RichTextBars.TryGetValue(to, out _)) RichTextBars.Remove(to);
+            RichTextBars.Add(to, copy);
+        }
     }
 
     /// <summary>
