@@ -125,6 +125,7 @@ water.actives,有効成分：
 water.other,その他：
 water.mismatch,（ラベルと不一致）
 water.trace,微量（表示閾値未満）
+water.trace_count,（ほか {0} 種が表示閾値未満）
 water.composition,成分：
 water.components,成分
 chem.effects,効果：{0}

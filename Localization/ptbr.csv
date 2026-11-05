@@ -125,6 +125,7 @@ water.actives,"Princípios ativos: "
 water.other,"Outros: "
 water.mismatch," (rótulo não confere)"
 water.trace,traço (abaixo do limite de exibição)
+water.trace_count,(+{0} mais abaixo do limite de exibição)
 water.composition,Composição: 
 water.components,Componentes
 chem.effects,Efeitos: {0}

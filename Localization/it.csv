@@ -125,6 +125,7 @@ water.actives,"Principi attivi: "
 water.other,"Altri: "
 water.mismatch," (etichetta non corrispondente)"
 water.trace,tracce (sotto soglia)
+water.trace_count,(+{0} altri sotto la soglia di visualizzazione)
 water.composition,Composizione: 
 water.components,Componenti
 chem.effects,Effetti: {0}

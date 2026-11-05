@@ -99,6 +99,79 @@ internal static class WaterColumns
     private static string Pos(float em)
         => "<pos=" + em.ToString("0.##", CultureInfo.InvariantCulture) + "em>";
 
+    /// <summary>表头文字（「成分」）与三条列的起点，单位是 em。</summary>
+    internal readonly struct Layout
+    {
+        internal readonly string Label;
+        internal readonly float VolumeStart;
+        internal readonly float PercentStart;
+
+        internal Layout(string label, float volumeStart, float percentStart)
+        {
+            Label = label;
+            VolumeStart = volumeStart;
+            PercentStart = percentStart;
+        }
+
+        /// <summary>把文案放到体积列。</summary>
+        internal string ToVolume(string text) => text + Pos(VolumeStart);
+
+        /// <summary>把文案放到百分比列（体积列已写过的行用这个）。</summary>
+        internal string ToPercent(string text) => text + Pos(PercentStart);
+    }
+
+    /// <summary>
+    /// 按表头与所有行的名称/用量算出列落点。液体容器与固体化学品共用这一套，
+    /// 两条路径的列位置因此一致。
+    /// </summary>
+    internal static Layout Measure(string label, IEnumerable<(string Name, string Amount)> rows)
+    {
+        float nameEm = Em(label);
+        float volEm = 0f;
+        foreach (var row in rows)
+        {
+            nameEm = Math.Max(nameEm, Em(row.Name));
+            volEm = Math.Max(volEm, Em(row.Amount));
+        }
+        float volStart = nameEm + ColumnGapEm;
+        return new Layout(label, volStart, volStart + volEm + ColumnGapEm);
+    }
+
+    /// <summary>液体容器的一行体积，单位随 <see cref="Volume.UseLiters"/>。</summary>
+    internal static string AmountOf(int parts, bool liters) => VolumeOf(parts, liters);
+
+    /// <summary>
+    /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一落点规则。
+    /// 没有容器与体积条，表头只用「成分」。
+    /// </summary>
+    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis)
+    {
+        var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
+        int activeIndex = 0, otherIndex = 0;
+        foreach (var component in analysis.Components)
+        {
+            int index = component.Role == "active" ? activeIndex++ : component.Role == "other" ? otherIndex++ : 0;
+            comps.Add((component.Name, component.Microliters, ColorOf(component.Id, index)));
+        }
+
+        string label = Loc.T("water.components", "Components");
+        var rows = new List<(string Name, string Amount)>();
+        foreach (var c in comps) rows.Add((c.Name, WaterInfo.Amount(c.Parts)));
+        var layout = Measure(label, rows);
+
+        var lines = new List<TooltipLine> { new(label, RenderHandler.ColorPalette.LightCyan) };
+        foreach (var c in comps)
+        {
+            string text = layout.ToVolume(WaterInfo.Amount(c.Parts))
+                        + layout.ToPercent(WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%");
+            lines.Add(new TooltipLine(text, c.Color));
+        }
+        if (analysis.HiddenComponents > 0)
+            lines.Add(new TooltipLine(Loc.T("water.trace_count", "(+{0} more below display threshold)", analysis.HiddenComponents),
+                RenderHandler.ColorPalette.Gray));
+        return lines;
+    }
+
     internal static List<TooltipLine> Build(LiquidAnalysis analysis, GameItem item)
     {
         var lines = new List<TooltipLine>();
@@ -120,16 +193,10 @@ internal static class WaterColumns
         }
 
         string label = Loc.T("water.components", "Components");
-        float nameEm = Em(label);
-        float volEm = 0f;
-        foreach (var c in comps)
-        {
-            nameEm = Math.Max(nameEm, Em(c.Name));
-            volEm = Math.Max(volEm, Em(VolumeOf(c.Parts, liters)));
-        }
-        float volStart = nameEm + ColumnGapEm;
-        float pctStart = volStart + volEm + ColumnGapEm;
-
+        var measureRows = new List<(string Name, string Amount)>();
+        foreach (var c in comps) measureRows.Add((c.Name, VolumeOf(c.Parts, liters)));
+        var layout = Measure(label, measureRows);
+        string pos = Pos(layout.VolumeStart);
         string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
                     + (analysis.Tier.Length > 0 ? " " + analysis.Tier : "");
 
@@ -153,13 +220,13 @@ internal static class WaterColumns
         }
 
         // 条长 6：原版 10 格加上表头文字会折行
-        lines.Add(new TooltipLine(label + Pos(volStart), ratio, 6, tail,
+        lines.Add(new TooltipLine(label + pos, ratio, 6, tail,
             RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan));
 
         foreach (var c in comps)
         {
-            string text = c.Name + Pos(volStart) + VolumeOf(c.Parts, liters) + Pos(pctStart)
-                        + WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%";
+            string text = c.Name + pos + VolumeOf(c.Parts, liters)
+                        + layout.ToPercent(WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%");
             lines.Add(new TooltipLine(text, c.Color));
         }
         return lines;

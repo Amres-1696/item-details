@@ -125,6 +125,7 @@ water.actives,"Principios activos: "
 water.other,"Otros: "
 water.mismatch," (etiqueta no coincide)"
 water.trace,trazas (bajo el umbral de visualización)
+water.trace_count,(+{0} más bajo el umbral de visualización)
 water.composition,Composición: 
 water.components,Componentes
 chem.effects,Efectos: {0}

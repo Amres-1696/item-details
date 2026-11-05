@@ -125,6 +125,7 @@ water.actives,"Активные вещества: "
 water.other,"Прочее: "
 water.mismatch," (несовпадение этикетки)"
 water.trace,следы (ниже порога отображения)
+water.trace_count,(ещё {0} ниже порога отображения)
 water.composition,Состав: 
 water.components,Компоненты
 chem.effects,Действие: {0}

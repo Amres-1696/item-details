@@ -125,6 +125,7 @@ water.actives,유효 성분：
 water.other,기타：
 water.mismatch," (라벨과 불일치)"
 water.trace,미량 (표시 임계값 미만)
+water.trace_count,(표시 임계값 미만 {0} 항목 더)
 water.composition,성분: 
 water.components,성분
 chem.effects,효과: {0}

@@ -305,29 +305,11 @@ public sealed partial class ModEntry
         }
         else
         {
-            // 固体化学品（药片、净水片等）：没有容器与体积，仍按占比列出。
-            var actives = new List<string>();
-            var others = new List<string>();
-            foreach (var component in r.Components)
-            {
-                if (component.Role == "active")
-                    actives.Add(component.Name + " " + WaterInfo.Amount(component.Microliters));
-                else
-                    others.Add(component.Name + " " + WaterLayout.PercentText(component.Microliters, r.TotalMicroliters, Loc.Culture) + "%");
-            }
-            if (actives.Count > 0)
-            {
-                builder.AddLine(Loc.T("water.actives", "Actives: ") + string.Join(Loc.T("list.sep", ", "), actives),
-                    RenderHandler.ColorPalette.LightYellow);
-                wrote = true;
-            }
-            if (others.Count > 0 || r.HiddenComponents > 0)
-            {
-                string label = actives.Count == 0 ? Loc.T("water.composition", "Composition: ") : Loc.T("water.other", "Other: ");
-                string parts = others.Count > 0 ? string.Join(" ", others) : Loc.T("water.trace", "trace (below display threshold)");
-                builder.AddLine(label + parts, RenderHandler.ColorPalette.LightCyan);
-                wrote = true;
-            }
+            // 固体化学品（药片、作物、粪便等）：没有容器与体积，所以不画条；
+            // 成分仍按「名称 / 用量 / 百分比」三列排，列落点与液体容器同一套规则。
+            builder.RequireWidth(WaterTableWidth);
+            AppendLines(builder, WaterColumns.BuildSolid(r));
+            wrote = true;
         }
 
         string effects = r.Effects.Text;

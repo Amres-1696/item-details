@@ -125,6 +125,7 @@ water.actives,"Substancje czynne: "
 water.other,"Pozostałe: "
 water.mismatch," (niezgodność etykiety)"
 water.trace,śladowe (poniżej progu wyświetlania)
+water.trace_count,(+{0} więcej poniżej progu wyświetlania)
 water.composition,Skład: 
 water.components,Składniki
 chem.effects,Działanie: {0}

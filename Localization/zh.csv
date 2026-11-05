@@ -125,6 +125,7 @@ water.actives,活性成分：
 water.other,其他成分：
 water.mismatch,（与标签不符）
 water.trace,微量（低于显示阈值）
+water.trace_count,（另 {0} 项低于显示阈值）
 water.composition,成分：
 water.components,成分
 chem.effects,药效：{0}
