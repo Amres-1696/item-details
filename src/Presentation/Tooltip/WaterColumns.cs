@@ -146,6 +146,26 @@ internal static class WaterColumns
 
         string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
                     + (r.Tier.Length > 0 ? " " + r.Tier : "");
+
+        if (SectionedLayout.Handles(item))
+        {
+            // 美化 MOD 接管了这件物品：它用自己的一套单元格宽度重排，不认识 <pos>，
+            // 于是三列定位会失效。改成单行「名称 体积 百分比」，按它的补位单位（全角空格）分隔，
+            // 列对齐交给它；进度条也退回字符块，避免 sprite 标签在它的窗口里变成纯文本。
+            var plain = new List<TooltipLine>
+            {
+                new(label + "  " + tail.TrimStart(), ratio, 6, "",
+                    RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
+            };
+            foreach (var c in comps)
+            {
+                string text = c.Name + "　" + VolumeOf(c.Parts, liters) + "　"
+                            + WaterLayout.PercentText(c.Parts, r.TotalParts, Loc.Culture) + "%";
+                plain.Add(new TooltipLine(text, c.Color));
+            }
+            return plain;
+        }
+
         // 条长 6：原版 10 格加上表头文字会折行
         lines.Add(new TooltipLine(label + Pos(volStart), ratio, 6, tail,
             RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan));
