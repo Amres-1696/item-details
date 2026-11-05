@@ -514,6 +514,21 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
+        {
+            string line = CheckCalorieCreditIcon(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
+        // 实际创建官方设置窗口，检查总开关回调与无通知重置后的分组可见性。
+        {
+            string line = CheckInfoSettingsWindow(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
         // 额外验证：当前语言的 Localization/*.csv 真的被读到（多语种改造的回归护栏）
         {
             string line = CheckLocalization(out bool ok);

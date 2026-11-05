@@ -13,7 +13,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Localization validator regressions failed.' }
     & python -B tools/check_localization.py --strict-placeholders
     if ($LASTEXITCODE -ne 0) { throw 'Localization validation failed.' }
-    foreach ($script in @('test_localization_runtime.ps1', 'test_selftest_results.ps1', 'test_selftest_fixtures.ps1')) {
+    foreach ($script in @('test_localization_runtime.ps1', 'test_selftest_results.ps1', 'test_selftest_fixtures.ps1', 'test_info_settings.ps1')) {
         & (Join-Path $repo "tests/$script")
     }
     Write-Output 'Offline checks passed.'

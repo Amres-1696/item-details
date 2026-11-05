@@ -78,6 +78,28 @@ internal static partial class SelfTest
         finally { if (item != null) { try { item.Destroy(); } catch { } } }
     }
 
+    private static string CheckCalorieCreditIcon(out bool ok)
+    {
+        ok = false;
+        GameItem? item = null;
+        try
+        {
+            item = TryCreate("scrap_metal");
+            if (item == null) return "calorie credit icon: sample missing";
+            item.ModifyTag("CALORIE_VALUE_TAG", tag => tag.Enable().SetInt(180));
+            var tooltip = ((GameItemElement)item).GetTooltip();
+            string rich = tooltip.richTextForeground ?? "";
+            string icon = GeneralHelper.CreditIcon();
+            bool sprite = rich.Contains("/" + icon, StringComparison.Ordinal);
+            bool noWord = !rich.Contains("/信用点", StringComparison.Ordinal) && !rich.Contains("/credit", StringComparison.Ordinal);
+            ok = sprite && noWord;
+            ModHelper.WriteModDataFileText("item_details", "calorie-credit-icon.txt", rich);
+            return $"calorie credit icon: nativeSprite={sprite} noCurrencyWord={noWord} text='{tooltip.nakedText}'";
+        }
+        catch (Exception ex) { return "calorie credit icon: " + ex; }
+        finally { if (item != null) { try { item.Destroy(); } catch { } } }
+    }
+
     private static void FillTestWater(GameItem item, int waterParts, string contaminant)
     {
         foreach (var liquid in Liquid.Liquids)
@@ -230,6 +252,61 @@ internal static partial class SelfTest
         }
     }
 
+    /// <summary>在真实游戏 UI 中检查第四组、实时切换和重置；不应用或写盘。</summary>
+    private static string CheckInfoSettingsWindow(out bool ok)
+    {
+        ok = false;
+        var config = ModConfig.Find("item_details");
+        var setting = config?.Get("show_info_enhance");
+        var apply = AccessTools.Method(typeof(ConfigEntry), "ApplyBoxed");
+        if (config == null || setting == null || apply == null) return "info settings UI: config missing";
+        object saved = setting.BoxedValue;
+        CustomUIWindow? window = null;
+        try
+        {
+            var mod = new LoadedMod { Manifest = new ModManifest { ID = "item_details", Name = "Item Details" } };
+            apply.Invoke(setting, new object[] { true });
+            window = ModConfigWindow.Open(mod);
+            if (window == null) return "info settings UI: window missing";
+            string section = config.Get("info_price_modifiers").Section;
+            var header = window.Get("section_" + section).root.transform.parent.gameObject;
+            var master = window.Get("show_info_enhance");
+            bool shown = header.activeSelf;
+            string[] keys = { "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat",
+                "info_machines", "info_batteries", "info_progress_bar", "info_manufacturer_inline" };
+            bool defaults = true;
+            foreach (string key in keys) defaults &= config.Get(key).BoxedDefault is true;
+            master.SetBool(false, notify: true);
+            bool hidden = !header.activeSelf;
+            foreach (string key in keys) hidden &= !window.Get(key).root.transform.parent.gameObject.activeSelf;
+            window.Get("info_meat").SetBool(false);
+            master.SetBool(true, notify: true);
+            bool preserved = header.activeSelf && !window.Get("info_meat").GetBool();
+            master.SetBool(false, notify: true);
+            var reset = AccessTools.Method(typeof(ModConfigWindow), "ResetWidgets",
+                new[] { typeof(CustomUIWindow), typeof(ModConfig) });
+            if (reset == null) return "info settings UI: ResetWidgets missing";
+            reset.Invoke(null, new object[] { window, config });
+            bool resetShown = header.activeSelf && master.GetBool() && window.Get("info_meat").GetBool();
+            window.Close();
+            window = null;
+            apply.Invoke(setting, new object[] { false });
+            window = ModConfigWindow.Open(mod);
+            bool reopenHidden = window != null && !window.Get("section_" + config.Get(keys[0]).Section)
+                .root.transform.parent.gameObject.activeSelf;
+            bool unapplied = !ModSettings.InfoEnhance;
+            ok = defaults && shown && hidden && preserved && resetShown && reopenHidden && unapplied;
+            return $"info settings UI: defaults={defaults} shown={shown} hidden={hidden} preserved={preserved} " +
+                $"reset={resetShown} reopenHidden={reopenHidden} unapplied={unapplied}";
+        }
+        catch (Exception ex) { return "info settings UI: " + ex; }
+        finally
+        {
+            try { window?.Close(); } catch { }
+            apply.Invoke(setting, new[] { saved });
+        }
+    }
+
     /// <summary>信息增强组位于透视后；全部设置关闭时 AnyEnabled 与渲染输出都为空。</summary>
     private static string CheckSettingsLayoutAndDisable(out bool ok)
     {
@@ -243,13 +320,18 @@ internal static partial class SelfTest
         try
         {
             ModSettings.RefreshSections();
-            string infoSection = Loc.T("config.section.info", "Item Info");
-            string[] infoKeys =
+            string infoSection = Loc.T("config.section.info", ModSettings.SecInfoEn);
+            string[] displayKeys =
             {
                 "show_info_enhance", "show_cost_performance", "show_container_contents",
                 "tooltip_text_formatting", "show_type_badge", "mute_type_badge_colors",
                 "show_container_name_display", "container_name_bg_opacity",
                 "water_probe_prewarm", "water_localization_fix",
+            };
+            string[] infoKeys =
+            {
+                "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat",
+                "info_machines", "info_batteries", "info_progress_bar", "info_manufacturer_inline",
             };
             bool grouped = true;
             foreach (string key in infoKeys)
@@ -257,11 +339,16 @@ internal static partial class SelfTest
                 var entry = config.Get(key);
                 if (entry == null || entry.Section != infoSection) grouped = false;
             }
+            foreach (string key in displayKeys)
+            {
+                var entry = config.Get(key);
+                if (entry == null || entry.Section != config.Get("show_customer_history")?.Section) grouped = false;
+            }
             int reveal = -1, info = -1;
             for (int i = 0; i < config.Entries.Count; i++)
             {
                 if (ReferenceEquals(config.Entries[i], config.Get("result_prefill_price"))) reveal = i;
-                if (ReferenceEquals(config.Entries[i], config.Get("show_info_enhance"))) info = i;
+                if (ReferenceEquals(config.Entries[i], config.Get("info_price_modifiers"))) info = i;
             }
             bool ordered = reveal >= 0 && info > reveal;
 
@@ -277,7 +364,10 @@ internal static partial class SelfTest
             bool gated = !ModSettings.AnyEnabled && !ModSettings.InfoEnhance
                 && !ModSettings.ValueEnhance && !ModSettings.Container && !ModSettings.TooltipFormatting
                 && !ModSettings.TypeBadge && !ModSettings.ContentsGrid
-                && !ModSettings.WaterWarmupEnabled && !ModSettings.WaterLocalizationFix;
+                && !ModSettings.WaterWarmupEnabled && !ModSettings.WaterLocalizationFix
+                && !ModSettings.PriceImpact && !ModSettings.Contraband && !ModSettings.Lottery
+                && !ModSettings.Wine && !ModSettings.Meat && !ModSettings.Machines && !ModSettings.ModuleEffects
+                && !ModSettings.MachineBattery && !ModSettings.BlockProgressBar && !ModSettings.ManufacturerInline;
             item = TryCreate("plasma_fuel");
             if (item == null) return "settings layout/disable: cannot create tooltip sample";
             PlasmaHelper.InitPlasmaItem(item);

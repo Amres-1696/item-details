@@ -58,7 +58,7 @@ berry.normal,Normal
 berry.small,Klein
 berry.unripe,Unreif
 calorie.line,Energie: {0} {1}
-calorie.per_credit," ({0} {1}/Credit)"
+calorie.per_credit," ({0} {1}/{2})"
 calorie.unit,kcal
 condition.line,Zustand: {0} {1}
 contraband.markup,Schwarzmarkt: +{0}%
@@ -163,9 +163,9 @@ config.cost_performance,Wert pro Feld
 config.cost_performance.tip,Zeigt den Wert pro Inventarfeld und das Kompressionsverhältnis von Behältern.
 config.container_contents,Behälterinhalt
 config.container_contents.tip,Zeigt den Inhalt unverschlossener Behälter im separaten Symbolfenster.
-config.section.info,Gegenstandsinfos
+config.section.info,Einstellungen für Zusatzinfos
 config.info_enhance,Zusätzliche Gegenstandsinfos
-config.info_enhance.tip,Hauptschalter für diesen Bereich. Deaktiviert alle Gegenstandsinfo-Funktionen.
+config.info_enhance.tip,Aktiviert Zusatzinfos und zeigt ihre Einstellungen unter Enthüllung. Die Einzelauswahl bleibt beim Ausschalten erhalten.
 config.tooltip_formatting,Tooltip-Textformatierung
 config.tooltip_formatting.tip,Klarere Preisangaben, Beschreibungsumbrüche, Volumeneinheiten, Kalorienhinweise und Preisblockabstände. Deaktivieren erhält das originale Textlayout.
 config.water_warmup,Wassersonden vorbereiten
@@ -274,3 +274,22 @@ meat.fish,Fisch
 meat.prion,Prionen: {0}
 meat.prion.present,Vorhanden
 meat.prion.unmarked,Nicht markiert
+berry.wine_value,Weinwert: {0}
+config.info_price_modifiers,Preismodifikatoren
+config.info_price_modifiers.tip,"Zeigt Preiseinflüsse durch Etiketten, Zustand und Ladenereignisse."
+config.info_black_market,Schwarzmarktaufschlag
+config.info_black_market.tip,Zeigt den Schwarzmarktaufschlag für Schmuggelware.
+config.info_lottery,Lotterie
+config.info_lottery.tip,"Zeigt gezogene Zahlen, Treffer und Gewinne. Ändert keine Ziehungsergebnisse."
+config.info_brewing,Weinherstellung
+config.info_brewing.tip,"Zeigt Weinwerte der Zutaten, Hefeeffekte, Weinbewertung und Zusammensetzung sowie Gärung und Reifung."
+config.info_meat,Fleisch
+config.info_meat.tip,Zeigt die Herkunftsart des Fleisches und Prionenmarkierungen.
+config.info_machines,Maschinen
+config.info_machines.tip,"Zeigt Moduleffekte, Lernfortschritt, verbleibende Tage, Wasserverbrauch, Kühlung, Reifung, Reinigungsertrag und erwartete Schmelzprodukte."
+config.info_batteries,Batterien
+config.info_batteries.tip,"Zeigt Ladung und verbleibende Tage, auch für jede Batterie im Ladegerät. Unabhängig von Maschinen und Behälterinhalt."
+config.info_progress_bar,Fortschrittsbalken
+config.info_progress_bar.tip,Ersetzt Textbalken durch farbige Blöcke. Ausschalten stellt den ursprünglichen Stil wieder her.
+config.info_manufacturer_inline,Firmenname rechts
+config.info_manufacturer_inline.tip,Verschiebt den Firmennamen nach rechts in die Zeile des Gegenstandsnamens.

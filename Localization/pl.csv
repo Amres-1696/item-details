@@ -58,7 +58,7 @@ berry.normal,Normalna
 berry.small,Mała
 berry.unripe,Niedojrzała
 calorie.line,Energia: {0} {1}
-calorie.per_credit," ({0} {1}/kredyt)"
+calorie.per_credit," ({0} {1}/{2})"
 calorie.unit,kcal
 condition.line,Stan: {0} {1}
 contraband.markup,Czarny rynek: +{0}%
@@ -163,9 +163,9 @@ config.cost_performance,Wartość na kratkę
 config.cost_performance.tip,Pokazuje wartość na kratkę ekwipunku i stopień kompresji pojemników.
 config.container_contents,Zawartość pojemnika
 config.container_contents.tip,Pokazuje zawartość odblokowanych pojemników w osobnym oknie ikon.
-config.section.info,Informacje o przedmiotach
+config.section.info,Ustawienia dodatkowych informacji
 config.info_enhance,Dodatkowe informacje
-config.info_enhance.tip,Główny przełącznik tej sekcji. Wyłącza wszystkie funkcje informacji o przedmiotach.
+config.info_enhance.tip,Włącza dodatkowe informacje i pokazuje ich ustawienia pod sekcją odkrywania. Wyłączenie zachowuje indywidualne wybory.
 config.tooltip_formatting,Formatowanie tekstu podpowiedzi
 config.tooltip_formatting.tip,Czytelniejsze ceny, zawijanie opisów, jednostki objętości, adnotacje kalorii i odstępy bloku ceny. Wyłącz, aby zachować oryginalny układ tekstu.
 config.water_warmup,Wstępne przygotowanie sond wody
@@ -274,3 +274,22 @@ meat.fish,Ryba
 meat.prion,Priony: {0}
 meat.prion.present,Obecne
 meat.prion.unmarked,Nieoznaczone
+berry.wine_value,Wartość winiarska: {0}
+config.info_price_modifiers,Modyfikatory ceny
+config.info_price_modifiers.tip,"Pokazuje wpływ etykiet, stanu przedmiotów i wydarzeń w sklepie na cenę."
+config.info_black_market,Narzut czarnego rynku
+config.info_black_market.tip,Pokazuje narzut czarnego rynku dla kontrabandy.
+config.info_lottery,Loteria
+config.info_lottery.tip,"Pokazuje wylosowane numery, trafienia i nagrody. Nie zmienia wyników losowania."
+config.info_brewing,Produkcja wina
+config.info_brewing.tip,"Pokazuje wartości składników, działanie drożdży, ocenę i skład wina oraz informacje o fermentacji i dojrzewaniu."
+config.info_meat,Mięso
+config.info_meat.tip,Pokazuje gatunek pochodzenia mięsa i oznaczenia prionów.
+config.info_machines,Maszyny
+config.info_machines.tip,"Pokazuje efekty modułów, postęp nauki, pozostałe dni, zużycie wody, chłodzenie, dojrzewanie, oczyszczanie i przewidywane produkty pieca."
+config.info_batteries,Baterie
+config.info_batteries.tip,"Pokazuje ładunek i pozostałe dni, także każdej baterii w ładowarce. Niezależnie od maszyn i zawartości pojemników."
+config.info_progress_bar,Paski postępu
+config.info_progress_bar.tip,"Zastępuje paski tekstowe kolorowymi blokami. Wyłącz, aby zachować oryginalny styl."
+config.info_manufacturer_inline,Nazwa firmy po prawej
+config.info_manufacturer_inline.tip,Przenosi nazwę firmy na prawą stronę wiersza z nazwą przedmiotu.

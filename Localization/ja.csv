@@ -58,7 +58,7 @@ berry.normal,通常
 berry.small,小さい
 berry.unripe,熟していない
 calorie.line,エネルギー：{0} {1}
-calorie.per_credit,（{0} {1}/クレジット）
+calorie.per_credit,（{0} {1}/{2}）
 calorie.unit,kcal
 condition.line,状態：{0} {1}
 contraband.markup,闇市場：+{0}%
@@ -163,9 +163,9 @@ config.cost_performance,マス単価
 config.cost_performance.tip,1マスあたりの価値とコンテナの圧縮率を表示します。
 config.container_contents,コンテナ内容
 config.container_contents.tip,ロックされていないコンテナの中身を別ウィンドウのアイコンで表示します。
-config.section.info,アイテム情報強化
+config.section.info,情報強化の設定
 config.info_enhance,追加アイテム情報
-config.info_enhance.tip,このセクションの総合スイッチです。オフにすると、アイテム情報強化の全機能が無効になります。
+config.info_enhance.tip,追加情報を有効にし、透視の下に設定を表示します。オフにしても個別の選択は保持されます。
 config.tooltip_formatting,ツールチップ文章の整形
 config.tooltip_formatting.tip,価格表記、説明文の折り返し、液量単位、カロリー注記、価格ブロックの間隔を最適化します。オフで原版のレイアウトを維持します。
 config.water_warmup,水質プローブの事前準備
@@ -274,3 +274,22 @@ meat.fish,魚
 meat.prion,プリオン：{0}
 meat.prion.present,あり
 meat.prion.unmarked,未記録
+berry.wine_value,醸造値：{0}
+config.info_price_modifiers,価格補正
+config.info_price_modifiers.tip,ラベル、状態、店舗イベントによる価格補正を表示します。
+config.info_black_market,闇市場の割増
+config.info_black_market.tip,禁制品の闇市場での割増を表示します。
+config.info_lottery,宝くじ
+config.info_lottery.tip,当選番号、一致数、賞金を表示します。抽選結果は変更しません。
+config.info_brewing,醸造
+config.info_brewing.tip,材料の醸造値、酵母の効果、ワインの評価と成分、発酵と熟成の情報を表示します。
+config.info_meat,肉
+config.info_meat.tip,肉の由来となる種とプリオンの印を表示します。
+config.info_machines,機械
+config.info_machines.tip,モジュールの効果、学習進度、残り日数、水の消費、冷却、熟成、浄化量、炉の予想生成物を表示します。
+config.info_batteries,電池
+config.info_batteries.tip,充電量と残り日数を表示します。充電器内の各電池も対象です。機械や容器内容の設定とは独立しています。
+config.info_progress_bar,進捗バー
+config.info_progress_bar.tip,文字の進捗バーを色付きブロックに変更します。オフで元の表示に戻ります。
+config.info_manufacturer_inline,会社名を右に表示
+config.info_manufacturer_inline.tip,会社名をアイテム名と同じ行の右側に表示します。

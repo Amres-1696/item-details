@@ -58,7 +58,7 @@ berry.normal,정상
 berry.small,작음
 berry.unripe,덜 익음
 calorie.line,에너지: {0} {1}
-calorie.per_credit," ({0} {1}/크레딧)"
+calorie.per_credit," ({0} {1}/{2})"
 calorie.unit,kcal
 condition.line,상태: {0} {1}
 contraband.markup,암시장: +{0}%
@@ -163,9 +163,9 @@ config.cost_performance,칸당 가치
 config.cost_performance.tip,"칸당 가치와 컨테이너 압축률을 표시합니다."
 config.container_contents,컨테이너 내용
 config.container_contents.tip,잠기지 않은 컨테이너의 내용물을 별도 아이콘 창에 표시합니다.
-config.section.info,아이템 정보 강화
+config.section.info,정보 강화 설정
 config.info_enhance,추가 아이템 정보
-config.info_enhance.tip,이 섹션의 전체 스위치입니다. 끄면 아이템 정보 강화 기능이 모두 비활성화됩니다.
+config.info_enhance.tip,추가 정보를 켜고 투시 아래에 설정을 표시합니다. 꺼도 개별 선택은 유지됩니다.
 config.tooltip_formatting,툴팁 텍스트 서식
 config.tooltip_formatting.tip,가격 표기, 설명 줄 바꿈, 액량 단위, 칼로리 주석, 가격 블록 간격을 최적화합니다. 끄면 원래 텍스트 레이아웃을 유지합니다.
 config.water_warmup,수질 프로브 미리 준비
@@ -274,3 +274,22 @@ meat.fish,생선
 meat.prion,프리온: {0}
 meat.prion.present,있음
 meat.prion.unmarked,표시 없음
+berry.wine_value,양조 값: {0}
+config.info_price_modifiers,가격 보정
+config.info_price_modifiers.tip,"라벨, 상태, 상점 이벤트로 인한 가격 보정 값을 표시합니다."
+config.info_black_market,암시장 할증
+config.info_black_market.tip,금지품의 암시장 할증을 표시합니다.
+config.info_lottery,복권
+config.info_lottery.tip,"당첨 번호, 일치 개수, 상금을 표시합니다. 추첨 결과를 바꾸지 않습니다."
+config.info_brewing,양조
+config.info_brewing.tip,"재료의 양조 값, 효모 효과, 와인 점수와 성분, 발효 및 숙성 정보를 표시합니다."
+config.info_meat,고기
+config.info_meat.tip,고기의 출처 종과 프리온 표식을 표시합니다.
+config.info_machines,기계
+config.info_machines.tip,"모듈 효과, 학습 진행도, 남은 일수, 물 사용량, 냉각, 숙성, 정화량, 용광로 예상 생산물을 표시합니다."
+config.info_batteries,배터리
+config.info_batteries.tip,충전량과 남은 일수를 표시합니다. 충전기 안의 각 배터리도 포함하며 기계 및 용기 내용물 설정과 독립적입니다.
+config.info_progress_bar,진행 막대
+config.info_progress_bar.tip,문자 진행 막대를 색상 블록으로 바꿉니다. 끄면 원래 스타일을 유지합니다.
+config.info_manufacturer_inline,회사명을 오른쪽에 표시
+config.info_manufacturer_inline.tip,회사명을 아이템 이름과 같은 줄의 오른쪽으로 옮깁니다.

@@ -41,6 +41,7 @@ EXCLUDED_SOURCE_DIRS = {"out", "tools", "tests", "bin", "obj", ".git"}
 INDIRECT_KEYS = {
     "config.section.display": "Display",
     "config.section.reveal": "Reveal",
+    "config.section.info": "Item Info Settings",
     "config.section.interaction": "Interaction & Visuals",
 }
 

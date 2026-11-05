@@ -58,7 +58,7 @@ berry.normal,正常
 berry.small,较小
 berry.unripe,未熟
 calorie.line,能量：{0}{1}
-calorie.per_credit,（{0}{1}/信用点）
+calorie.per_credit,（{0}{1}/{2}）
 calorie.unit,千卡
 condition.line,状态：{0} {1}
 contraband.markup,黑市溢价：+{0}%
@@ -163,9 +163,9 @@ config.cost_performance,性价比
 config.cost_performance.tip,显示每格价值与容器压缩率。
 config.container_contents,容器内容物
 config.container_contents.tip,在额外窗口显示未上锁容器的内容物图标。
-config.section.info,信息增强
+config.section.info,信息增强配置
 config.info_enhance,信息增强
-config.info_enhance.tip,本组总开关。关闭后，信息增强组里的所有功能都不生效。
+config.info_enhance.tip,开启信息增强，并在透视下方显示配置分组；关闭时保留各子项的选择。
 config.tooltip_formatting,提示框文字优化
 config.tooltip_formatting.tip,优化价格用词、描述折行、液量单位、卡路里注释和价格块间距。关闭后保持原版文字布局。
 config.water_warmup,水质探针预热
@@ -274,3 +274,22 @@ meat.fish,鱼类
 meat.prion,朊病毒：{0}
 meat.prion.present,携带
 meat.prion.unmarked,未标记
+berry.wine_value,酿酒值：{0}
+config.info_price_modifiers,价格修正
+config.info_price_modifiers.tip,显示物品标签、状态和店铺事件带来的价格修正值。
+config.info_black_market,黑市溢价
+config.info_black_market.tip,显示违禁品带来的黑市溢价。
+config.info_lottery,彩票
+config.info_lottery.tip,直观显示彩票开奖号码、命中数和奖金，不影响开奖结果。
+config.info_brewing,酿酒
+config.info_brewing.tip,显示原料酿酒值、酵母作用、果酿评分与成分，以及发酵和陈化等信息。
+config.info_meat,肉
+config.info_meat.tip,显示肉品来源物种与朊病毒标记。
+config.info_machines,机器
+config.info_machines.tip,显示机器模组实际效果、自学习进度、剩余天数、用水、冷藏、陈化、净化收益与熔炉预期产物等提示。
+config.info_batteries,电池
+config.info_batteries.tip,显示电量和可用天数，包括充电器内逐个电池的电量；独立于机器和容器内容物开关。
+config.info_progress_bar,进度条
+config.info_progress_bar.tip,将文字进度条改为直观的彩色块样式；关闭后恢复原版样式。
+config.info_manufacturer_inline,公司名称后置
+config.info_manufacturer_inline.tip,将生产公司名并到物品名称行右侧。

@@ -37,7 +37,15 @@ internal static class ConfigSectionRefresh
             }
 
             _harmony = new Harmony(HarmonyId);
-            _harmony.Patch(open, prefix: new HarmonyMethod(typeof(ConfigSectionRefresh), nameof(OpenPrefix)));
+            _harmony.Patch(open,
+                prefix: new HarmonyMethod(typeof(ConfigSectionRefresh), nameof(OpenPrefix)),
+                postfix: new HarmonyMethod(typeof(ConfigSectionRefresh), nameof(OpenPostfix)));
+
+            // ResetWidgets 使用 SetIsOnWithoutNotify，不触发 OnToggle；重置后单独同步可见性。
+            var reset = AccessTools.Method(typeof(ModConfigWindow), "ResetWidgets",
+                new[] { typeof(CustomUIWindow), typeof(ModConfig) });
+            if (reset != null)
+                _harmony.Patch(reset, postfix: new HarmonyMethod(typeof(ConfigSectionRefresh), nameof(ResetPostfix)));
 
             // 下拉框选项在面板里显示当前语言，写盘前要换回固定文字（见 ModSettings.Choice）
             var save = AccessTools.Method(typeof(ModConfig), "Save", Type.EmptyTypes);
@@ -73,4 +81,49 @@ internal static class ConfigSectionRefresh
     }
 
     private static void SavePrefix(ModConfig __instance) => ModSettings.RestoreChoices(__instance);
+
+    private static void OpenPostfix(CustomUIWindow __result)
+    {
+        if (__result == null || __result.id != "mod_config:item_details") return;
+        try
+        {
+            // 只切换显示，不提交设置；功能值仍由游戏的「应用」按钮统一保存。
+            __result.Get("show_info_enhance")?.OnToggle(_ => RefreshInfoVisibility(__result));
+            RefreshInfoVisibility(__result);
+        }
+        catch (Exception ex) { Log.Warn("ConfigSections.Visibility", ex); }
+    }
+
+    private static void ResetPostfix(CustomUIWindow __0)
+    {
+        try { RefreshInfoVisibility(__0); }
+        catch (Exception ex) { Log.Warn("ConfigSections.Visibility", ex); }
+    }
+
+    /// <summary>
+    /// 0.46D ModConfigWindow.Open 为每组依次生成标题行、分隔线、条目行与空隙。
+    /// 一起隐藏这些完整行，避免只隐藏控件留下大片空白；不删除控件或修改配置条目，
+    /// 因而关闭再开启总开关、应用和重置都能保留游戏原有语义。
+    /// </summary>
+    internal static void RefreshInfoVisibility(CustomUIWindow window)
+    {
+        if (window == null || !window.IsAlive || window.id != "mod_config:item_details") return;
+        var config = ModConfig.Find("item_details");
+        var first = config?.Get("info_price_modifiers");
+        if (first == null) return;
+        var header = window.Get("section_" + first.Section)?.root;
+        var last = window.Get("info_manufacturer_inline")?.root;
+        var master = window.Get("show_info_enhance");
+        if (header == null || last == null || master == null) return;
+        var headerRow = header.transform.parent;
+        var lastRow = last.transform.parent;
+        if (headerRow == null || lastRow == null || headerRow.parent != lastRow.parent) return;
+        var parent = headerRow.parent;
+        if (parent == null) return;
+        int start = headerRow.GetSiblingIndex(), end = lastRow.GetSiblingIndex();
+        if (end < start) return;
+        if (end + 1 < parent.childCount && parent.GetChild(end + 1).name == "space") end++;
+        bool visible = master.GetBool();
+        for (int i = start; i <= end; i++) parent.GetChild(i).gameObject.SetActive(visible);
+    }
 }

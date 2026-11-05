@@ -23,7 +23,7 @@
 肉类物品会显示来源物种；没有来源记录或来源无法识别时显示「未知」。同时显示朊病毒「携带」或「未标记」状态；未标记不代表食用同类肉没有感染风险。
 
 **机器内部**
-机器与水壶列出里面的东西：滤芯耐久、水量、工具剩余次数、还需几天完成、净水器今晚能净化多少（会间接透露水质）。熔炉给出下次冶炼的金属锭档位，以及质量加成还能再升几档。充电器里插着的电池逐个显示电量（归「信息增强」开关，与「容器内容物」无关）。
+机器与水壶列出里面的东西：滤芯耐久、水量、工具剩余次数、还需几天完成、净水器今晚能净化多少（会间接透露水质）。熔炉给出下次冶炼的金属锭档位，以及质量加成还能再升几档。充电器里插着的电池逐个显示电量（归「电池」开关，与「机器」和「容器内容物」无关）。
 
 **模组效果**
 机器的每项模组加成补上实际影响，例如集水器 +136 毫升/天；带「自学习算法」的模组显示学习进度与上限。
@@ -63,7 +63,11 @@
 | 带锁容器透视 | 保险箱、枪柜未开锁时也能在额外窗口看到内容物图标，标题显示箱内估价 | 关 |
 | 鉴定结果预填 | 打开检视面板时勾好赝品问题、填好报价，不会替你提交 | 关 |
 
-所有功能都能在游戏「模组」菜单里本模组的设置中单独开关，改完立即生效。「信息增强」组位于「透视」下方，原信息增强开关是该组总开关；水质本地化兼容修复在启用模组或重启时应用。关闭所有功能开关后，模组不追加或改写提示框，不启用扫描交互、图标窗口、水质探针预热或兼容修复，效果等同未启用。
+在游戏「模组」菜单中打开本模组设置，修改后点击「应用」生效。「显示优化」中的「信息增强」是总开关；开启时，在「透视」下方显示第四组「信息增强配置」，关闭时隐藏该组并保留各子项选择。
+
+第四组包含九个独立开关，默认全部开启：**价格修正、黑市溢价、彩票、酿酒、肉、机器、电池、进度条、公司名称后置**。彩票只显示结果，不改变开奖；酿酒包含原料酿酒值；机器与电池分别控制，互不依赖。
+
+水质本地化兼容修复在启用模组或重启时应用。中文字体回退没有独立设置，随模组启停，用于修复控制台等界面的中文缺字。
 
 ## 设计原则
 
@@ -120,7 +124,11 @@ A *Probably Stolen* mod: hover over an item and its tooltip shows authenticity, 
 - **Add Scan to context menu** (on by default) — independently adds a Scan entry to the right-click menu for the same item types; both controls may be enabled together.
 - **Reveal (optional)** — Authenticity Check, Appraisal Calculator, Customer Arrival Alert and Reveal Disguises & True Stats are on by default. Liquid Composition Analysis turns on when you own a scanner. Scratcher Preview, Locked Container X-Ray and Prefill Inspection Result are off, because they make the game noticeably easier.
 
-Every feature can be toggled in this mod's settings in the game's Mods menu. The Item Info section sits below Reveal, and Extra Item Info is its master switch; the water localization fix applies when the mod is enabled or the game restarts. With every feature switch off, the mod does not append or rewrite tooltips, enable scan interactions or icon windows, prewarm water probes, or apply compatibility fixes, matching a disabled mod.
+Open this mod's settings in the game's Mods menu and click Apply after editing. Extra Item Info in Display is the master switch. When enabled, a fourth section, Item Info Settings, appears below Reveal; disabling it hides the section and preserves individual choices.
+
+The nine options default to on: **Price Modifiers, Black Market Markup, Lottery, Brewing, Meat, Machines, Batteries, Progress Bars, and Inline Company Name**. Lottery only displays results; Brewing includes ingredient wine values. Machines and Batteries are independent, including batteries inside chargers.
+
+The water localization fix applies when the mod is enabled or the game restarts. Chinese font fallback follows the mod's lifecycle without a separate setting and repairs missing Chinese glyphs in the console and other UI.
 
 **Design** — read-only: no price, customer or save changes. No capabilities, network access or processes; the only file written is the game's own mod settings. A breakdown is shown only when it exactly matches the game's own value. Other mods register their own breakdowns and effect notes instead of being guessed at.
 

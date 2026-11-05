@@ -58,7 +58,7 @@ berry.normal,Normal
 berry.small,Pequena
 berry.unripe,Verde
 calorie.line,Energia: {0} {1}
-calorie.per_credit," ({0} {1}/crédito)"
+calorie.per_credit," ({0} {1}/{2})"
 calorie.unit,kcal
 condition.line,Estado: {0} {1}
 contraband.markup,Mercado negro: +{0}%
@@ -163,9 +163,9 @@ config.cost_performance,Valor por célula
 config.cost_performance.tip,Mostra o valor por célula do inventário e a compressão dos contêineres.
 config.container_contents,Conteúdo do contêiner
 config.container_contents.tip,Mostra o conteúdo de contêineres desbloqueados na janela de ícones separada.
-config.section.info,Informações de itens
+config.section.info,Configurações de informações extras
 config.info_enhance,Informações extras
-config.info_enhance.tip,Interruptor principal desta seção. Desative para desligar todos os recursos de informação de itens.
+config.info_enhance.tip,Ativa as informações extras e mostra suas configurações abaixo de Revelação. Desativar preserva as escolhas individuais.
 config.tooltip_formatting,Formatação do texto das dicas
 config.tooltip_formatting.tip,Rótulos de preço mais claros, quebra de descrições, unidades de volume, notas de calorias e espaçamento do bloco de preço. Desative para manter o layout original.
 config.water_warmup,Preparação de sondas de água
@@ -274,3 +274,22 @@ meat.fish,Peixe
 meat.prion,Príons: {0}
 meat.prion.present,Presentes
 meat.prion.unmarked,Sem marcação
+berry.wine_value,Valor de vinificação: {0}
+config.info_price_modifiers,Modificadores de preço
+config.info_price_modifiers.tip,"Mostra os modificadores de preço de rótulos, condições e eventos da loja."
+config.info_black_market,Acréscimo do mercado negro
+config.info_black_market.tip,Mostra o acréscimo do mercado negro para contrabando.
+config.info_lottery,Loteria
+config.info_lottery.tip,"Mostra os números sorteados, acertos e prêmios. Não altera os resultados do sorteio."
+config.info_brewing,Vinificação
+config.info_brewing.tip,"Mostra os valores dos ingredientes, efeitos das leveduras, pontuação e composição do vinho, fermentação e envelhecimento."
+config.info_meat,Carne
+config.info_meat.tip,Mostra a espécie de origem da carne e os marcadores de príons.
+config.info_machines,Máquinas
+config.info_machines.tip,"Mostra efeitos dos módulos, aprendizado, dias restantes, consumo de água, refrigeração, envelhecimento, purificação e produtos previstos da fornalha."
+config.info_batteries,Baterias
+config.info_batteries.tip,"Mostra a carga e os dias restantes, incluindo cada bateria no carregador. Independente de Máquinas e Conteúdo dos recipientes."
+config.info_progress_bar,Barras de progresso
+config.info_progress_bar.tip,Substitui barras de texto por blocos coloridos. Desative para manter o estilo original.
+config.info_manufacturer_inline,Empresa à direita
+config.info_manufacturer_inline.tip,Move o nome da empresa para a direita na linha do nome do item.

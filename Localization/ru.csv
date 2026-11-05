@@ -58,7 +58,7 @@ berry.normal,Нормальная
 berry.small,Маленькая
 berry.unripe,Недозревшая
 calorie.line,Энергия: {0} {1}
-calorie.per_credit," ({0} {1}/кр.)"
+calorie.per_credit," ({0} {1}/{2})"
 calorie.unit,kcal
 condition.line,Состояние: {0} {1}
 contraband.markup,Чёрный рынок: +{0}%
@@ -163,9 +163,9 @@ config.cost_performance,Стоимость за клетку
 config.cost_performance.tip,Показывает стоимость за клетку инвентаря и степень сжатия контейнеров.
 config.container_contents,Содержимое контейнера
 config.container_contents.tip,Показывает содержимое незапертых контейнеров в отдельном окне значков.
-config.section.info,Сведения о предметах
+config.section.info,Настройки доп. сведений
 config.info_enhance,Доп. сведения о предметах
-config.info_enhance.tip,Общий переключатель этого раздела. Отключает все функции сведений о предметах.
+config.info_enhance.tip,Включает дополнительные сведения и показывает их настройки под разделом раскрытия. При отключении выбор сохраняется.
 config.tooltip_formatting,Форматирование текста подсказок
 config.tooltip_formatting.tip,Понятные ценовые подписи, перенос описаний, единицы объёма, примечания калорий и интервал блока цены. Отключите, чтобы сохранить исходную раскладку текста.
 config.water_warmup,Предварительная подготовка водных зондов
@@ -274,3 +274,22 @@ meat.fish,Рыба
 meat.prion,Прионы: {0}
 meat.prion.present,Есть
 meat.prion.unmarked,Нет отметки
+berry.wine_value,Вклад в вино: {0}
+config.info_price_modifiers,Модификаторы цены
+config.info_price_modifiers.tip,"Показывает влияние меток, состояния предмета и событий магазина на цену."
+config.info_black_market,Наценка чёрного рынка
+config.info_black_market.tip,Показывает наценку чёрного рынка для контрабанды.
+config.info_lottery,Лотерея
+config.info_lottery.tip,"Показывает выпавшие номера, совпадения и призы. Не меняет результаты розыгрыша."
+config.info_brewing,Виноделие
+config.info_brewing.tip,"Показывает вклад ингредиентов, действие дрожжей, оценку и состав вина, сведения о брожении и выдержке."
+config.info_meat,Мясо
+config.info_meat.tip,Показывает вид животного и отметки о прионах.
+config.info_machines,Машины
+config.info_machines.tip,"Показывает эффекты модулей, обучение, оставшиеся дни, расход воды, охлаждение, выдержку, очистку и ожидаемый результат плавки."
+config.info_batteries,Батареи
+config.info_batteries.tip,"Показывает заряд и оставшиеся дни, включая каждую батарею в зарядном устройстве. Независимо от настроек машин и содержимого контейнеров."
+config.info_progress_bar,Индикаторы прогресса
+config.info_progress_bar.tip,Заменяет текстовые индикаторы цветными блоками. Отключите для исходного вида.
+config.info_manufacturer_inline,Название компании справа
+config.info_manufacturer_inline.tip,Переносит название компании вправо в строку с названием предмета.

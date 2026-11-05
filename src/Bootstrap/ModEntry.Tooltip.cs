@@ -133,13 +133,14 @@ public sealed partial class ModEntry
     // ---------------- 果实品质（BERRY_*） ----------------
     private bool TryAppendBerry(RichTextBuilder builder, GameItem item)
     {
-        if (!ModSettings.Plant) return false;
+        if (!ModSettings.Plant && !ModSettings.Wine) return false;
 
         var q = GameRead.ClassifyBerry(item);
         if (q == BerryQuality.NotBerry) return false;
 
         string? name = BerryQualityClassifier.DisplayName(q);
-        if (name == null) return false;
+        bool showQuality = ModSettings.Plant && name != null;
+        if (!showQuality && !ModSettings.Wine) return false;
 
         // 主体取物品自己的名字：BERRY_TAG 不是荧光莓专属，第三方果实只要沿用原版的
         // WineHelper.InitBerry 就会带上它（实测酿酒拓展的 18 种果实），写死"荧光莓"
@@ -158,11 +159,17 @@ public sealed partial class ModEntry
 
         try
         {
-            builder.Add(Loc.T("berry.line", "{0} quality: {1}", itemName, name), color);
+            if (showQuality)
+                builder.Add(Loc.T("berry.line", "{0} quality: {1}", itemName, name!), color);
             // 酿酒值：这颗莓在 WineHelper.StartFermentation 里给果酿评分加的点数，灰字补在同一行末尾。
-            builder.Add(Loc.T("berry.wine", " (wine value {0})",
-                    GameRead.BerryWineScore(item).ToString("+0;-0;0")),
-                RenderHandler.ColorPalette.Gray);
+            if (ModSettings.Wine)
+            {
+                string score = GameRead.BerryWineScore(item).ToString("+0;-0;0");
+                builder.Add(showQuality
+                        ? Loc.T("berry.wine", " (wine value {0})", score)
+                        : Loc.T("berry.wine_value", "Wine value: {0}", score),
+                    RenderHandler.ColorPalette.Gray);
+            }
             builder.NextLine();
         }
         catch (Exception ex)
@@ -207,10 +214,10 @@ public sealed partial class ModEntry
     // ---------------- 机器与槽位容器内部：滤芯、液体、工具、剩余几晚 ----------------
     private bool TryAppendMachineInterior(RichTextBuilder builder, GameItem item)
     {
-        if (!ModSettings.Container && !ModSettings.InfoEnhance) return false;
+        if (!ModSettings.Container && !ModSettings.Machines && !ModSettings.MachineBattery) return false;
         return AppendLines(builder, MachineInterior.Collect(item,
             listing: ModSettings.Container,
-            adapters: ModSettings.InfoEnhance,
+            adapters: ModSettings.Machines,
             hiddenTruth: ModSettings.HiddenTruth,
             purity: LiquidGate.Enabled));
     }
@@ -430,7 +437,7 @@ public sealed partial class ModEntry
     // ---------------- 肉类来源 / 朊病毒（信息增强） ----------------
     private bool TryAppendMeat(RichTextBuilder builder, GameItem item)
     {
-        if (!ModSettings.InfoEnhance) return false;
+        if (!ModSettings.Meat) return false;
         return AppendLines(builder, MeatInfo.Collect(item));
     }
 

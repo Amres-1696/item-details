@@ -95,7 +95,7 @@ internal static class MachineAdapters
         var color = Good;
 
         int batteryDays = BatteryDays(ctx);
-        if (batteryDays >= 0 && batteryDays < days)
+        if (ModSettings.MachineBattery && batteryDays >= 0 && batteryDays < days)
         {
             text += BatteryShort(batteryDays);
             color = Warn;
