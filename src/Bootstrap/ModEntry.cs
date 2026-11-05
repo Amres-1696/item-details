@@ -168,6 +168,7 @@ public sealed partial class ModEntry : IMod
         Try("TypeBadge", TypeBadge.Apply);
         Try("ContentsGrid", ContentsGrid.Apply);
         Try("ProgressBarStyle", ProgressBarStyle.Apply);
+        Try("TooltipWidthFix", TooltipWidthFix.Apply);
         Try("ManufacturerInline", ManufacturerInline.Apply);
         Try("ItemNameLabel", ItemNameLabel.Apply);
         // 兜底：别的模组（实测 Pen_mod_QoL_Tweaks / BrewingExpansion）可能在 Awake 阶段
@@ -219,6 +220,7 @@ public sealed partial class ModEntry : IMod
         Quiet(TypeBadge.Remove);
         Quiet(ContentsGrid.Remove);
         Quiet(ProgressBarStyle.Remove);
+        Quiet(TooltipWidthFix.Remove);
         Quiet(ManufacturerInline.Remove);
         Quiet(ItemNameLabel.Remove);
         Quiet(ChineseFontFallback.Remove);

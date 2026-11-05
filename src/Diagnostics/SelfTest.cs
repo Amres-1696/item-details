@@ -514,6 +514,14 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
+        // 额外验证：tooltip 框宽按「去掉富文本标签后的可见字符数」计算
+        {
+            string line = CheckTooltipWidth.Run(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
         // 额外验证：原地改写行（Direct*）在观察者开启时仍写真实 builder，且快照留有 runs
         {
             string line = CheckInPlaceSection(out bool ok);
