@@ -919,7 +919,9 @@ internal static class WaterWarmupPatch
         // 场景里的 UI 节点已经更换：旧壳不能继续池化，先清理再按当前拥有物预热。
         try { WaterAdvice.Stop(); }
         catch (Exception ex) { Log.Warn("WaterWarmup.Reset", ex); }
-        if (!ModSettings.WaterWarmupEnabled) return;
+        // 预热只为随后真的要画的水质表服务：液体组分分析关掉、或选了「有扫描器」而手上没有，
+        // 就没必要建探针。拥有关系走 ScannerInventory 的 TTL 缓存，这里不会每次遍历容器。
+        if (!LiquidGate.Enabled) return;
         try { WaterAdvice.PrewarmOwned(); }
         catch (Exception ex) { Log.Warn("WaterWarmup.AfterStart", ex); }
     }

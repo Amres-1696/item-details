@@ -364,7 +364,7 @@ internal static partial class SelfTest
             bool gated = !ModSettings.AnyEnabled && !ModSettings.InfoEnhance
                 && !ModSettings.ValueEnhance && !ModSettings.Container && !ModSettings.TooltipFormatting && !ModSettings.ContainerUnits
                 && !ModSettings.TypeBadge && !ModSettings.ContentsGrid
-                && !ModSettings.WaterWarmupEnabled && !ModSettings.WaterLocalizationFix
+                && !LiquidGate.Enabled && !ModSettings.WaterLocalizationFix
                 && !ModSettings.PriceImpact && !ModSettings.Contraband && !ModSettings.Lottery
                 && !ModSettings.Wine && !ModSettings.Meat && !ModSettings.Machines && !ModSettings.ModuleEffects
                 && !ModSettings.MachineBattery && !ModSettings.BlockProgressBar && !ModSettings.ManufacturerInline;
