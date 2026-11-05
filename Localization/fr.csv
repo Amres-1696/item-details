@@ -1,4 +1,4 @@
-# Item Details Français (fr)
+﻿# Item Details Français (fr)
 auth.amount,Valeur
 auth.body,Injecteur
 auth.box,Boîte
@@ -123,11 +123,10 @@ value.perfect_range," | parfait {0}-{1}"
 value.total_line,Total : {0}
 water.actives,"Principes actifs : "
 water.other,"Autres : "
-water.head,Eau : {0}% {1}
-water.impurities,"Impuretés : "
 water.mismatch," (étiquette incohérente)"
 water.trace,trace (sous le seuil d'affichage)
 water.composition,Composition : 
+water.components,Composants
 chem.effects,Effets : {0}
 chem.lethal,mortel ({0}x la dose létale)
 chem.toxic,toxique

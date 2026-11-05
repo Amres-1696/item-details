@@ -110,6 +110,13 @@ public sealed partial class ModEntry : IMod
 #if ITEMDETAILS_SELFTEST
         try { SelfTest.MaybeStart(manifest.ID); }
         catch (Exception ex) { Log.Error("SelfTest", ex); }
+        // 一次性测试套件：ModData/item_details/testkit.flag（内容为槽位 ID）
+        try { TestKit.MaybeStart(manifest.ID); }
+        catch (Exception ex) { Log.Error("TestKit", ex); }
+        try { CrateProbe.MaybeStart(manifest.ID); }
+        catch (Exception ex) { Log.Error("CrateProbe", ex); }
+        try { TooltipDump.MaybeStart(manifest.ID); }
+        catch (Exception ex) { Log.Error("TooltipDump", ex); }
 #endif
     }
 
@@ -151,8 +158,10 @@ public sealed partial class ModEntry : IMod
         Try("ContextMenuScan", ContextMenuScan.Apply);
         Try("TooltipPipeline", TooltipPipeline.Apply);
         Try("MachineBattery", MachineBatteryInfo.Apply);
+        Try("MachineSpeed", MachineSpeedLine.Apply);
         Try("ProbeDestroyGuard", ProbeDestroyGuard.Apply);
         Try("WaterWarmup", WaterWarmupPatch.Apply);
+        Try("WaterContainerLine", WaterContainerLine.Apply);
         Try("ConfigSectionRefresh", ConfigSectionRefresh.Apply);
         Try("TypeBadge", TypeBadge.Apply);
         Try("ContentsGrid", ContentsGrid.Apply);
@@ -186,6 +195,7 @@ public sealed partial class ModEntry : IMod
         Quiet(CustomerAlertTicker.Stop);
         Quiet(CustomerHistory.Stop);
         Quiet(WaterWarmupPatch.Remove);
+        Quiet(WaterContainerLine.Remove);
         Quiet(WaterAdvice.Stop);
         Quiet(ProbeDestroyGuard.Remove);
         Quiet(ItemValueCache.Reset);
@@ -200,6 +210,7 @@ public sealed partial class ModEntry : IMod
         Quiet(ContextMenuScan.Remove);
         Quiet(TooltipPipeline.Remove);
         Quiet(MachineBatteryInfo.Remove);
+        Quiet(MachineSpeedLine.Remove);
         Quiet(ConfigSectionRefresh.Remove);
         Quiet(TypeBadge.Remove);
         Quiet(ContentsGrid.Remove);

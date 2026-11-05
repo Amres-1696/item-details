@@ -1,4 +1,4 @@
-# Item Details Português (Brasil) (ptbr)
+﻿# Item Details Português (Brasil) (ptbr)
 auth.amount,Defeito no valor nominal
 auth.body,Corpo danificado
 auth.box,Defeito na caixa
@@ -123,11 +123,10 @@ value.perfect_range," | perfeito {0}-{1}"
 value.total_line,Total: {0}
 water.actives,"Princípios ativos: "
 water.other,"Outros: "
-water.head,Água: {0}% {1}
-water.impurities,"Impurezas: "
 water.mismatch," (rótulo não confere)"
 water.trace,traço (abaixo do limite de exibição)
 water.composition,Composição: 
+water.components,Componentes
 chem.effects,Efeitos: {0}
 chem.lethal,letal ({0}x a dose letal)
 chem.toxic,tóxico

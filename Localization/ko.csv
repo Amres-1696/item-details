@@ -1,4 +1,4 @@
-# Item Details 한국어 (ko)
+﻿# Item Details 한국어 (ko)
 auth.amount,액면 이상
 auth.body,본체 손상
 auth.box,상자 이상
@@ -123,11 +123,10 @@ value.perfect_range," | 완벽 {0}–{1}"
 value.total_line,총액: {0}
 water.actives,유효 성분：
 water.other,기타：
-water.head,수질: {0}% {1}
-water.impurities,"불순물: "
 water.mismatch," (라벨과 불일치)"
 water.trace,미량 (표시 임계값 미만)
 water.composition,성분: 
+water.components,성분
 chem.effects,효과: {0}
 chem.lethal,치명적 (치사량의 {0}배)
 chem.toxic,유독

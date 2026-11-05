@@ -1,4 +1,4 @@
-# Item Details Polski (pl)
+﻿# Item Details Polski (pl)
 auth.amount,Wartość kartki
 auth.body,Problemy z korpusem
 auth.box,Problemy z pudełkiem
@@ -123,11 +123,10 @@ value.perfect_range," | idealnie {0}-{1}"
 value.total_line,Razem: {0}
 water.actives,"Substancje czynne: "
 water.other,"Pozostałe: "
-water.head,Woda: {0}% {1}
-water.impurities,"Zanieczyszczenia: "
 water.mismatch," (niezgodność etykiety)"
 water.trace,śladowe (poniżej progu wyświetlania)
 water.composition,Skład: 
+water.components,Składniki
 chem.effects,Działanie: {0}
 chem.lethal,śmiertelne ({0}x dawka śmiertelna)
 chem.toxic,toksyczne

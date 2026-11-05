@@ -34,6 +34,9 @@ internal static class TooltipPipeline
     private static string? _estimatePrefix;
     private static string? _estimateLocale;
 
+    /// <summary>当前是否在 GetTooltipBasic 构建物品 tooltip 期间（含其中的官方钩子与原版 helper）。</summary>
+    internal static bool InTooltip => _depth > 0;
+
     // 价格术语本地化：用哨兵数字反查模板，避免硬编码原版文案
     private static string _priceLocale = "";
     private static string? _estHead;    // 「预估价值」前缀（含标点）
@@ -196,16 +199,34 @@ internal static class TooltipPipeline
     /// <summary>原版液体容器行：` " " + F0 + " ml / " + F0 + " ml"`，单位写死 ml、不走本地化。</summary>
     private static readonly Regex LiquidLine = new(@"^ (\d+) ml / (\d+) ml$", RegexOptions.CultureInvariant);
 
-    /// <summary>液量超过 3 L 时把原版液体容器行改写成 L；单位沿用原版不本地化的写法。</summary>
+    /// <summary>
+    /// 改写原版液体容器行：
+    ///   - 液体组分分析开启时 → ` 2000 / 2000 mL 优质水`（数字与水质档位），与前面的「容器」标签和体积条连成一行；
+    ///   - 否则沿用「容器单位优化」：超过 3 L 时把 ml 换成 L。
+    /// 两种写法都不本地化单位符号（mL / L 各语言一致），与原版一致。
+    /// </summary>
     private static void RewriteLiquidVolume(ref string text, GameItem item)
     {
-        if (!ModSettings.ContainerUnits || !text.EndsWith(" ml", StringComparison.Ordinal)) return;
+        if (!text.EndsWith(" ml", StringComparison.Ordinal)) return;
         if (!GameRead.IsTag(item, "LIQUID_CONTAINER_TAG")) return;
         var m = LiquidLine.Match(text);
         if (!m.Success
             || !int.TryParse(m.Groups[1].Value, out int cur)
-            || !int.TryParse(m.Groups[2].Value, out int max)
-            || !Volume.UseLiters(cur)) return;
+            || !int.TryParse(m.Groups[2].Value, out int max)) return;
+
+        if (LiquidGate.Enabled && !GameRead.IsTag(item, "WINE_CONTAINER_TAG"))
+        {
+            var r = WaterInfo.Analyze(item);
+            if (r.HasData)
+            {
+                bool liters = Volume.UseLiters(max);
+                text = " " + WaterLayout.Capacity(cur, max, liters, Loc.Culture)
+                     + (r.Tier.Length > 0 ? " " + r.Tier : "");
+                return;
+            }
+        }
+
+        if (!ModSettings.ContainerUnits || !Volume.UseLiters(cur)) return;
         text = " " + Volume.Number(cur, true, Loc.Culture) + " L / " + Volume.Number(max, true, Loc.Culture) + " L";
     }
 

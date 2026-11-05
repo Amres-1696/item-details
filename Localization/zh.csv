@@ -1,4 +1,4 @@
-# Item Details 简体中文 (zh)
+﻿# Item Details 简体中文 (zh)
 auth.amount,票券面值
 auth.body,瓶体问题
 auth.box,包装盒问题
@@ -123,11 +123,10 @@ value.perfect_range," ｜ 完美 {0}–{1}"
 value.total_line,总价：{0}
 water.actives,活性成分：
 water.other,其他成分：
-water.head,水质：{0}% {1}
-water.impurities,杂质：
 water.mismatch,（与标签不符）
 water.trace,微量（低于显示阈值）
 water.composition,成分：
+water.components,成分
 chem.effects,药效：{0}
 chem.lethal,致死（{0} 倍致死量）
 chem.toxic,有毒

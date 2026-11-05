@@ -1,4 +1,4 @@
-# Item Details Deutsch (de)
+﻿# Item Details Deutsch (de)
 auth.amount,Markenwert
 auth.body,Materialfehler
 auth.box,Schachtelfehler
@@ -123,11 +123,10 @@ value.perfect_range," | perfekt {0}-{1}"
 value.total_line,Gesamt: {0}
 water.actives,"Wirkstoffe: "
 water.other,"Sonstige: "
-water.head,Wasser: {0}% {1}
-water.impurities,"Verunreinigungen: "
 water.mismatch," (Etikett passt nicht)"
 water.trace,Spur (unter der Anzeigeschwelle)
 water.composition,Zusammensetzung: 
+water.components,Bestandteile
 chem.effects,Wirkung: {0}
 chem.lethal,tödlich ({0}-fache tödliche Dosis)
 chem.toxic,giftig
