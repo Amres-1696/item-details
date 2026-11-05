@@ -58,7 +58,7 @@ berry.normal,正常
 berry.small,较小
 berry.unripe,未熟
 calorie.line,能量：{0}{1}
-calorie.per_cell,（{0}{1}/格）
+calorie.per_credit,（{0}{1}/信用点）
 calorie.unit,千卡
 condition.line,状态：{0} {1}
 contraband.markup,黑市溢价：+{0}%

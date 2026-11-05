@@ -47,6 +47,11 @@ internal readonly struct ContainerItemSignature
         return true;
     }
 
+    /// <summary>
+    /// 签名用的物品名：<c>item.name</c> 原样（创建/读档时固化），只做变化检测。
+    /// 要给玩家看的名字用 <see cref="GameRead.ItemDisplayName"/>——那个跟随游戏当前语言，
+    /// 且会读本地化库和时钟，不能进这条纯数据路径（离线契约测试依赖它只碰字段）。
+    /// </summary>
     internal static string DisplayName(GameItem? item)
     {
         if (item == null) return "";

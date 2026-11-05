@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
@@ -18,9 +19,10 @@ namespace ItemDetails;
 /// 右键扫描不改变任何原版双击；启用双击扫描时则由 DoubleClickScan
 /// 先检查该物品是否已有原版容器/激活动作，再决定是否接管。
 ///
-/// 菜单做法与 SmartInventoryArrange 扩展排序菜单相同：把原版 1×7 按钮网格换成 1×8，原版七个按钮
-/// 原样搬进去，「扫描」插在「固定」之前。不适用时把这一行 SetActive(false)——
-/// <c>GridPixelElement</c> 对隐藏行既不算高度也不加行距，菜单与原版逐像素一致。
+/// 菜单做法与 SmartInventoryArrange 扩展排序菜单相同：把原版 1×7 按钮网格扩成 1×8（0.46D 后续
+/// 热更新加了「配置」按钮，原版变成 1×8，对应扩成 1×9），原版按钮原样搬进去，「扫描」插在
+/// 「固定」之前。不适用时把这一行 SetActive(false)——<c>GridPixelElement</c> 对隐藏行既不算高度
+/// 也不加行距，菜单与原版逐像素一致。原版按钮按字段动态识别，不写死菜单高度。
 /// 原版菜单结构认不出来（别的模组先改过）就整个放弃，不硬塞。
 ///
 /// 不接管的三类：基因扫描仪是常开开关、没有结果面板；拾荒扫描仪与改造体扫描仪不针对
@@ -34,8 +36,8 @@ internal static class ContextMenuScan
     private const string HarmonyId = "item_details.context_scan";
     private const string MenuNodeTag = "ContextMenuNode";
 
-    /// <summary>「扫描」所在行：原版第 7 行「固定」之前。</summary>
-    private const int ScanRow = 6;
+    /// <summary>「扫描」插在原版最后一项「固定」之前。</summary>
+    private const int ScanRowFromEnd = 1;
 
     private static Harmony? _harmony;
 
@@ -47,17 +49,28 @@ internal static class ContextMenuScan
     private static readonly FieldInfo? XSpacingField = AccessTools.Field(typeof(GridPixelElement), "_xSpacing");
     private static readonly FieldInfo? YSpacingField = AccessTools.Field(typeof(GridPixelElement), "_ySpacing");
 
-    /// <summary>原版按钮，按菜单从上到下的顺序。</summary>
-    private static readonly FieldInfo?[] ButtonFields =
+    /// <summary>
+    /// 原版按钮，按菜单从上到下的顺序。0.46D 的后续热更新在「激活」后插入了「配置」，
+    /// 菜单从 1×7 变成 1×8；字段不存在时自动退回旧布局。
+    /// </summary>
+    private static readonly FieldInfo?[] ButtonFields = BuildButtonFields();
+
+    private static FieldInfo?[] BuildButtonFields()
     {
-        AccessTools.Field(typeof(ItemContextHandler), "buttonOpen"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonUse"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonEquip"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonActivate"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonToggle"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonUnload"),
-        AccessTools.Field(typeof(ItemContextHandler), "buttonPin"),
-    };
+        var fields = new List<FieldInfo?>
+        {
+            AccessTools.Field(typeof(ItemContextHandler), "buttonOpen"),
+            AccessTools.Field(typeof(ItemContextHandler), "buttonUse"),
+            AccessTools.Field(typeof(ItemContextHandler), "buttonEquip"),
+            AccessTools.Field(typeof(ItemContextHandler), "buttonActivate"),
+        };
+        var configure = AccessTools.Field(typeof(ItemContextHandler), "buttonConfigure");
+        if (configure != null) fields.Add(configure);
+        fields.Add(AccessTools.Field(typeof(ItemContextHandler), "buttonToggle"));
+        fields.Add(AccessTools.Field(typeof(ItemContextHandler), "buttonUnload"));
+        fields.Add(AccessTools.Field(typeof(ItemContextHandler), "buttonPin"));
+        return fields.ToArray();
+    }
 
     // 注入状态：只对一个 contextWindow 生效；换场景后处理器重建，按新窗口重来。
     private static PixelWindow? _window;
@@ -109,7 +122,7 @@ internal static class ContextMenuScan
 
     // ---------------- 菜单 ----------------
 
-    /// <summary>每次打开物品菜单时：确保菜单已扩成 1×8，再决定「扫描」行显示与否。</summary>
+    /// <summary>每次打开物品菜单时：确保菜单已扩成 1×(N+1)，再决定「扫描」行显示与否。</summary>
     private static void AfterUpdateConditions(ItemContextHandler __instance)
     {
         try
@@ -185,7 +198,7 @@ internal static class ContextMenuScan
     }
 
     /// <summary>
-    /// 把当前处理器的物品菜单扩成 1×8。已经扩过返回 true；原版结构认不出或失败返回 false，
+    /// 把当前处理器的物品菜单扩成 1×(N+1)。已经扩过返回 true；原版结构认不出或失败返回 false，
     /// 同一个窗口不再重试。
     /// </summary>
     private static bool EnsureMenu(ItemContextHandler handler)
@@ -223,7 +236,7 @@ internal static class ContextMenuScan
             buttons[i] = ButtonFields[i]?.GetValue(handler) as RichTextElement
                 ?? throw new InvalidOperationException("missing native context button " + i);
         }
-        // 只认原版 1×7 布局；别的模组改过就放弃，不叠加改动。
+        // 只认原版 1×N 布局（N 为当前版本的原版按钮数）；别的模组改过就放弃，不叠加改动。
         if (native.gridWidth != 1 || native.gridHeight != buttons.Length)
             throw new InvalidOperationException($"unexpected context grid {native.gridWidth}x{native.gridHeight}");
         for (int i = 0; i < buttons.Length; i++)
@@ -243,10 +256,11 @@ internal static class ContextMenuScan
         native.DetachAll();
         try
         {
+            int scanRow = buttons.Length - ScanRowFromEnd;
             int row = 0;
             for (int i = 0; i < buttons.Length; i++)
             {
-                if (i == ScanRow && !grid.AttachPos(scan, 0, row++))
+                if (i == scanRow && !grid.AttachPos(scan, 0, row++))
                     throw new InvalidOperationException("failed to attach scan row");
                 if (!grid.AttachPos(buttons[i], 0, row++))
                     throw new InvalidOperationException("failed to attach native row " + i);
@@ -279,7 +293,7 @@ internal static class ContextMenuScan
     private static int Spacing(FieldInfo? field, GridPixelElement grid)
         => field?.GetValue(grid) is int value ? value : -1;
 
-    /// <summary>停用模组时把原版 1×7 网格放回去。</summary>
+    /// <summary>停用模组时把原版 1×N 网格放回去。</summary>
     private static void RestoreNativeMenu()
     {
         var window = _window;

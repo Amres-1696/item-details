@@ -707,7 +707,7 @@ internal static class WaterAdvice
 
             action(probe, source);
 
-            AddMethod(result, usedNames, GameRead.ItemName(source), before, SafePurity(probe));
+            AddMethod(result, usedNames, GameRead.ItemDisplayName(source), before, SafePurity(probe));
         }
         catch (Exception ex) { Log.Warn("WaterAdvice.Simulate", ex); }
     }
@@ -738,7 +738,7 @@ internal static class WaterAdvice
                 probe.ModifyTag(waterTag, st => st.Enable().SetInt(waterNow + removed));
             }
 
-            AddMethod(result, usedNames, GameRead.ItemName(filterSource), before, SafePurity(probe));
+            AddMethod(result, usedNames, GameRead.ItemDisplayName(filterSource), before, SafePurity(probe));
         }
         catch (Exception ex) { Log.Warn("WaterAdvice.Filter", ex); }
     }

@@ -11,6 +11,7 @@ namespace ItemDetails;
 ///      不看 MACHINE 类型或物品 ID；逐个面板读出 role、已本地化的标题和内容物。
 ///      跳过 power / module / note 面板（电池和模块另有模块显示，说明书没有信息量）。
 ///   2. 内容渲染（本文件）：按物品标签识别滤芯、液体容器、计次工具、电池，放在任何机器里都按同一规则显示。
+///      其中电池电量归「信息增强」，其余归「容器内容物」：充电器只看信息增强也能逐个读到电量。
 ///   3. 专门适配（<see cref="MachineAdapters"/>）：进度剩余几天、水培用水、冰箱、催陈器、
 ///      自学习算法模块的学习进度（模块面板不列出，但读出来给适配器汇总）。
 ///      适配器先跑，可以"认领"面板；没被认领、也没被第二层汇总的物品由骨架按面板通用列出。
@@ -105,8 +106,8 @@ internal static class MachineInterior
         Failures.Clear();
     }
 
-    /// <param name="listing">列出内容物并做第二层汇总（「容器内容」开关）。</param>
-    /// <param name="adapters">专门适配：剩余几天、用水、冷藏、陈化（「信息增强」开关）。</param>
+    /// <param name="listing">列出内容物并做第二层汇总（「容器内容物」开关）；电池电量不在这里。</param>
+    /// <param name="adapters">专门适配：剩余几天、用水、冷藏、陈化，以及面板外电池的电量（「信息增强」开关）。</param>
     /// <param name="hiddenTruth">滤芯显示真实耐久（「透视」开关）；关闭时与物品自身 tooltip 一致。</param>
     /// <param name="purity">液体容器附带水质纯度。</param>
     /// <param name="listContents">是否输出最后的通用内容物清单；不影响滤芯、液体等状态摘要。</param>
@@ -158,9 +159,10 @@ internal static class MachineInterior
                 clean &= Stage(key, "Filters", () => SummarizeFilters(ctx, built, hiddenTruth));
                 clean &= Stage(key, "Liquids", () => SummarizeLiquids(ctx, built, purity));
                 clean &= Stage(key, "Tools", () => SummarizeTools(ctx, built));
-                clean &= Stage(key, "Batteries", () => SummarizeBatteries(ctx, built));
-                if (listContents) clean &= Stage(key, "List", () => ListRemaining(ctx, built));
             }
+            // 电量属于「信息增强」：只看这一组，不跟着「容器内容物」开关。
+            if (adapters) clean &= Stage(key, "Batteries", () => SummarizeBatteries(ctx, built));
+            if (listing && listContents) clean &= Stage(key, "List", () => ListRemaining(ctx, built));
 
             Store(item, locale, flags, now, all, state, built, entry);
             lines.AddRange(built);
@@ -316,7 +318,7 @@ internal static class MachineInterior
         {
             var f = filters[0];
             string text = Loc.T("inner.durability", "{0}: durability {1}/{2}",
-                ContainerItemSignature.DisplayName(f.Item), f.Cur, f.Max);
+                GameRead.ItemDisplayName(f.Item), f.Cur, f.Max);
             if (hiddenTruth && f.Fake != f.Cur && !IsDiscovered(f.Item, "DURABILITY_TAG"))
                 text += Loc.T("inner.faked", " (labelled {0})", f.Fake);
             if (f.Cur <= 0) text += Loc.T("inner.filter_spent", " (spent, no longer filters)");
@@ -369,7 +371,7 @@ internal static class MachineInterior
 
             ctx.Summarized.Add(it);
             lines.Add(new TooltipLine(
-                Loc.T("inner.line", "{0}: {1}", ContainerItemSignature.DisplayName(it), state),
+                Loc.T("inner.line", "{0}: {1}", GameRead.ItemDisplayName(it), state),
                 Info));
             shown++;
         }
@@ -395,7 +397,7 @@ internal static class MachineInterior
             var t = tools[0];
             lines.Add(new TooltipLine(
                 Loc.T("inner.uses", "{0}: uses remaining {1}/{2}",
-                    ContainerItemSignature.DisplayName(t.Item), t.Cur, t.Max),
+                    GameRead.ItemDisplayName(t.Item), t.Cur, t.Max),
                 Level(t.Cur, t.Max)));
             return;
         }
@@ -408,7 +410,7 @@ internal static class MachineInterior
             if (t.Cur < fewest.Cur) fewest = t;
         }
         string text = Loc.T("inner.tools", "Tools ×{0}, fewest uses: {1} ({2}/{3})",
-            tools.Count, ContainerItemSignature.DisplayName(fewest.Item), fewest.Cur, fewest.Max);
+            tools.Count, GameRead.ItemDisplayName(fewest.Item), fewest.Cur, fewest.Max);
         if (spent > 0) text += Loc.T("inner.spent_count", ", {0} spent", spent);
         lines.Add(new TooltipLine(text, spent > 0 ? Bad : Level(fewest.Cur, fewest.Max)));
     }
@@ -416,6 +418,7 @@ internal static class MachineInterior
     /// <summary>
     /// 不在电源面板里的电池（充电类机器的输入/输出槽）。逐节写出电量，不设行数上限：
     /// 面板自己的格数就是天然上限，把剩下的电量折进「能量电池×N」只会丢信息。
+    /// 由「信息增强」开关控制，不再依赖「容器内容物」。
     /// </summary>
     private static void SummarizeBatteries(Context ctx, List<TooltipLine> lines)
     {
@@ -429,7 +432,7 @@ internal static class MachineInterior
             ctx.Summarized.Add(it);
             lines.Add(new TooltipLine(
                 Loc.T("inner.energy", "{0}: energy {1}/{2}",
-                    ContainerItemSignature.DisplayName(it), cur, max),
+                    GameRead.ItemDisplayName(it), cur, max),
                 Level(cur, max)));
         }
     }
@@ -495,7 +498,8 @@ internal static class MachineInterior
         var order = new List<string>();
         foreach (var it in items)
         {
-            string name = ContainerItemSignature.DisplayName(it);
+            // 名字按当前语言取（item.name 是创建时固化的，见 GameRead.ItemDisplayName）
+            string name = GameRead.ItemDisplayName(it);
             int stack = ContainerItemSignature.ReadStack(it);
             if (counts.TryGetValue(name, out int c)) counts[name] = c + stack;
             else { counts[name] = stack; order.Add(name); }

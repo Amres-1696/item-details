@@ -58,7 +58,7 @@ berry.normal,Нормальная
 berry.small,Маленькая
 berry.unripe,Недозревшая
 calorie.line,Энергия: {0} {1}
-calorie.per_cell," ({0} {1}/клетку)"
+calorie.per_credit," ({0} {1}/кр.)"
 calorie.unit,kcal
 condition.line,Состояние: {0} {1}
 contraband.markup,Чёрный рынок: +{0}%

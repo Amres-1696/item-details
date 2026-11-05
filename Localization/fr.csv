@@ -58,7 +58,7 @@ berry.normal,Normale
 berry.small,Petits grains
 berry.unripe,Cueillie trop tôt
 calorie.line,Énergie : {0} {1}
-calorie.per_cell," ({0} {1}/case)"
+calorie.per_credit," ({0} {1}/crédit)"
 calorie.unit,kcal
 condition.line,État : {0} {1}
 contraband.markup,Marché noir : +{0}%

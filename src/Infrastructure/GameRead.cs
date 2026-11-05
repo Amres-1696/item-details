@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine.Localization.Settings;
 
 namespace ItemDetails;
 
@@ -20,6 +21,68 @@ internal static class GameRead
     internal static string ItemName(GameItem? it)
     {
         try { return it == null ? "" : SafeStr(it.name); } catch { return "?"; }
+    }
+
+    /// <summary>
+    /// 物品显示名，跟随游戏当前语言；读不到语言或词条时退回 <see cref="ItemName"/>。
+    ///
+    /// <see cref="ItemName"/> 读的 <c>item.name</c> 是物品创建或读档时按当时语言写死的：
+    /// 原版建物品名走 <c>LocHelper.GetLocalizedItem("item_&lt;identifier&gt;_name")</c>，
+    /// 之后切语言只换 UI 词条，不重写已有物品的名字（<c>LocHelper.RelocalizeIfMissing</c>
+    /// 只修缺译占位符，见反编译 0.46D 的读档路径）。于是中文档里拿到的物品，
+    /// 在英文界面下永远显示中文名（实测：自学习机器的三个模块在英文 tooltip 里
+    /// 显示「环保模组 / 超频模组 / 精炼模组」）。这里按 identifier 现查原版 Item 表
+    /// 补上当前语言，取名规则与 <c>ItemDirectory</c> 建物品时完全一致。
+    /// </summary>
+    internal static string ItemDisplayName(GameItem? it)
+    {
+        if (it == null) return "";
+        string live = LiveItemName(it);
+        if (live.Length > 0) return live;
+        string name = ItemName(it);
+        return name.Length > 0 ? name : it.identifier ?? "?";
+    }
+
+    /// <summary>identifier → 当前语言显示名。按语言码缓存，换语言整表重取。</summary>
+    private static readonly Dictionary<string, string> LiveNames = new(StringComparer.Ordinal);
+    private static string _liveNamesCode = "";
+
+    private static string LiveItemName(GameItem it)
+    {
+        string id;
+        try { id = it.identifier ?? ""; } catch { return ""; }
+        if (id.Length == 0) return "";
+
+        string code = Loc.Code;
+        if (!string.Equals(code, _liveNamesCode, StringComparison.Ordinal))
+        {
+            LiveNames.Clear();
+            _liveNamesCode = code;
+        }
+        if (LiveNames.TryGetValue(id, out var cached)) return cached;
+
+        string resolved = LookupItemName(id);
+        LiveNames[id] = resolved;
+        return resolved;
+    }
+
+    /// <summary>
+    /// 现查原版 Item 表的 <c>item_&lt;identifier&gt;_name</c>。两种情况下返回空、
+    /// 由调用方退回固化名：没有这个词条（第三方物品另有一套键），或词条带着
+    /// 未填充占位符——打印机芯片一类物品的名字按创建时的数量格式化
+    /// （「3D Printer Chip (x{0} Box Cutter)」），显示时拿不到那个数量。
+    /// </summary>
+    private static string LookupItemName(string identifier)
+    {
+        string key = "item_" + identifier + "_name";
+        try
+        {
+            var entry = LocalizationSettings.StringDatabase.GetTable("Item")?.GetEntry(key);
+            string value = entry?.Value ?? "";
+            if (value.Length == 0 || value.Contains("{0}", StringComparison.Ordinal)) return "";
+            return value;
+        }
+        catch { return ""; }
     }
 
     internal static int UniqueId(GameItem? it)

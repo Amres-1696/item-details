@@ -58,7 +58,7 @@ berry.normal,Normalna
 berry.small,Mała
 berry.unripe,Niedojrzała
 calorie.line,Energia: {0} {1}
-calorie.per_cell," ({0} {1}/kratkę)"
+calorie.per_credit," ({0} {1}/kredyt)"
 calorie.unit,kcal
 condition.line,Stan: {0} {1}
 contraband.markup,Czarny rynek: +{0}%

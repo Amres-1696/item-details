@@ -322,7 +322,8 @@ internal static class MachineAdapters
 
             learning++;
             bars.Add(new TooltipLine(" ", (float)cur / max, LearningBar,
-                Loc.T("learning.bar_left", "{0}: {1} {1|point|points} to go", ContainerItemSignature.DisplayName(module), remaining),
+                // 模块名按当前语言取：item.name 是创建/读档时固化的，见 GameRead.ItemDisplayName
+                Loc.T("learning.bar_left", "{0}: {1} {1|point|points} to go", GameRead.ItemDisplayName(module), remaining),
                 Info, RenderHandler.ColorPalette.VeryDarkCyan));
         }
         if (bars.Count == 0) return;

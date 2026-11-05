@@ -19,12 +19,13 @@ internal static class Log
         _counts[key] = n;
         if (n == 1)
         {
-            if (warn) Debug.LogWarning($"[ItemDetails] {key} 降级（该项本次不显示）: {detail}");
-            else Debug.LogError($"[ItemDetails] {key} 异常: {detail}");
+            if (warn) Debug.LogWarning($"[ItemDetails] {key} degraded (skipped this time): {detail}");
+            else Debug.LogError($"[ItemDetails] {key} failed: {detail}");
         }
         else if (n == 50)
         {
-            Debug.LogWarning($"[ItemDetails] {key} 已连续失败 {n} 次，该功能可能不可用；若游戏刚更新请等待模组更新");
+            Debug.LogWarning($"[ItemDetails] {key} failed {n} times in a row; this feature may be unavailable. " +
+                             "If the game was just updated, wait for a mod update.");
         }
     }
 

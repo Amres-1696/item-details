@@ -58,7 +58,7 @@ berry.normal,Normal
 berry.small,Klein
 berry.unripe,Unreif
 calorie.line,Energie: {0} {1}
-calorie.per_cell," ({0} {1}/Feld)"
+calorie.per_credit," ({0} {1}/Credit)"
 calorie.unit,kcal
 condition.line,Zustand: {0} {1}
 contraband.markup,Schwarzmarkt: +{0}%

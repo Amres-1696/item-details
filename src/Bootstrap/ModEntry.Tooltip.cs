@@ -144,7 +144,8 @@ public sealed partial class ModEntry
         // 主体取物品自己的名字：BERRY_TAG 不是荧光莓专属，第三方果实只要沿用原版的
         // WineHelper.InitBerry 就会带上它（实测酿酒拓展的 18 种果实），写死"荧光莓"
         // 会把别人的水果一起叫成荧光莓。名字读不到就不写这行，不拿默认值凑结论。
-        string itemName = GameRead.ItemName(item);
+        // 取名走当前语言（item.name 是创建时固化的，见 GameRead.ItemDisplayName）。
+        string itemName = GameRead.ItemDisplayName(item);
         if (itemName.Length == 0 || itemName == "?") return false;
 
         // 较小用紫色：这是「发育不良但还能用」的一档，和发霉/干枯这类坏档区分开。

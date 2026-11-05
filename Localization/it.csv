@@ -58,7 +58,7 @@ berry.normal,Normale
 berry.small,Piccola
 berry.unripe,Acerba
 calorie.line,Energia: {0} {1}
-calorie.per_cell," ({0} {1}/cella)"
+calorie.per_credit," ({0} {1}/credito)"
 calorie.unit,kcal
 condition.line,Condizione: {0} {1}
 contraband.markup,Mercato nero: +{0}%

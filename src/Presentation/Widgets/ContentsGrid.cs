@@ -71,6 +71,8 @@ internal static class ContentsGrid
     private static bool _builtSealed;
     private static string? _builtSealedEstimate;
     private static Transform? _builtParent;
+    /// <summary>画好时的语言。名字按当前语言现取（GameRead.ItemDisplayName），签名不随语言变，换语言要重建。</summary>
+    private static string _builtLocale = "";
     private static Vector2 _builtSize;
     private static RectTransform? _box;
     private static int _boxTextHash;
@@ -121,6 +123,7 @@ internal static class ContentsGrid
         _builtItems = null;
         _builtItem = null;
         _builtParent = null;
+        _builtLocale = "";
         _box = null;
     }
 
@@ -203,10 +206,12 @@ internal static class ContentsGrid
             }
             if (_box == null) { Hide(); return; }
 
+            string locale = Loc.Code;
             if (_panel == null || _panel.transform.parent != parent || !ReferenceEquals(_builtParent, parent)
                 || !ReferenceEquals(_builtItem, item) || _builtSealed != _pendingSealed
                 || !string.Equals(_builtSealedEstimate, _pendingSealedEstimate, StringComparison.Ordinal)
-                || _builtItems == null || !ContainerItemSignature.Matches(_builtItems, items))
+                || _builtItems == null || !ContainerItemSignature.Matches(_builtItems, items)
+                || !string.Equals(_builtLocale, locale, StringComparison.Ordinal))
             {
                 var cells = Group(items, out int total);
                 if (cells.Count == 0) { Hide(); return; }
@@ -215,6 +220,7 @@ internal static class ContentsGrid
                 _builtSealed = _pendingSealed;
                 _builtSealedEstimate = _pendingSealedEstimate;
                 _builtParent = parent;
+                _builtLocale = locale;
                 _builtItems = ContainerItemSignature.Capture(items);
             }
 
@@ -255,7 +261,8 @@ internal static class ContentsGrid
         foreach (var child in items)
         {
             if (child == null) continue;
-            string name = ContainerItemSignature.DisplayName(child);
+            // 按当前语言取名：item.name 是创建/读档时固化的，见 GameRead.ItemDisplayName
+            string name = GameRead.ItemDisplayName(child);
             int stack = Math.Max(1, ContainerItemSignature.ReadStack(child));
             if (!byName.TryGetValue(name, out var cell))
             {

@@ -356,8 +356,10 @@ internal static class TooltipPipeline
     }
 
     /// <summary>
-    /// 卡路里行补「每格」：原版是 ` " " + mech_food_calories(value)`，
-    /// 追加灰色 `(N千卡/格)`，单位直接沿用该行已有的后缀（自动适配语言）。
+    /// 卡路里行补「每信用点」：原版是 ` " " + mech_food_calories(value)`，
+    /// 追加灰色 `(N千卡/信用点)`，单位直接沿用该行已有的后缀（自动适配语言）。
+    /// 分母取物品当前价值（与价格行、性价比同一份快照）：食物占格大小参差，
+    /// 「每格」区分不出 worth，按价折算才能横向比较该吃还是该卖。
     /// 只认与原版原文完全一致的行：官方钩子在 GetTooltipBasic 内触发，其它模组写的
     /// 短行（如「保质期 120」）也会经过这里，按数字模糊匹配会把它们误改成卡路里行。
     /// </summary>
@@ -386,7 +388,7 @@ internal static class TooltipPipeline
             if (tail.Length > 6) return true;            // 不是纯卡路里行
             if (tail.Length == 0) tail = Loc.T("calorie.unit", "kcal");
 
-            // 去掉后缀里的括号补充（如「（肉类）」），每格只用核心单位
+            // 去掉后缀里的括号补充（如「（肉类）」），比率只用核心单位
             int cut = tail.IndexOfAny(new[] { '（', '(' });
             string core = cut > 0 ? tail.Substring(0, cut).Trim() : tail;
             if (core.Length == 0) core = tail;
@@ -396,15 +398,19 @@ internal static class TooltipPipeline
 
             if (ModSettings.ValueEnhance)
             {
-                int cells = GameRead.OccupiedCells(item.modifiedShape);
-                if (cells <= 0) cells = GameRead.OccupiedCells(item.shape);
-                if (cells > 0)
+                // 单独兜底：价值读不到只丢这段灰色注释，不动已写好的能量行
+                try
                 {
-                    double per = (double)cal / cells;
-                    builder.Add(Loc.T("calorie.per_cell", " ({0} {1}/cell)",
-                                      per.ToString("0.#", Loc.Culture), core),
-                                RenderHandler.ColorPalette.Gray);
+                    long value = ItemValueCache.Get(item).Sell;
+                    if (value > 0)
+                    {
+                        double per = (double)cal / value;
+                        builder.Add(Loc.T("calorie.per_credit", " ({0} {1}/credit)",
+                                          per.ToString("0.#", Loc.Culture), core),
+                                    RenderHandler.ColorPalette.Gray);
+                    }
                 }
+                catch { }
             }
 
             builder.NextLine();

@@ -132,7 +132,7 @@ internal static partial class SelfTest
             GeneralHelper.SetItemOwned(noFilter, true);
             FillTestWater(noFilter, 990000, "organic_waste");
             var fallback = WaterAdvice.SimulateMethods(noFilter);
-            bool gained = healthy.Exists(method => method.Name == GameRead.ItemName(filters[0]) && method.GainPct > 0);
+            bool gained = healthy.Exists(method => method.Name == GameRead.ItemDisplayName(filters[0]) && method.GainPct > 0);
             bool exhausted = SameMethods(uncachedExhausted, fallback);
             bool sharingCorrect = SameMethods(cachedExhausted, uncachedExhausted);
 

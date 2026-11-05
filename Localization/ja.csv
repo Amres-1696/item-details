@@ -58,7 +58,7 @@ berry.normal,通常
 berry.small,小さい
 berry.unripe,熟していない
 calorie.line,エネルギー：{0} {1}
-calorie.per_cell,（{0} {1}/マス）
+calorie.per_credit,（{0} {1}/クレジット）
 calorie.unit,kcal
 condition.line,状態：{0} {1}
 contraband.markup,闇市場：+{0}%

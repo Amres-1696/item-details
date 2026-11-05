@@ -1059,11 +1059,11 @@ internal static partial class SelfTest
             var battery = MachineBatteryInfo.Collect(custom);
 
             bool listed = HasLine(customLines, label)
-                && HasLine(customLines, ContainerItemSignature.DisplayName(scrap));
+                && HasLine(customLines, GameRead.ItemDisplayName(scrap));
             bool noBattery = battery == null;
             bool bareSilent = bareLines.Count == 0;
             string spent = Loc.T("inner.filter_spent", " (spent, no longer filters)").Trim();
-            bool filterSpent = HasLine(pitcherLines, ContainerItemSignature.DisplayName(filter))
+            bool filterSpent = HasLine(pitcherLines, GameRead.ItemDisplayName(filter))
                 && HasLine(pitcherLines, spent);
 
             // 接管只隐藏通用清单：自定义机器变空，水壶的滤芯状态仍保留；注销后清单恢复。
@@ -1073,13 +1073,13 @@ internal static partial class SelfTest
             var customSuppressed = MachineInterior.Collect(custom, true, true, true, false);
             var pitcherSuppressed = MachineInterior.Collect(pitcher, true, true, true, false);
             bool contentsHidden = customSuppressed.Count == 0;
-            bool summaryKept = HasLine(pitcherSuppressed, ContainerItemSignature.DisplayName(filter))
+            bool summaryKept = HasLine(pitcherSuppressed, GameRead.ItemDisplayName(filter))
                 && HasLine(pitcherSuppressed, spent);
             contentsRegistration.Dispose();
             contentsRegistration = null;
             var customRestored = MachineInterior.Collect(custom, true, true, true, false);
             bool contentsRestored = HasLine(customRestored, label)
-                && HasLine(customRestored, ContainerItemSignature.DisplayName(scrap));
+                && HasLine(customRestored, GameRead.ItemDisplayName(scrap));
 
             // 逐件接管：只接管自定义机器，它的清单消失，水壶照旧；注销后恢复。
             var claimed = custom;
