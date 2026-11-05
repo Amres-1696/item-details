@@ -127,7 +127,7 @@ internal static class MachineInterior
             if (LockedContainer.IsLocked(item)) return lines;
 
             int flags = (listing ? 1 : 0) | (adapters ? 2 : 0) | (hiddenTruth ? 4 : 0) | (purity ? 8 : 0)
-                | (listContents ? 16 : 0) | (batteries ? 32 : 0);
+                | (listContents ? 16 : 0) | (batteries ? 32 : 0) | (ModSettings.ContainerUnits ? 64 : 0);
             string locale = Loc.Code;
             float now = UnityEngine.Time.unscaledTime;
 
@@ -358,7 +358,7 @@ internal static class MachineInterior
             }
             else
             {
-                bool liters = Volume.UseLiters(max);
+                bool liters = ModSettings.ContainerUnits && Volume.UseLiters(max);
                 state = Loc.T("inner.liquid", "{0}/{1}{2}",
                     Volume.Number(cur, liters, Loc.Culture), Volume.Number(max, liters, Loc.Culture), WaterInfo.VolumeUnit(liters));
                 if (purity)

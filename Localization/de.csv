@@ -167,7 +167,7 @@ config.section.info,Einstellungen für Zusatzinfos
 config.info_enhance,Zusätzliche Gegenstandsinfos
 config.info_enhance.tip,Aktiviert Zusatzinfos und zeigt ihre Einstellungen unter Enthüllung. Die Einzelauswahl bleibt beim Ausschalten erhalten.
 config.tooltip_formatting,Tooltip-Textformatierung
-config.tooltip_formatting.tip,Klarere Preisangaben, Beschreibungsumbrüche, Volumeneinheiten, Kalorienhinweise und Preisblockabstände. Deaktivieren erhält das originale Textlayout.
+config.tooltip_formatting.tip,Klarere Preisangaben, Beschreibungsumbrüche, Kalorienhinweise und Preisblockabstände. Deaktivieren erhält das originale Textlayout.
 config.water_warmup,Wassersonden vorbereiten
 config.water_warmup.tip,Erstellt Wasserberechnungssonden beim Laden eines Spielstands vorab, damit der erste Tooltip nicht stockt. Zeigt keine zusätzlichen Informationen.
 config.water_localization_fix,Wasser-Lokalisierungskorrektur
@@ -293,3 +293,5 @@ config.info_progress_bar,Fortschrittsbalken
 config.info_progress_bar.tip,Ersetzt Textbalken durch farbige Blöcke. Ausschalten stellt den ursprünglichen Stil wieder her.
 config.info_manufacturer_inline,Firmenname rechts
 config.info_manufacturer_inline.tip,Verschiebt den Firmennamen nach rechts in die Zeile des Gegenstandsnamens.
+config.info_container_units,Volumeneinheiten für Behälter
+config.info_container_units.tip,Zeigt Flüssigkeitsmengen über 3 L in Litern an. Bis 3 L bleibt ml erhalten. Unabhängig von der Tooltip-Textformatierung.

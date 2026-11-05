@@ -115,9 +115,9 @@ namespace TEST_NS {
    // Previously removed keys must not turn off the newly introduced defaults.
    cfg.rawValues["show_wine"] = "false";
    ModSettings.Init("item_details");
-   string[] keys = { "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat", "info_machines", "info_batteries", "info_progress_bar", "info_manufacturer_inline" };
-   Func<bool>[] enabled = { () => ModSettings.PriceImpact, () => ModSettings.Contraband, () => ModSettings.Lottery, () => ModSettings.Wine, () => ModSettings.Meat, () => ModSettings.Machines, () => ModSettings.MachineBattery, () => ModSettings.BlockProgressBar, () => ModSettings.ManufacturerInline };
-   Check(keys.All(k => Equals(cfg.Get(k)!.BoxedDefault, true)) && enabled.All(f => f()), "all nine default on");
+   string[] keys = { "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat", "info_machines", "info_batteries", "info_progress_bar", "info_container_units", "info_manufacturer_inline" };
+   Func<bool>[] enabled = { () => ModSettings.PriceImpact, () => ModSettings.Contraband, () => ModSettings.Lottery, () => ModSettings.Wine, () => ModSettings.Meat, () => ModSettings.Machines, () => ModSettings.MachineBattery, () => ModSettings.BlockProgressBar, () => ModSettings.ContainerUnits, () => ModSettings.ManufacturerInline };
+   Check(keys.All(k => Equals(cfg.Get(k)!.BoxedDefault, true)) && enabled.All(f => f()), "all ten default on");
    Check(cfg.Entries.Select(e => e.Section).Distinct().SequenceEqual(new[] { "Display", "Controls", "Reveal", ModSettings.SecInfoEn }), "four sections in order");
    Check(cfg.Get("show_info_enhance")!.Section == "Display", "master always in display");
    for (int i = 0; i < keys.Length; i++) {
@@ -126,6 +126,12 @@ namespace TEST_NS {
     if (i == 5) Check(!ModSettings.ModuleEffects && ModSettings.MachineBattery, "machines do not gate batteries");
     cfg.Get(keys[i])!.ApplyBoxed(true);
    }
+   cfg.Get("tooltip_text_formatting")!.ApplyBoxed(false);
+   Check(ModSettings.ContainerUnits && !ModSettings.TooltipFormatting, "volume units stay enabled without text formatting");
+   cfg.Get("tooltip_text_formatting")!.ApplyBoxed(true);
+   cfg.Get("info_container_units")!.ApplyBoxed(false);
+   Check(!ModSettings.ContainerUnits && ModSettings.TooltipFormatting, "volume units can be disabled independently");
+   cfg.Get("info_container_units")!.ApplyBoxed(true);
    cfg.Get(keys[3])!.ApplyBoxed(false);
    cfg.Get("show_info_enhance")!.ApplyBoxed(false);
    Check(enabled.All(f => !f()), "master gates every new feature");
@@ -150,7 +156,7 @@ namespace TEST_NS {
    var flags = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
    typeof(ConfigSectionRefresh).GetMethod("OpenPostfix", flags)!.Invoke(null, new object[] { w });
    master.SetBool(false, true);
-   Check(scroll.children.Skip(1).Take(12).All(n => !n.active), "hide header, separator, nine rows and gap");
+   Check(scroll.children.Skip(1).Take(keys.Length + 3).All(n => !n.active), "hide header, separator, option rows and gap");
    Check(display.active && footer.active, "keep other sections and footer visible");
    w.elements[keys[0]].SetBool(false);
    master.SetBool(true, true);
@@ -173,7 +179,7 @@ namespace TEST_NS {
    ConfigSectionRefresh.RefreshInfoVisibility(w);
    Check(header.active, "localized section still toggles");
    Check(cfg.Saves == saves && ModSettings.InfoEnhance && !ModSettings.Wine, "UI visibility does not save or apply configuration");
-   return "PASS nine defaults, independent gates, master preservation, section order, live visibility, reset, localization and other-mod isolation";
+   return "PASS ten defaults, independent gates, master preservation, section order, live visibility, reset, localization and other-mod isolation";
   }
  }
 }

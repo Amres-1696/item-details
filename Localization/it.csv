@@ -167,7 +167,7 @@ config.section.info,Impostazioni informazioni aggiuntive
 config.info_enhance,Informazioni extra
 config.info_enhance.tip,Attiva le informazioni aggiuntive e mostra le impostazioni sotto Rivelazione. Disattivando si conservano le scelte individuali.
 config.tooltip_formatting,Formattazione del testo dei tooltip
-config.tooltip_formatting.tip,Etichette di prezzo più chiare, descrizioni a capo, unità di volume, note caloriche e spaziatura del blocco prezzo. Disattiva per mantenere il layout originale.
+config.tooltip_formatting.tip,Etichette di prezzo più chiare, descrizioni a capo, note caloriche e spaziatura del blocco prezzo. Disattiva per mantenere il layout originale.
 config.water_warmup,Preparazione delle sonde d'acqua
 config.water_warmup.tip,Crea le sonde di calcolo dell'acqua al caricamento di un salvataggio per evitare un rallentamento al primo tooltip. Non mostra informazioni aggiuntive.
 config.water_localization_fix,Correzione localizzazione dell'acqua
@@ -293,3 +293,5 @@ config.info_progress_bar,Barre di avanzamento
 config.info_progress_bar.tip,Sostituisce le barre testuali con blocchi colorati. Disattiva per mantenere lo stile originale.
 config.info_manufacturer_inline,Azienda a destra
 config.info_manufacturer_inline.tip,Sposta il nome dell’azienda a destra sulla riga del nome dell’oggetto.
+config.info_container_units,Unità di volume dei contenitori
+config.info_container_units.tip,Mostra in litri i volumi di liquido superiori a 3 L. Fino a 3 L mantiene ml. Indipendente dalla formattazione del testo.

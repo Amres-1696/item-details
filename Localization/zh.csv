@@ -167,7 +167,7 @@ config.section.info,信息增强配置
 config.info_enhance,信息增强
 config.info_enhance.tip,开启信息增强，并在透视下方显示配置分组；关闭时保留各子项的选择。
 config.tooltip_formatting,提示框文字优化
-config.tooltip_formatting.tip,优化价格用词、描述折行、液量单位、卡路里注释和价格块间距。关闭后保持原版文字布局。
+config.tooltip_formatting.tip,优化价格用词、描述折行、卡路里注释和价格块间距。关闭后保持原版文字布局。
 config.water_warmup,水质探针预热
 config.water_warmup.tip,读档时预建水质试算探针，避免首次悬停时创建探针造成卡顿；只预热数据，不显示额外信息。
 config.water_localization_fix,水质本地化兼容修复
@@ -293,3 +293,5 @@ config.info_progress_bar,进度条
 config.info_progress_bar.tip,将文字进度条改为直观的彩色块样式；关闭后恢复原版样式。
 config.info_manufacturer_inline,公司名称后置
 config.info_manufacturer_inline.tip,将生产公司名并到物品名称行右侧。
+config.info_container_units,容器单位优化
+config.info_container_units.tip,大于 3 L 的液体改用 L 显示，3 L 及以下仍用 ml；独立于提示框文字优化。

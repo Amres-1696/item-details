@@ -65,7 +65,7 @@
 
 在游戏「模组」菜单中打开本模组设置，修改后点击「应用」生效。「显示优化」中的「信息增强」是总开关；开启时，在「透视」下方显示第四组「信息增强配置」，关闭时隐藏该组并保留各子项选择。
 
-第四组包含九个独立开关，默认全部开启：**价格修正、黑市溢价、彩票、酿酒、肉、机器、电池、进度条、公司名称后置**。彩票只显示结果，不改变开奖；酿酒包含原料酿酒值；机器与电池分别控制，互不依赖。
+第四组包含十个独立开关，默认全部开启：**价格修正、黑市溢价、彩票、酿酒、肉、机器、电池、进度条、容器单位优化、公司名称后置**。彩票只显示结果，不改变开奖；酿酒包含原料酿酒值；机器与电池分别控制，互不依赖。容器单位优化控制超过 3 L 时改用 L 显示，独立于提示框文字优化；关闭后保留 ml。
 
 水质本地化兼容修复在启用模组或重启时应用。中文字体回退没有独立设置，随模组启停，用于修复控制台等界面的中文缺字。
 
@@ -126,7 +126,7 @@ A *Probably Stolen* mod: hover over an item and its tooltip shows authenticity, 
 
 Open this mod's settings in the game's Mods menu and click Apply after editing. Extra Item Info in Display is the master switch. When enabled, a fourth section, Item Info Settings, appears below Reveal; disabling it hides the section and preserves individual choices.
 
-The nine options default to on: **Price Modifiers, Black Market Markup, Lottery, Brewing, Meat, Machines, Batteries, Progress Bars, and Inline Company Name**. Lottery only displays results; Brewing includes ingredient wine values. Machines and Batteries are independent, including batteries inside chargers.
+The ten options default to on: **Price Modifiers, Black Market Markup, Lottery, Brewing, Meat, Machines, Batteries, Progress Bars, Container Volume Units, and Inline Company Name**. Lottery only displays results; Brewing includes ingredient wine values. Machines and Batteries are independent, including batteries inside chargers. Container Volume Units switches volumes above 3 L to L independently of Tooltip Text Formatting; disabling it keeps ml.
 
 The water localization fix applies when the mod is enabled or the game restarts. Chinese font fallback follows the mod's lifecycle without a separate setting and repairs missing Chinese glyphs in the console and other UI.
 

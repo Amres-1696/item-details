@@ -167,7 +167,7 @@ config.section.info,정보 강화 설정
 config.info_enhance,추가 아이템 정보
 config.info_enhance.tip,추가 정보를 켜고 투시 아래에 설정을 표시합니다. 꺼도 개별 선택은 유지됩니다.
 config.tooltip_formatting,툴팁 텍스트 서식
-config.tooltip_formatting.tip,가격 표기, 설명 줄 바꿈, 액량 단위, 칼로리 주석, 가격 블록 간격을 최적화합니다. 끄면 원래 텍스트 레이아웃을 유지합니다.
+config.tooltip_formatting.tip,가격 표기, 설명 줄 바꿈, 칼로리 주석, 가격 블록 간격을 최적화합니다. 끄면 원래 텍스트 레이아웃을 유지합니다.
 config.water_warmup,수질 프로브 미리 준비
 config.water_warmup.tip,저장 파일을 불러올 때 수집 계산 프로브를 미리 만들어 첫 호버 지연을 방지합니다. 추가 정보는 표시하지 않습니다.
 config.water_localization_fix,수집 현지화 수정
@@ -293,3 +293,5 @@ config.info_progress_bar,진행 막대
 config.info_progress_bar.tip,문자 진행 막대를 색상 블록으로 바꿉니다. 끄면 원래 스타일을 유지합니다.
 config.info_manufacturer_inline,회사명을 오른쪽에 표시
 config.info_manufacturer_inline.tip,회사명을 아이템 이름과 같은 줄의 오른쪽으로 옮깁니다.
+config.info_container_units,용기 부피 단위
+config.info_container_units.tip,3 L를 초과하는 액체는 L로 표시합니다. 3 L 이하는 ml를 유지하며 툴팁 텍스트 서식과 독립적입니다.

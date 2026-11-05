@@ -13,7 +13,7 @@ namespace ItemDetails;
 ///   "显示优化"   —— 显示选项与信息增强总开关
 ///   "操作优化"   —— 鉴定与扫描交互
 ///   "透视"       —— 揭示本应靠鉴定/分析才能知道的东西（会降低难度）
-///   "信息增强配置" —— 位于透视之后；仅在总开关开启时显示，九项独立控制
+///   "信息增强配置" —— 位于透视之后；仅在总开关开启时显示，各项独立控制
 ///
 /// 拆分过的项（旧值迁移到全部新键，见 <see cref="MigrateLegacyAppraisalToggle"/>）：
 ///   show_item_appraisal → show_authenticity（真伪鉴定）+ show_valuation（估价计算），并移到「透视」
@@ -74,7 +74,7 @@ internal static class ModSettings
     private static readonly Toggle CostPerformanceToggle = new(true);    // 性价比 + 压缩率
     private static readonly Toggle ContainerContentsToggle = new(true);  // 容器内容
     private static readonly Toggle InfoEnhanceToggle = new(true);        // 信息增强组总开关
-    private static readonly Toggle TooltipFormattingToggle = new(true);  // 价格/描述/液量等文字与间距优化
+    private static readonly Toggle TooltipFormattingToggle = new(true);  // 价格/描述等文字与间距优化
     private static readonly Toggle WaterWarmupToggle = new(true);        // 存档加载时预建水质探针
     private static readonly Toggle WaterLocalizationFixToggle = new(true); // 语言就绪后的水质静态表修复
     private static readonly Toggle TypeBadgeToggle = new(true);          // tooltip 上方分类标签
@@ -91,6 +91,7 @@ internal static class ModSettings
     private static readonly Toggle MachineToggle = new(true);
     private static readonly Toggle BatteryToggle = new(true);
     private static readonly Toggle ProgressBarToggle = new(true);
+    private static readonly Toggle ContainerUnitsToggle = new(true);
     private static readonly Toggle ManufacturerToggle = new(true);
 
     // ---- 操作优化 ----
@@ -228,7 +229,7 @@ internal static class ModSettings
 
             TooltipFormattingToggle.Define(_cfg, "tooltip_text_formatting", SecDisplayKey, SecDisplayEn,
                 Text("config.tooltip_formatting", "Tooltip Text Formatting"),
-                Text("config.tooltip_formatting.tip", "Clearer price labels, wrapped descriptions, liquid volume units, " +
+                Text("config.tooltip_formatting.tip", "Clearer price labels, wrapped descriptions, " +
                      "calorie annotations and price-block spacing. Disable to preserve the vanilla text layout."));
 
             TypeBadgeToggle.Define(_cfg, "show_type_badge", SecDisplayKey, SecDisplayEn,
@@ -285,6 +286,9 @@ internal static class ModSettings
             ProgressBarToggle.Define(_cfg, "info_progress_bar", SecInfoKey, SecInfoEn,
                 Text("config.info_progress_bar", "Progress Bars"),
                 Text("config.info_progress_bar.tip", "Replaces text progress bars with colored blocks. Disable to keep the original style."));
+            ContainerUnitsToggle.Define(_cfg, "info_container_units", SecInfoKey, SecInfoEn,
+                Text("config.info_container_units", "Container Volume Units"),
+                Text("config.info_container_units.tip", "Displays liquid volumes above 3 L in liters. At 3 L or below, keeps ml. Independent of Tooltip Text Formatting."));
             ManufacturerToggle.Define(_cfg, "info_manufacturer_inline", SecInfoKey, SecInfoEn,
                 Text("config.info_manufacturer_inline", "Inline Company Name"),
                 Text("config.info_manufacturer_inline.tip", "Moves the company name to the right of the item name."));
@@ -537,6 +541,7 @@ internal static class ModSettings
     internal static bool Container => InfoEnhance && ContainerContentsToggle.Value;
     internal static bool ContentsGrid => Container || SealedBox;
     internal static bool TooltipFormatting => InfoEnhance && TooltipFormattingToggle.Value;
+    internal static bool ContainerUnits => InfoEnhance && ContainerUnitsToggle.Value;
     internal static bool WaterWarmupEnabled => InfoEnhance && WaterWarmupToggle.Value;
     internal static bool WaterLocalizationFix => InfoEnhance && WaterLocalizationFixToggle.Value;
     internal static bool Machines => InfoEnhance && MachineToggle.Value;

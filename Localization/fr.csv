@@ -167,7 +167,7 @@ config.section.info,Réglages des infos supplémentaires
 config.info_enhance,Infos supplémentaires
 config.info_enhance.tip,Active les infos supplémentaires et affiche leurs réglages sous Révélation. Les choix individuels sont conservés à la désactivation.
 config.tooltip_formatting,Mise en forme du texte des infobulles
-config.tooltip_formatting.tip,Libellés de prix plus clairs, descriptions à la ligne, unités de volume, annotations caloriques et espacement du bloc de prix. Désactivez pour conserver la mise en page d'origine.
+config.tooltip_formatting.tip,Libellés de prix plus clairs, descriptions à la ligne, annotations caloriques et espacement du bloc de prix. Désactivez pour conserver la mise en page d'origine.
 config.water_warmup,Préchauffage des sondes d'eau
 config.water_warmup.tip,Crée les sondes de calcul de l'eau au chargement d'une sauvegarde pour éviter un à-coup au premier survol. N'affiche aucune information supplémentaire.
 config.water_localization_fix,Correction de localisation de l'eau
@@ -293,3 +293,5 @@ config.info_progress_bar,Barres de progression
 config.info_progress_bar.tip,Remplace les barres textuelles par des blocs colorés. Désactivez pour conserver le style d’origine.
 config.info_manufacturer_inline,Nom de société à droite
 config.info_manufacturer_inline.tip,Déplace le nom de la société à droite sur la ligne du nom de l’objet.
+config.info_container_units,Unités de volume des récipients
+config.info_container_units.tip,Affiche en litres les volumes de liquide supérieurs à 3 L. Jusqu’à 3 L, conserve ml. Indépendant du formatage du texte.

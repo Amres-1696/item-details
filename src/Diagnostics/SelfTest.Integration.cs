@@ -273,7 +273,7 @@ internal static partial class SelfTest
             var master = window.Get("show_info_enhance");
             bool shown = header.activeSelf;
             string[] keys = { "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat",
-                "info_machines", "info_batteries", "info_progress_bar", "info_manufacturer_inline" };
+                "info_machines", "info_batteries", "info_progress_bar", "info_container_units", "info_manufacturer_inline" };
             bool defaults = true;
             foreach (string key in keys) defaults &= config.Get(key).BoxedDefault is true;
             master.SetBool(false, notify: true);
@@ -331,7 +331,7 @@ internal static partial class SelfTest
             string[] infoKeys =
             {
                 "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat",
-                "info_machines", "info_batteries", "info_progress_bar", "info_manufacturer_inline",
+                "info_machines", "info_batteries", "info_progress_bar", "info_container_units", "info_manufacturer_inline",
             };
             bool grouped = true;
             foreach (string key in infoKeys)
@@ -362,7 +362,7 @@ internal static partial class SelfTest
             }
 
             bool gated = !ModSettings.AnyEnabled && !ModSettings.InfoEnhance
-                && !ModSettings.ValueEnhance && !ModSettings.Container && !ModSettings.TooltipFormatting
+                && !ModSettings.ValueEnhance && !ModSettings.Container && !ModSettings.TooltipFormatting && !ModSettings.ContainerUnits
                 && !ModSettings.TypeBadge && !ModSettings.ContentsGrid
                 && !ModSettings.WaterWarmupEnabled && !ModSettings.WaterLocalizationFix
                 && !ModSettings.PriceImpact && !ModSettings.Contraband && !ModSettings.Lottery

@@ -199,7 +199,7 @@ internal static class TooltipPipeline
     /// <summary>液量超过 3 L 时把原版液体容器行改写成 L；单位沿用原版不本地化的写法。</summary>
     private static void RewriteLiquidVolume(ref string text, GameItem item)
     {
-        if (!ModSettings.TooltipFormatting || !text.EndsWith(" ml", StringComparison.Ordinal)) return;
+        if (!ModSettings.ContainerUnits || !text.EndsWith(" ml", StringComparison.Ordinal)) return;
         if (!GameRead.IsTag(item, "LIQUID_CONTAINER_TAG")) return;
         var m = LiquidLine.Match(text);
         if (!m.Success

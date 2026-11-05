@@ -167,7 +167,7 @@ config.section.info,情報強化の設定
 config.info_enhance,追加アイテム情報
 config.info_enhance.tip,追加情報を有効にし、透視の下に設定を表示します。オフにしても個別の選択は保持されます。
 config.tooltip_formatting,ツールチップ文章の整形
-config.tooltip_formatting.tip,価格表記、説明文の折り返し、液量単位、カロリー注記、価格ブロックの間隔を最適化します。オフで原版のレイアウトを維持します。
+config.tooltip_formatting.tip,価格表記、説明文の折り返し、カロリー注記、価格ブロックの間隔を最適化します。オフで原版のレイアウトを維持します。
 config.water_warmup,水質プローブの事前準備
 config.water_warmup.tip,セーブデータ読み込み時に水質計算プローブを事前作成し、初回ホバー時の遅延を防ぎます。追加情報は表示しません。
 config.water_localization_fix,水質ローカライズ修正
@@ -293,3 +293,5 @@ config.info_progress_bar,進捗バー
 config.info_progress_bar.tip,文字の進捗バーを色付きブロックに変更します。オフで元の表示に戻ります。
 config.info_manufacturer_inline,会社名を右に表示
 config.info_manufacturer_inline.tip,会社名をアイテム名と同じ行の右側に表示します。
+config.info_container_units,容器の体積単位
+config.info_container_units.tip,3 L を超える液量を L で表示します。3 L 以下は ml のままです。ツールチップの文字設定とは独立しています。

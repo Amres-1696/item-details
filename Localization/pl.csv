@@ -167,7 +167,7 @@ config.section.info,Ustawienia dodatkowych informacji
 config.info_enhance,Dodatkowe informacje
 config.info_enhance.tip,Włącza dodatkowe informacje i pokazuje ich ustawienia pod sekcją odkrywania. Wyłączenie zachowuje indywidualne wybory.
 config.tooltip_formatting,Formatowanie tekstu podpowiedzi
-config.tooltip_formatting.tip,Czytelniejsze ceny, zawijanie opisów, jednostki objętości, adnotacje kalorii i odstępy bloku ceny. Wyłącz, aby zachować oryginalny układ tekstu.
+config.tooltip_formatting.tip,Czytelniejsze ceny, zawijanie opisów, adnotacje kalorii i odstępy bloku ceny. Wyłącz, aby zachować oryginalny układ tekstu.
 config.water_warmup,Wstępne przygotowanie sond wody
 config.water_warmup.tip,Tworzy sondy obliczeń wody podczas wczytywania zapisu, aby uniknąć opóźnienia przy pierwszej podpowiedzi. Nie wyświetla dodatkowych informacji.
 config.water_localization_fix,Naprawa lokalizacji wody
@@ -293,3 +293,5 @@ config.info_progress_bar,Paski postępu
 config.info_progress_bar.tip,"Zastępuje paski tekstowe kolorowymi blokami. Wyłącz, aby zachować oryginalny styl."
 config.info_manufacturer_inline,Nazwa firmy po prawej
 config.info_manufacturer_inline.tip,Przenosi nazwę firmy na prawą stronę wiersza z nazwą przedmiotu.
+config.info_container_units,Jednostki objętości pojemników
+config.info_container_units.tip,Pokazuje objętość płynu powyżej 3 L w litrach. Do 3 L zachowuje ml. Niezależnie od formatowania tekstu.

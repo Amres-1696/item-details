@@ -132,7 +132,7 @@ internal static class MachineAdapters
 
         ctx.WaterDays = days;
         waterPanel.Claimed = true;
-        bool liters = Volume.UseLiters(WaterHelper.GetTotalCapacityML(water));
+        bool liters = ModSettings.ContainerUnits && Volume.UseLiters(WaterHelper.GetTotalCapacityML(water));
         lines.Add(new TooltipLine(
             Loc.T("hydro.water", "Water {0}{3}, enough for {1} {1|day|days} ({2} ml/day)",
                 Volume.Number(ml, liters, Loc.Culture), days, perNight, WaterInfo.VolumeUnit(liters)),
