@@ -466,6 +466,9 @@ internal static class TooltipPipeline
     /// 拼出价格行：`售价：69（进价55+14） 标价60`
     /// 括号及其内容灰色，差价正红负绿（正=卖得比买价高）。
     /// 数字直接读物品，不做字符串解析。
+    ///
+    /// 标价只在它与售价不同（<c>list != sell</c>）时写：没有价格修正的物品两个数本就相等，
+    /// 再写一遍只是把同一个数字重复两次。差异来源由价格影响行（标签/状态）与市场行解释。
     /// </summary>
     private static bool TryBuildPriceLine(GameItem item, RichTextBuilder builder, RenderHandler.ColorPalette color)
     {
@@ -487,7 +490,7 @@ internal static class TooltipPipeline
             var diffColor = diff >= 0
                 ? RenderHandler.ColorPalette.LightGreen   // 正 → 绿（赚）
                 : RenderHandler.ColorPalette.LightRed;    // 负 → 红（亏）
-            string listPart = Loc.T("price.list", " List: {0}", list);
+            string listPart = list != sell ? Loc.T("price.list", " List: {0}", list) : "";
 
             // 宽度预算：超过就拆两行，避免被 tooltip 截断
             int width = DisplayWidth(sellPart) + DisplayWidth(listPart);
@@ -517,14 +520,17 @@ internal static class TooltipPipeline
                 output.Add(buyTail, RenderHandler.ColorPalette.Gray);
             }
 
-            if (splitLines)
+            if (listPart.Length > 0)
             {
-                output.NextLine();
-                output.Add(listPart.TrimStart(), color);
-            }
-            else
-            {
-                output.Add(listPart, color);
+                if (splitLines)
+                {
+                    output.NextLine();
+                    output.Add(listPart.TrimStart(), color);
+                }
+                else
+                {
+                    output.Add(listPart, color);
+                }
             }
 
             output.NextLine();
