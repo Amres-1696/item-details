@@ -66,6 +66,15 @@ internal static class ValueEnhance
     /// <summary>写一行性价比；本次 tooltip 已写过、不适用或读不到价值时返回 false。</summary>
     internal static bool TryWrite(RichTextBuilder builder, GameItem? item)
     {
+        if (item == null) return false;
+        var output = new TooltipSections.Writer(builder, item, "value-enhance");
+        bool wrote = TryWrite(output, item);
+        output.Finish();
+        return wrote;
+    }
+
+    internal static bool TryWrite(TooltipSections.Writer builder, GameItem? item)
+    {
         if (_writtenBuild == TooltipPipeline.BuildId && TooltipPipeline.IsBuilding) return false;
         if (!Applies(item)) return false;
 
@@ -73,6 +82,9 @@ internal static class ValueEnhance
         if (r == null) return false;
 
         var v = r.Value;
+        builder.Field("perCell", v.Value);
+        builder.Field("total", v.Total);
+        builder.Field("cells", v.Cells);
         builder.Add(Loc.T("value.cost_perf", "Value per cell: {0}", v.Value.ToString("0.#")), Color);
         builder.Add(Loc.T("value.cost_perf_detail", " ({0}/{1} {1|cell|cells})", v.Total, v.Cells),
             RenderHandler.ColorPalette.Gray);

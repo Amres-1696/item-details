@@ -53,10 +53,10 @@ public sealed partial class ModEntry : IMod
     {
         internal readonly string Name;
         internal readonly ItemDetailsTooltipSection Section;
-        internal readonly Action<ModEntry, RichTextBuilder, GameItem> Append;
+        internal readonly Func<ModEntry, TooltipSections.Writer, GameItem, bool> Append;
 
         internal RendererDef(string name, ItemDetailsTooltipSection section,
-            Action<ModEntry, RichTextBuilder, GameItem> append)
+            Func<ModEntry, TooltipSections.Writer, GameItem, bool> append)
         {
             Name = name;
             Section = section;
@@ -131,6 +131,8 @@ public sealed partial class ModEntry : IMod
         var cb = OnTooltipLate;
         _cb = cb;
 
+        Try("LiquidQueries", LiquidQueries.Enable);
+        Try("TooltipSections", TooltipSections.Enable);
         Try("Subscribe", () => ModHook.OnCreateTooltipLate += cb);
 
         // 关键：所有 Harmony 装配推迟到游戏语言真正应用之后再执行。
@@ -184,6 +186,8 @@ public sealed partial class ModEntry : IMod
             if (_cb != null) ModHook.OnCreateTooltipLate -= _cb;
         });
         _cb = null;
+        Quiet(LiquidQueries.Disable);
+        Quiet(TooltipSections.Disable);
         // 若语言还没就绪就被停用，取消尚未执行的延迟装配，避免停用后仍偷偷 Patch。
         DeferredPatchRunner.Cancel();
 #if ITEMDETAILS_SELFTEST
@@ -273,6 +277,7 @@ public sealed partial class ModEntry : IMod
     /// </summary>
     private void RunRenderers(RichTextBuilder builder, GameItem item)
     {
+        TypeBadge.Publish(builder, item);
         if (!ModSettings.AnyEnabled) return;
         var suppressed = ThirdPartyProviders.TooltipSuppressions(item);
 #if ITEMDETAILS_DIAG
@@ -290,7 +295,8 @@ public sealed partial class ModEntry : IMod
 #endif
             try
             {
-                def.Append(this, builder, item);
+                var output = new TooltipSections.Writer(builder, item, def.Name);
+                if (def.Append(this, output, item)) output.Finish();
                 _rendererFailures[i] = 0;
             }
             catch (Exception ex)

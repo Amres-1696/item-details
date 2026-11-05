@@ -52,7 +52,7 @@ internal static class StorageInfo
 
     /// <param name="allowGrid">tooltip 正文才传 true：允许把内容物交给图标格。</param>
     internal static List<TooltipLine> Collect(GameItem? item, bool includeRatio = true, bool includeContents = true,
-        bool allowGrid = false)
+        bool allowGrid = false, RichTextBuilder? builder = null)
     {
         var lines = new List<TooltipLine>();
         if (item == null) return lines;
@@ -86,7 +86,7 @@ internal static class StorageInfo
             }
 
             // 没有文字回退：图标格不可用时，本次就不显示内容物。
-            _ = allowGrid && items != null && items.Count > 0 && ContentsGrid.Claim(item, items, sealedBox: false);
+            _ = allowGrid && items != null && items.Count > 0 && ContentsGrid.Claim(item, items, sealedBox: false, builder: builder);
             Entry? entry = Find(item, grid, grids.Count, locale, includeRatio, includeContents);
 
             if (entry != null && now - entry.At <= CacheSeconds
@@ -234,7 +234,7 @@ internal static class StorageInfo
             lines.Add(new TooltipLine(
                 Loc.T("storage.ratio", "Compression: {0} ({1}/{2} {2|cell|cells})",
                     ratio.ToString("0.0", Loc.Culture), innerCells, selfCells),
-                Color));
+                Color).WithData("compression", (innerCells, selfCells)));
         }
         catch (Exception ex) { Log.Warn("StorageInfo.Ratio", ex); }
     }

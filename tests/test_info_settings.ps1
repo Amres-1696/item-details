@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $ns = 'InfoSettingsTests' + [Guid]::NewGuid().ToString('N')
 $source = "#nullable enable`n"
-foreach ($file in @('src/Infrastructure/ModSettings.cs', 'src/Infrastructure/Patches/ConfigSectionRefresh.cs')) {
+foreach ($file in @('src/Infrastructure/ModSettings.cs', 'src/Infrastructure/Patches/ConfigSectionRefresh.cs', 'src/Features/Water/LiquidGate.cs')) {
     $body = (Get-Content -LiteralPath (Join-Path $repo $file) -Raw).Replace('namespace ItemDetails;', '')
     $body = $body.Replace('using HarmonyLib;', "using $ns.HarmonyLib;")
     $source += "namespace $ns {`n$body`n}`n"
@@ -28,6 +28,7 @@ namespace TEST_NS {
  using System;
  using System.Collections.Generic;
  using System.Linq;
+ internal static class ScannerInventory { internal static bool HasLiquidScanner; }
  internal static class Loc {
   internal static string Code = "en";
   internal static bool IsChinese => false;
@@ -115,6 +116,14 @@ namespace TEST_NS {
    // Previously removed keys must not turn off the newly introduced defaults.
    cfg.rawValues["show_wine"] = "false";
    ModSettings.Init("item_details");
+   var liquidMode = (ConfigEntry<string>)cfg.Get("liquid_analysis")!;
+   liquidMode.Set(ModSettings.LiquidChoiceValue(ModSettings.LiquidMode.WithScanner));
+   Check(!LiquidGate.Enabled, "liquid gate requires an owned scanner");
+   ScannerInventory.HasLiquidScanner = true;
+   Check(LiquidGate.Enabled, "owning a scanner enables the liquid gate");
+   liquidMode.Set(ModSettings.LiquidChoiceValue(ModSettings.LiquidMode.Off));
+   Check(!LiquidGate.Enabled, "turning analysis off overrides scanner ownership");
+   liquidMode.Set(ModSettings.LiquidChoiceValue(ModSettings.LiquidMode.Always));
    string[] keys = { "info_price_modifiers", "info_black_market", "info_lottery", "info_brewing", "info_meat", "info_machines", "info_batteries", "info_progress_bar", "info_container_units", "info_manufacturer_inline" };
    Func<bool>[] enabled = { () => ModSettings.PriceImpact, () => ModSettings.Contraband, () => ModSettings.Lottery, () => ModSettings.Wine, () => ModSettings.Meat, () => ModSettings.Machines, () => ModSettings.MachineBattery, () => ModSettings.BlockProgressBar, () => ModSettings.ContainerUnits, () => ModSettings.ManufacturerInline };
    Check(keys.All(k => Equals(cfg.Get(k)!.BoxedDefault, true)) && enabled.All(f => f()), "all ten default on");

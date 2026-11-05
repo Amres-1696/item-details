@@ -57,5 +57,17 @@ internal readonly struct TooltipLine
         Tail = tail ?? "";
     }
 
+    internal readonly string? DataKind;
+    internal readonly object? Data;
+
+    private TooltipLine(TooltipLine source, string kind, object data)
+    {
+        this = source;
+        DataKind = kind;
+        Data = data;
+    }
+
+    internal TooltipLine WithData(string kind, object data) => new TooltipLine(this, kind, data);
+
     internal bool HasBar => Tail != null;
 }

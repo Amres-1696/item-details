@@ -63,7 +63,8 @@ internal static class ScratcherInfo
             if (scratched < 3)
                 text += Loc.T("scratcher.progress_part", ", scratched {0}/3", scratched);
             lines.Add(new TooltipLine(text,
-                prize > 0 ? RenderHandler.ColorPalette.LightGreen : RenderHandler.ColorPalette.LightRed));
+                prize > 0 ? RenderHandler.ColorPalette.LightGreen : RenderHandler.ColorPalette.LightRed)
+                .WithData("result", (prize, bestCount, scratched)));
 
             Log.MarkOk("ScratcherInfo");
         }

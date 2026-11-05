@@ -1,52 +1,68 @@
 using System;
+using ItemDetails.Integration;
 
 namespace ItemDetails;
 
-/// <summary>
-/// 第三方美化 MOD（实测「物品详情美化」/ SectionedTooltips，id amres.sectioned_tooltips）
-/// 的兼容层。它按物品接管 tooltip 后，会用自己的一套「单元格」宽度模型重排全部文本，
-/// 并且**不认识 TMP 的 &lt;pos&gt; 标签**——我们把 &lt;pos&gt; 当普通文本塞进去，列定位会失效。
-///
-/// 进度条随整个提示框的排版走。内容物/液体段则逐件判断：
-///   1. 它通过 <see cref="ThirdPartyProviders"/> 注册的逐件接管（Contents 段）；
-///   2. 程序集已加载但没注册（旧版）：液体容器一律按接管处理——宁可退化成单行，
-///      也不要在它的窗口里显示错位的列。
-/// </summary>
+/// <summary>逐件读取第三方排版声明；没有声明时兼容 SectionedTooltips 1.6.2 的实际开关。</summary>
 internal static class SectionedLayout
 {
     private const string ModId = "amres.sectioned_tooltips";
-    private static bool? _loaded;
 
-    // 1.6.2 的排版总开关可在局内切换。GraphicBars 关闭时也应交给它显示原生文字条。
-    internal static bool UsesNativeBars => TooltipPipeline.InTooltip
-        && ModLoader.Mods.Exists(m => m.IsEnabled && m.Manifest.ID == ModId)
-        && (ModConfig.Find(ModId)?.Get("Enabled") as ConfigEntry<bool>)?.Value != false;
-
-    /// <summary>美化 MOD 是否已加载。</summary>
-    internal static bool Present => _loaded ??= Detect();
-
-    private static bool Detect()
+    private readonly struct Layout
     {
-        try
+        internal readonly TooltipLayoutOptions Options;
+        internal readonly bool LegacyContentsPanel;
+
+        internal Layout(TooltipLayoutOptions options, bool legacyContentsPanel = false)
         {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                if (string.Equals(asm.GetName().Name, "SectionedTooltips", StringComparison.Ordinal))
-                    return true;
+            Options = options;
+            LegacyContentsPanel = legacyContentsPanel;
         }
-        catch { }
-        return false;
     }
 
-    /// <summary>这件物品的内容物/液体段是否已被它接管。</summary>
-    internal static bool Handles(GameItem item)
+    private static int cachedBuild;
+    private static Layout cachedLayout;
+
+    internal static bool UsesNativeBars => TooltipPipeline.Current is GameItem item
+        && (For(item).Options & TooltipLayoutOptions.NativeProgressBars) != 0;
+
+    internal static bool UsesFlowingText(GameItem item)
+        => (For(item).Options & TooltipLayoutOptions.FlowingText) != 0;
+
+    internal static bool DrawsContents(GameItem item)
+        => (For(item).Options & TooltipLayoutOptions.DrawsContents) != 0;
+
+    internal static bool LegacyContentsPanel(GameItem item) => For(item).LegacyContentsPanel;
+
+    private static Layout For(GameItem item)
     {
-        if (item == null) return false;
-        if (!Present) return false;
-        // 逐件注册：只有真的接管了才让路
-        if (ThirdPartyProviders.HasItemTooltipDisplays)
-            return ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.Contents);
-        // 旧版没有逐件注册，按「接管所有容器」处理
-        try { return item.IsTag("LIQUID_CONTAINER_TAG"); }
-        catch { return false; }
+        if (!ReferenceEquals(item, TooltipPipeline.Current)) return Read(item);
+        if (cachedBuild != TooltipPipeline.BuildId)
+        {
+            cachedLayout = Read(item);
+            cachedBuild = TooltipPipeline.BuildId;
+        }
+        return cachedLayout;
+    }
+
+    private static Layout Read(GameItem item)
+    {
+        if (AppDomain.CurrentDomain.GetData(ItemDetailsClient.LayoutSlot) is Func<GameItem, int?> providers)
+        {
+            foreach (Func<GameItem, int?> describe in providers.GetInvocationList())
+            {
+                try
+                {
+                    if (describe(item) is int options) return new Layout((TooltipLayoutOptions)options);
+                }
+                catch (Exception ex) { Log.Warn("TooltipLayout", ex); }
+            }
+        }
+
+        if (!ModLoader.Mods.Exists(m => m.IsEnabled && m.Manifest.ID == ModId)) return default;
+        var config = ModConfig.Find(ModId);
+        if ((config?.Get("Enabled") as ConfigEntry<bool>)?.Value == false) return default;
+        bool contents = (config?.Get("ContentsPanel") as ConfigEntry<bool>)?.Value != false;
+        return new Layout(TooltipLayoutOptions.NativeProgressBars | TooltipLayoutOptions.FlowingText, contents);
     }
 }

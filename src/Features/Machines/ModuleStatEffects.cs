@@ -48,6 +48,7 @@ internal static class ModuleStatEffects
         internal GameItem Machine = null!;
         internal string Key = "";
         internal float At;
+        internal readonly Dictionary<char, IReadOnlyList<(string Metric, double Delta)>> Changes = new();
         internal readonly Dictionary<char, string> Notes = new();
     }
 
@@ -62,8 +63,12 @@ internal static class ModuleStatEffects
     }
 
     /// <summary>某一项加成的注释（不含括号）；没有可靠结论返回空串。</summary>
-    internal static string Note(char stat, GameItem machine)
+    internal static string Note(char stat, GameItem machine) => Note(stat, machine, out _);
+
+    /// <summary>同 <see cref="Note(char, GameItem)"/>，并带出逐项数值差供结构化快照使用。</summary>
+    internal static string Note(char stat, GameItem machine, out IReadOnlyList<(string Metric, double Delta)>? changes)
     {
+        changes = null;
         try
         {
             // 显式第三方提供方优先且不走原版缓存；提供方完全拥有这个 ID 的注释语义。
@@ -83,8 +88,10 @@ internal static class ModuleStatEffects
                 entry.Key = key;
                 entry.At = now;
                 entry.Notes.Clear();
-                Build(machine, entry.Notes);
+                entry.Changes.Clear();
+                Build(machine, entry);
             }
+            entry.Changes.TryGetValue(stat, out changes);
             return entry.Notes.TryGetValue(stat, out var note) ? note : "";
         }
         catch (Exception ex)
@@ -103,6 +110,8 @@ internal static class ModuleStatEffects
 
     // ---------------- 原版机器能力表 ----------------
 
+    private delegate string? QualityNote(GameItem machine, out int? nextBonus);
+
     private sealed class MachineEffectProfile
     {
         internal Func<GameItem, int>? Performance;
@@ -112,7 +121,7 @@ internal static class ModuleStatEffects
         internal Func<GameItem, int>? Quality;
         internal string QualityKey = "";
         internal string QualityEn = "";
-        internal Func<GameItem, string?>? CustomQuality;
+        internal QualityNote? CustomQuality;
         internal bool UseDealMakerPower;
     }
 
@@ -176,8 +185,9 @@ internal static class ModuleStatEffects
     /// 每种加成状态只建一次探针：当前加成 1 次，性能/效率/质量各清零 1 次。
     /// 同一状态下的只读函数与耗电模型共用这一次拷贝，不再每个差分各拷两次。
     /// </summary>
-    private static void Build(GameItem machine, Dictionary<char, string> notes)
+    private static void Build(GameItem machine, Entry entry)
     {
+        var notes = entry.Notes;
         if (!Profiles.TryGetValue(machine.identifier ?? "", out var profile)) return;
 
         var power = PowerModel(machine, profile);
@@ -192,9 +202,13 @@ internal static class ModuleStatEffects
         // 效率：只算效率自己省下的电。
         if (power != null && powerBonus != 0
             && Diff(now.Drawn, Take(machine, profile, power, (PowerTag, 0))?.Drawn) is int ep)
+        {
             notes[Efficiency] = Loc.T("module.power", "{0} power/day", Signed(ep));
+            entry.Changes[Efficiency] = Array.AsReadOnly(new[] { ("module.power", (double)ep) });
+        }
 
         var perf = new List<string>();
+        var deltas = new List<(string Metric, double Delta)>();
         var noPerf = perfBonus != 0 && (power != null || profile.Performance != null)
             ? Take(machine, profile, power, (PerfTag, 0))
             : null;
@@ -202,32 +216,43 @@ internal static class ModuleStatEffects
         {
             if (Diff(now.Speed, noPerf.Speed) is int sp && sp != 0)
             {
+                deltas.Add(("module.speed", sp));
                 string text = Loc.T("module.speed", "{0} speed", Plus(sp));
                 int faster = DaysFaster(machine, noPerf.Speed ?? 0);
+                if (faster > 0) deltas.Add(("module.days_faster", faster));
                 if (faster > 0) text += Loc.T("module.days_faster", ", about {0} {0|day|days} faster", faster);
                 perf.Add(text);
             }
             // 交易机、催陈器的性能也会降低耗电
             if (Diff(now.Drawn, noPerf.Drawn) is int pp && pp != 0)
+            {
                 perf.Add(Loc.T("module.power", "{0} power/day", Signed(pp)));
+                deltas.Add(("module.power", pp));
+            }
         }
 
         if (profile.Performance != null && noPerf != null
             && Diff(now.Performance, noPerf.Performance) is int delta && delta != 0)
-            perf.Add(Loc.T(profile.PerformanceKey, profile.PerformanceEn,
-                Plus(delta / profile.PerformanceDivisor)));
+        {
+            var amount = delta / profile.PerformanceDivisor;
+            perf.Add(Loc.T(profile.PerformanceKey, profile.PerformanceEn, Plus(amount)));
+            deltas.Add((profile.PerformanceKey, amount));
+        }
 
         string? quality = null;
         if (profile.CustomQuality != null)
         {
-            quality = profile.CustomQuality(machine);
+            quality = profile.CustomQuality(machine, out var step);
+            if (step.HasValue) entry.Changes[Quality] = Array.AsReadOnly(new[] { ("nextQualityBonus", (double)step.Value) });
         }
         else if (profile.Quality != null && qualityBonus != 0
                  && Diff(now.Quality, Take(machine, profile, null, (QualityTag, 0))?.Quality) is int qualityDelta)
         {
+            entry.Changes[Quality] = Array.AsReadOnly(new[] { (profile.QualityKey, (double)qualityDelta) });
             quality = Loc.T(profile.QualityKey, profile.QualityEn, Plus(qualityDelta));
         }
 
+        if (deltas.Count > 0) entry.Changes[Performance] = deltas.AsReadOnly();
         if (perf.Count > 0) notes[Performance] = string.Join(Loc.T("list.sep", ", "), perf);
         if (!string.IsNullOrEmpty(quality)) notes[Quality] = quality!;
     }
@@ -344,8 +369,9 @@ internal static class ModuleStatEffects
     }
 
     /// <summary>集水器：再加多少质量出水升到下一档，档名用游戏自己的水质名。</summary>
-    private static string? MoistureNextWater(GameItem machine)
+    private static string? MoistureNextWater(GameItem machine, out int? nextBonus)
     {
+        nextBonus = null;
         try
         {
             int step = NextStep(machine, QualityTag, MachineMoistureFarm.GetOutputQuality);
@@ -355,6 +381,7 @@ internal static class ModuleStatEffects
             int cur = GameRead.TagInt(machine, QualityTag) ?? 0;
             var probe = Probe(machine, (QualityTag, cur + step));
             if (probe == null) return null;
+            nextBonus = step;
             return Loc.T("module.water_next", "+{0}% to produce {1}",
                 step, MachineMoistureFarm.GetOutputQualityDisplay(probe));
         }
@@ -362,11 +389,13 @@ internal static class ModuleStatEffects
     }
 
     /// <summary>催陈器：再加多少质量每天多陈化一天。陈化天数随质量无上限递增。</summary>
-    private static string? WineNextAging(GameItem machine)
+    private static string? WineNextAging(GameItem machine, out int? nextBonus)
     {
+        nextBonus = null;
         try
         {
             int step = NextStep(machine, QualityTag, MachineWineRack.GetAgingDays);
+            if (step > 0) nextBonus = step;
             return step > 0 ? Loc.T("module.aging_next", "+{0}% for +1 aging speed", step) : null;
         }
         catch { return null; }
@@ -376,8 +405,9 @@ internal static class ModuleStatEffects
     /// 净水器：原版已写「纯度上限」，这里只补再加多少质量上限能到纯水。
     /// 上限与纯水线都取游戏的（GetMaxPurityCap、WATER_PURITIES[0]），按原始质量算，不除比率。
     /// </summary>
-    private static string? PurifierPureWater(GameItem machine)
+    private static string? PurifierPureWater(GameItem machine, out int? nextBonus)
     {
+        nextBonus = null;
         try
         {
             int q = GameRead.TagInt(machine, QualityTag) ?? 0;
@@ -395,6 +425,7 @@ internal static class ModuleStatEffects
                 if (MachinePurifier.GetMaxPurityCap(q + mid) < pure) lo = mid + 1;
                 else hi = mid;
             }
+            nextBonus = lo;
             return Loc.T("module.purifier_next", "+{0}% to purify to {1}", lo, name);
         }
         catch { return null; }

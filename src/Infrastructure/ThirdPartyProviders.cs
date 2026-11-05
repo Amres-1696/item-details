@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ItemDetails.Integration;
 
 namespace ItemDetails;
 
@@ -62,10 +63,23 @@ internal static class ThirdPartyProviders
     {
         anchor = null;
         var provider = TooltipAnchorProvider;
-        if (provider == null) return false;
-        try { anchor = provider(); }
-        catch { return false; }
-        return anchor != null;
+        if (provider != null)
+        {
+            try { anchor = provider(); }
+            catch { return false; }
+            return anchor != null;
+        }
+
+        if (AppDomain.CurrentDomain.GetData(ItemDetailsClient.AnchorSlot) is Func<RectTransform?> anchors)
+        {
+            foreach (Func<RectTransform?> getAnchor in anchors.GetInvocationList())
+            {
+                try { anchor = getAnchor(); }
+                catch { continue; }
+                if (anchor != null) return true;
+            }
+        }
+        return false;
     }
 
     internal static IDisposable RegisterTooltip(Func<GameItem, ItemDetailsTooltipSection> sections)
@@ -115,6 +129,7 @@ internal static class ThirdPartyProviders
     internal static ItemDetailsTooltipSection TooltipSuppressions(GameItem item)
     {
         var byItem = ItemSuppressions(item);
+        if (SectionedLayout.DrawsContents(item)) byItem |= ItemDetailsTooltipSection.Contents;
         if (TooltipDisplays.Count == 0) return byItem;
         try
         {

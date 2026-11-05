@@ -30,7 +30,7 @@ internal static class MeatInfo
 
         string source = ResolveSource(speciesId) ?? Loc.T("meat.unknown", "Unknown");
         lines.Add(new TooltipLine(
-            Loc.T("meat.source", "Meat source: {0}", source), Info));
+            Loc.T("meat.source", "Meat source: {0}", source), Info).WithData("source", (speciesId ?? "", source)));
 
         // “未标记”只代表没有启用的朊病毒标签，不表示同类相食绝对安全。
         bool hasPrion = GameRead.IsTag(item, "ANIMAL_PRION_TAG");
@@ -39,7 +39,7 @@ internal static class MeatInfo
             : Loc.T("meat.prion.unmarked", "Unmarked");
         lines.Add(new TooltipLine(
             Loc.T("meat.prion", "Prions: {0}", status),
-            hasPrion ? Warning : Neutral));
+            hasPrion ? Warning : Neutral).WithData("prionMarked", hasPrion));
         return lines;
     }
 

@@ -155,23 +155,32 @@ internal static class MachineBatteryInfo
         int baseDrawn = GameRead.TagInt(machine, "MACHINERY_DRAWN_POWER_BASE") ?? 0;
         string unit = Loc.T("machine.energy_unit", "/day");
 
-        builder.Add(Loc.T("machine.energy_label", "Power: "), RenderHandler.ColorPalette.LightCyan);
+        var output = new TooltipSections.Writer(builder, machine, "machine-power");
+        output.Field("basePerDay", baseDrawn);
+        output.Field("currentPerDay", drawn);
+        output.Add(Loc.T("machine.energy_label", "Power: "), RenderHandler.ColorPalette.LightCyan);
         if (baseDrawn > 0 && baseDrawn != drawn)
         {
-            builder.Add(baseDrawn + " → ", RenderHandler.ColorPalette.Gray);
+            output.Add(baseDrawn + " → ", RenderHandler.ColorPalette.Gray);
             var color = drawn < baseDrawn
                 ? RenderHandler.ColorPalette.LightGreen   // 比基础省电
                 : RenderHandler.ColorPalette.LightRed;    // 比基础费电
-            builder.Add(drawn + unit, color);
+            output.Add(drawn + unit, color);
         }
         else
         {
-            builder.Add(drawn + unit, RenderHandler.ColorPalette.LightCyan);
+            output.Add(drawn + unit, RenderHandler.ColorPalette.LightCyan);
         }
 
-        var battery = Collect(machine);
-        if (battery != null) builder.Add(battery.Value.Text, battery.Value.Color);
-        builder.NextLine();
+        var battery = Collect(machine, out int remaining, out int days);
+        if (battery != null)
+        {
+            output.Field("remaining", remaining);
+            output.Field("days", days);
+            output.Add(battery.Value.Text, battery.Value.Color);
+        }
+        output.NextLine();
+        output.Finish();
     }
 
     private static void Reset()
@@ -196,8 +205,11 @@ internal static class MachineBatteryInfo
     }
 
     /// <summary>能量行末尾的括号：剩余能量 + 按当前每日耗能向下取整的可运行天数。</summary>
-    internal static TooltipLine? Collect(GameItem? item)
+    internal static TooltipLine? Collect(GameItem? item) => Collect(item, out _, out _);
+
+    private static TooltipLine? Collect(GameItem? item, out int energy, out int days)
     {
+        energy = days = 0;
         if (item == null) return null;
         try
         {
@@ -208,12 +220,12 @@ internal static class MachineBatteryInfo
             var battery = MachineInterior.FindPowerSource(item);
             if (!MachineInterior.IsPlainBattery(battery)) return null;
 
-            int energy = GameRead.TagInt(battery, "power_source_item_energy") ?? 0;
+            energy = GameRead.TagInt(battery, "power_source_item_energy") ?? 0;
             int drawn = GameRead.TagInt(item, "machinery_drawn_power") ?? 0;
             if (energy < 0) energy = 0;
             if (drawn <= 0) return null;
 
-            int days = energy / drawn;
+            days = energy / drawn;
             var color = days >= 3 ? RenderHandler.ColorPalette.LightGreen
                       : days >= 1 ? RenderHandler.ColorPalette.LightYellow
                       : RenderHandler.ColorPalette.LightRed;

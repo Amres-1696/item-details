@@ -73,7 +73,7 @@ internal static class WineInfo
                 head += Loc.T("wine.score_part", ", score {0}", score) + tierText;
                 if (tier >= 4) headColor = Good;
             }
-            lines.Add(new TooltipLine(head, headColor));
+            lines.Add(new TooltipLine(head, headColor).WithData("state", (state, state == 2 || score > 0 ? (int?)score : null, (state == 2 || score > 0) && tier > 0 ? (int?)tier : null, counterfeit)));
 
             // 2b) 空瓶已放原料/酵母：按原版开酿公式预估评分
             if (state == 0) AddPreview(item, lines);
@@ -87,7 +87,7 @@ internal static class WineInfo
                 lines.Add(new TooltipLine(
                     Loc.T("wine.composition",
                         "Composition: extract {0}‰, contaminants {1}‰", extract, contaminant),
-                    Detail));
+                    Detail).WithData("compositionPerMille", (extract, contaminant)));
             }
 
             // 4) 赝品判定（非法酵母）
@@ -102,7 +102,7 @@ internal static class WineInfo
                 int perDay = GameRead.TagInt(item, "AGE_VALUE_MOD_PER_DAY_INT") ?? 3;
                 lines.Add(new TooltipLine(
                     Loc.T("wine.aging", "Aging bonus: +{0}/day (total +{1})", perDay, age * perDay),
-                    Detail));
+                    Detail).WithData("agingBonus", (age, perDay)));
             }
 
             // 6) 酵母力度：原版 mech_wine_fermenting_remaining 已显示剩余次数，
@@ -114,7 +114,7 @@ internal static class WineInfo
                 {
                     lines.Add(new TooltipLine(
                         Loc.T("wine.yeast_power", "Yeast strength: {0}/tick", yeast),
-                        Detail));
+                        Detail).WithData("yeastPower", yeast));
                 }
             }
         }
@@ -156,7 +156,7 @@ internal static class WineInfo
         int tier = Tier(score);
         string text = Loc.T("wine.preview", "Score after fermenting: {0}", score)
                     + (tier > 0 ? Loc.T("wine.tier", ", tier {0}", tier) : "");
-        lines.Add(new TooltipLine(text, tier >= 4 ? Good : Info));
+        lines.Add(new TooltipLine(text, tier >= 4 ? Good : Info).WithData("preview", (score, tier, illegal)));
         if (illegal)
             lines.Add(new TooltipLine(Loc.T("wine.yeast_illegal", "The wine will be a counterfeit"), Bad));
     }
@@ -176,7 +176,7 @@ internal static class WineInfo
         lines.Add(new TooltipLine(
             Loc.T("wine.yeast_effect", "Wine +{0} (no stacking), ferments in {1} {1|tick|ticks}",
                 YeastScoreBonus, ticks),
-            Good));
+            Good).WithData("yeast", (YeastScoreBonus, ticks)));
         if (SafeIsTag(item, "WINE_YEAST_ILLEGAL_TAG"))
             lines.Add(new TooltipLine(Loc.T("wine.yeast_illegal", "The wine will be a counterfeit"), Bad));
     }

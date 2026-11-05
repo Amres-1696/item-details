@@ -44,13 +44,24 @@ internal static class ModuleEffectAnnotation
             else if (_qual.Length > 0 && text.Contains(_qual, StringComparison.Ordinal)) kind = 'q';
             else return false;
 
-            string note = BuildNote(kind, item);
+            string note = ModuleStatEffects.Note(kind, item, out var changes);
             if (note.Length == 0) return false;
 
             // 原行照旧，注释用灰色；这里自己收行，所以调用方不要再走原 AddLine
-            builder.Add(text, color);
-            builder.Add(note, RenderHandler.ColorPalette.Gray);
-            builder.NextLine();
+            var output = new TooltipSections.Writer(builder, item, "machine-effect");
+            output.Field("stat", kind == 'p' ? "performance" : kind == 'e' ? "efficiency" : "quality");
+            output.Field("effectText", note);
+            if (output.Capturing)
+            {
+                string tag = kind == 'p' ? "TOTAL_PERCENTAGE_PERFORMANCE_BONUS_INT"
+                    : kind == 'e' ? "TOTAL_PERCENTAGE_POWER_BONUS_INT" : "TOTAL_PERCENTAGE_QUALITY_BONUS_INT";
+                if (GameRead.TagInt(item, tag) is int bonus) output.Field("bonusPercent", bonus);
+                if (changes != null) output.Field("changes", changes);
+            }
+            output.Add(text, color);
+            output.Add(" (" + note + ")", RenderHandler.ColorPalette.Gray);
+            output.NextLine();
+            output.Finish();
             return true;
         }
         catch { return false; }
@@ -94,15 +105,6 @@ internal static class ModuleEffectAnnotation
         return (b is int bv && bv != 0) || (t is int tv && tv != 0);
     }
 
-    private static string BuildNote(char kind, GameItem item)
-    {
-        string note = ModuleStatEffects.Note(kind, item);
-        return note.Length == 0 ? "" : Wrap(note);
-    }
-
-    private static string Wrap(string body) => " (" + body + ")";
-
-    /// <summary>三项加成的标签名走游戏本地化；换语言后自动重建。</summary>
     private static void EnsureLabels()
     {
         string locale = Loc.Code;

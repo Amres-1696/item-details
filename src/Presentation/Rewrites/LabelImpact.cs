@@ -85,7 +85,7 @@ internal static class LabelImpact
     /// 由 TooltipPipeline 的 AddLine 前缀调用。只有原版原文才换成短名；
     /// 其它模组已改过的文本保留原样，只在后面补价格影响。
     /// </summary>
-    internal static void TryRewrite(ref string text)
+    internal static void TryRewrite(ref string text, RichTextBuilder builder, GameItem item)
     {
         var feature = _feature;
         if (feature == null || text == null) return;
@@ -97,8 +97,20 @@ internal static class LabelImpact
             if (string.Equals(text, feature.GetBaseCurrentDisplay(), StringComparison.Ordinal))
                 name = ShortName(feature, text);
 
-            string impact = Impact(feature);
+            string impact = Impact(feature, out int modifier, out string suffix);
             text = impact.Length > 0 ? $"{name} ({impact})" : name;
+            var output = new TooltipSections.Writer(builder, item, "label");
+            if (output.Capturing)
+            {
+                output.Field("name", name);
+                if (impact.Length > 0)
+                {
+                    output.Field("modifier", modifier);
+                    output.Field("unit", suffix);
+                }
+                output.Field("text", text);
+                output.Observe();
+            }
         }
         catch (Exception ex)
         {
@@ -132,10 +144,10 @@ internal static class LabelImpact
     /// 必须用「展示值」口径（modValueDisplay 优先），否则转换型条件
     /// （赝品香烟 -50、正品邮票 +100…）modValue 为 0，影响永远不显示。
     /// </summary>
-    private static string Impact(ItemFeature feature)
+    private static string Impact(ItemFeature feature, out int mod, out string suffix)
     {
-        int mod;
-        string suffix = "%";
+        mod = 0;
+        suffix = "%";
         try
         {
             var cond = feature.GetCurrentItemCondition();

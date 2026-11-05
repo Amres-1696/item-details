@@ -50,13 +50,13 @@ internal static class HiddenInfo
                     Loc.T("hidden.durability_faked",
                         "True durability: {0}/{1} (shown {2}/{3})",
                         real, max, fake, max),
-                    Warn));
+                    Warn).WithData("durability", (real, max, fake)));
             }
             else
             {
                 lines.Add(new TooltipLine(
                     Loc.T("hidden.durability", "Durability: {0}/{1}", real, max),
-                    Info));
+                    Info).WithData("durability", (real, max, real)));
             }
         }
         catch (Exception ex) { Log.Warn("Hidden.Durability", ex); }
@@ -94,7 +94,7 @@ internal static class HiddenInfo
                             "True purity: {0}/10 (shown {1}/10)",
                             realLevel, fakeLevel)
                         : Loc.T("hidden.purity_level", "Purity: {0}/10", realLevel),
-                    faked ? Warn : Info));
+                    faked ? Warn : Info).WithData("ingotPurity", (real, realLevel, fake, fakeLevel)));
                 return;
             }
 
@@ -105,7 +105,7 @@ internal static class HiddenInfo
                         "True purity: {0} (shown {1})",
                         realText, PurityDisplay(fake))
                     : Loc.T("hidden.purity", "Purity: {0}", realText),
-                faked ? Warn : Info));
+                faked ? Warn : Info).WithData("ingotPurity", (real, realLevel, fake, fakeLevel)));
         }
         catch (Exception ex) { Log.Warn("Hidden.IngotPurity", ex); }
     }
@@ -163,7 +163,7 @@ internal static class HiddenInfo
             Log.MarkOk("Hidden.ChemPurity");
             lines.Add(new TooltipLine(
                 Loc.T("hidden.chem_purity", "Chemical purity: {0}%", v.ToString("0.#")),
-                Info));
+                Info).WithData("chemicalPurityPercent", v));
         }
         catch (Exception ex) { Log.Warn("Hidden.ChemPurity", ex); }
     }

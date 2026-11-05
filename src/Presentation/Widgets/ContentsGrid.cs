@@ -57,7 +57,6 @@ internal static class ContentsGrid
     private static GameObject? _panel;
     private static TMP_Text? _template;
     private static bool _broken;
-    private static bool? _slipLoaded;
 
     private static GameItem? _pendingItem;
     private static List<GameItem>? _pendingItems;
@@ -145,15 +144,26 @@ internal static class ContentsGrid
     /// 正文构建时调用：本次 tooltip 的内容物交给图标格显示。调用方没有文字回退。
     /// </summary>
     internal static bool Claim(GameItem item, List<GameItem> items, bool sealedBox,
-        string? sealedEstimate = null)
+        string? sealedEstimate = null, RichTextBuilder? builder = null)
     {
         try
         {
-            if (!_patched || _broken || !ModSettings.ContentsGrid) return false;
+            if (!ModSettings.ContentsGrid) return false;
+            if (builder != null)
+            {
+                var output = new TooltipSections.Writer(builder, item, sealedBox ? "sealed-contents" : "contents");
+                if (output.Capturing)
+                {
+                    output.Field("items", Array.AsReadOnly(items.ToArray()));
+                    if (sealedEstimate != null) output.Field("estimateText", sealedEstimate);
+                    if (output.Finish()) return true;
+                }
+            }
+            if (!_patched || _broken) return false;
             if (!TooltipPipeline.IsBuilding) return false;
             if (_template == null) return false;              // tooltip 还没显示过，画不出来
             // 未上锁容器让给估价单的内容物面板；它逐件注册了接管就按注册走，这里只管没注册的旧版
-            if (!sealedBox && !ThirdPartyProviders.HasItemTooltipDisplays && SlipLoaded) return false;
+            if (!sealedBox && !ThirdPartyProviders.HasItemTooltipDisplays && SectionedLayout.LegacyContentsPanel(item)) return false;
 
             _pendingItem = item;
             _pendingItems = items;
@@ -163,19 +173,6 @@ internal static class ContentsGrid
             return true;
         }
         catch { return false; }
-    }
-
-    private static bool SlipLoaded => _slipLoaded ??= DetectSlip();
-
-    private static bool DetectSlip()
-    {
-        try
-        {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                if (asm.GetName().Name == "SectionedTooltips") return true;
-        }
-        catch { }
-        return false;
     }
 
     // ---------------- Harmony 回调 ----------------

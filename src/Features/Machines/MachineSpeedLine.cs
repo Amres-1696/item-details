@@ -137,20 +137,24 @@ internal static class MachineSpeedLine
         string head = label.TrimEnd();
         if (head.Length > 0 && head[head.Length - 1] != '：') head += " ";
 
-        builder.Add(head, RenderHandler.ColorPalette.LightCyan);
+        var output = new TooltipSections.Writer(builder, machine, "machine-speed");
+        output.Field("basePerDay", baseSpeed);
+        output.Field("currentPerDay", speed);
+        output.Add(head, RenderHandler.ColorPalette.LightCyan);
         if (baseSpeed != speed)
         {
-            builder.Add(baseSpeed + " → ", RenderHandler.ColorPalette.Gray);
+            output.Add(baseSpeed + " → ", RenderHandler.ColorPalette.Gray);
             var color = speed > baseSpeed
                 ? RenderHandler.ColorPalette.LightGreen   // 比基础快
                 : RenderHandler.ColorPalette.LightRed;    // 比基础慢
-            builder.Add(speed + unit, color);
+            output.Add(speed + unit, color);
         }
         else
         {
-            builder.Add(speed + unit, RenderHandler.ColorPalette.LightCyan);
+            output.Add(speed + unit, RenderHandler.ColorPalette.LightCyan);
         }
-        builder.NextLine();
+        output.NextLine();
+        output.Finish();
     }
 
     private static void Reset()

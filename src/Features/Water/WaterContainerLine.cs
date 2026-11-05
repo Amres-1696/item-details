@@ -60,10 +60,8 @@ internal static class WaterContainerLine
         try
         {
             if (__0 == null || __1 == null) return true;
-            if (!LiquidGate.Enabled) return true;
             if (!__1.IsTag("LIQUID_CONTAINER_TAG") || __1.IsTag("WINE_CONTAINER_TAG")) return true;
-            if (!WaterInfo.Analyze(__1).HasData) return true;
-            return false;
+            return LiquidQueries.Analyze(__1) == null;
         }
         catch (Exception ex)
         {

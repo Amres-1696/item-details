@@ -71,6 +71,74 @@ pwsh -NoProfile -File scripts/test.ps1 -GameDir "<游戏目录>"
 
 ## 第三方模组接入
 
+### 可选的液体数据客户端（v1）
+
+把 [ItemDetailsClient.cs](sdk/ItemDetailsClient.cs) 复制到你的工程，使用 C# 12 或以上编译，并引入 `ItemDetails.Integration` 命名空间。只需引用游戏程序集。客户端随你的 Mod 编译，玩家可以单独安装任一 Mod。
+
+如果你在已有界面中读取数据，直接调用 `TryGetLiquidAnalysis(item, out var analysis)` 或 `TryGetWaterAdvice(item, out var methods)`。查询失败时继续走你已有的原版显示分支。查询本身不会接管任何提示行。
+
+如果你会重绘整个提示框，可以只注册你能完整展示的区块：
+
+```csharp
+// OnEnable 中注册，OnDisable 中调用 _liquidDisplay?.Dispose()。
+_liquidDisplay = ItemDetailsClient.RegisterLiquidAnalysisDisplay((item, analysis) =>
+{
+    if (!CanDrawLiquidTable(item)) return false;
+    // 这里调用你自己的排版方法，准备好本次 tooltip 的容量、成分和药效。
+    return TryPrepareLiquidTable(item, analysis);
+});
+```
+
+- 数据和回调在游戏主线程使用。上述回调在对应物品的提示框构建期间执行；仅在替代区块准备成功后返回 true。返回 false 或抛错时会尝试下一个显示方，全部放弃则由物品详情输出。区块应随本次构建清理，包括下一件物品无数据、用户关闭分析的情况。
+- `analysis.Components` 按含量降序，含稳定 ID、当前语言名称、整数微升和角色（`water`、`active`、`other`）。占比的分母是 `TotalMicroliters`，包含已隐藏的微量成分。`CapacityMicroliters` 为 0 表示无容量信息，`IsSolid` 区分固体药物。可从 `Tier`、`LabelMismatch` 和 `Effects` 取水质档位、标签差异和药效（致死倍数、毒性、欣快等级、戒瘾、避孕）。`Effects.Text` 可直接显示当前语言的药效说明。
+- 用 `RegisterWaterAdviceDisplay` 可单独接管净化建议。每项包括当前语言名称和纯度提升的**百分点**。成功的空列表表示该物品当前没有可列出的手段。只查成分不会触发净化模拟。
+- 两项查询都遵守「液体组分分析」的设置与扫描仪条件。未安装、未启用、旧版或数据不可用时查询返回 false。注册可以早于物品详情加载。已用旧接口接管同一信息块的 Mod，迁移时应移除对应的旧接管标志，再注册新回调。
+- 客户端通过带版本号的 AppDomain 键传递游戏和 .NET 自带类型。对现有签名作不兼容更改时应新增版本键。SDK 类型仅在各自程序集内部使用。
+
+### 通用提示框区块（v1）
+
+液体接口只覆盖两个区块。需要重排其它内容时，用同一客户端的区块协议，不必解析物品详情写出的文字：
+
+```csharp
+// 观察：OnEnable 注册一次。之后对本次 GetTooltipBasic 用过的 builder 查询。
+_watch = ItemDetailsClient.WatchTooltipSections();
+if (ItemDetailsClient.TryGetTooltipSections(builder, out var sections))
+    foreach (var section in sections) Reformat(section);
+
+// 接管：回调返回 true 表示本区块由你绘制，物品详情不再写它的默认文本。
+// 返回 false 或抛错时保留物品详情的输出。观察与接管可只用一个。
+_claim = ItemDetailsClient.RegisterTooltipSections((item, builder, section) =>
+    section.Id == "value" && TryPrepareAppraisal(section));
+```
+
+- `section.Runs` 是这次构建实际要输出的有序片段：`text`（行内文字）、`line`（整行）、`break`（换行）、`bar`（进度条，带 0–1 比例、格数与后缀）。每段带游戏调色板枚举。直接复用这些片段即可换行、缩进、改列宽，不必再猜字符串。
+- `section.Fields` 是结构化字段，键为字符串，值为 BCL 元组、基础类型或游戏类型。列表型区块（滤芯、工具、电池、性状、特性等）把逐行数据放在 `rowData`：每项是 `(行号, 数据键, 值)`，行号对应 `Runs` 下标。常用区块有便捷读取：`TryGetAppraisal`（总价、完美区间、逐项金额）、`TryGetMachineEffect`（性能/效率/质量注释与数值差）、`Liquid`（同液体分析快照）、`PurificationMethods`（净化建议）。
+- `section.CanReplace` 为 false 的区块（`label`、`manufacturer`、`inspect-hint` 等）只是原生行的展示，物品详情没有独立输出它们，接管方应改写对应原生行而不是删除。
+- 区块 ID 即功能名：`auth`、`value`、`injected-value`、`ribwich`、`berry`、`hidden`、`value-enhance`、`feature-reveal`、`storage`、`machine-interior`、`module-learning`、`conditions`、`contraband`、`lottery`、`water`、`sealed-box`、`scratcher`、`seed`、`water-advice`、`wine`、`meat`、`market`，以及内嵌改写 `price`、`calories`、`machine-speed`、`machine-power`、`machine-effect`、`categories`、`contents`、`sealed-contents`、`label`、`manufacturer`、`inspect-hint`。字段随功能演进可能新增，读取方用 `TryGet` 并给默认值。
+- 已用旧 `ItemDetailsTooltipSection` 标志接管的区块仍按旧行为跳过，不产生快照。两种接管不要对同一区块混用。
+- 快照按 `RichTextBuilder` 实例和构建序号归档；每次重新构建会替换上次内容。只在游戏主线程查询。
+
+### 可选客户端对整个提示框的适配
+
+同一份客户端也支持声明排版和内容物接管。重绘方在自己的 `OnEnable` 注册，在 `OnDisable` 释放两个句柄：
+
+```csharp
+_layout = ItemDetailsClient.RegisterTooltipLayout(item =>
+{
+    if (!WillRenderTooltip(item)) return null;
+    var options = TooltipLayoutOptions.NativeProgressBars | TooltipLayoutOptions.FlowingText;
+    if (WillDrawContents(item)) options |= TooltipLayoutOptions.DrawsContents;
+    return options;
+});
+_anchor = ItemDetailsClient.RegisterTooltipAnchor(() => currentVisibleTooltipRect);
+```
+
+`NativeProgressBars` 让自学习等附加条也通过游戏的 `AddProgressBar` 输出，便于读取准确比例。`FlowingText` 让液体表使用可自然换行的文字。`DrawsContents` 只对本次物品让出内容物区块，声明前应确认本次能展示该区块（包括上锁容器的显示资格）。布局回调返回 null 时依次尝试其他显示方，首个非 null 声明用于本次构建；返回 `None` 表示本次由你绘制并使用默认样式。回调只读取本次排版状态。未接入协议的 SectionedTooltips 1.6.2 仍按其排版和内容物面板开关兼容。
+
+锚点用于分类徽章与旁边的内容物浮窗。回调每次返回当前可见的提示框，无可用窗口时返回 null。已有直接引用接口的锚点优先；使用可选客户端时优先采用首个有效锚点。
+
+### 直接引用 ItemDetails.dll 的扩展接口
+
 第三方适配采用**显式注册**，不让 Item Details 采样随机物品、反推定价、扫描 Harmony 补丁或反射查找第三方内部方法。唯一的自动识别是水质净化手段：只读物品回调的 IL，看它是否调用原版净化函数，不调用第三方代码（见下文约定）。提供方引用 `ItemDetails.dll`，在自己的 `OnEnable` 中注册，保存句柄并在 `OnDisable` 中释放：
 
 ```csharp

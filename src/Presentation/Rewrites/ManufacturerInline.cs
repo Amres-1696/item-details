@@ -115,6 +115,16 @@ internal static class ManufacturerInline
             else
                 company = LocHelper.GetLocalizedClientName("corpo_name_" + manufacturer);
             if (string.IsNullOrEmpty(company)) return;
+            if (TooltipPipeline.Current is GameItem item)
+            {
+                var output = new TooltipSections.Writer(__0, item, "manufacturer");
+                if (output.Capturing)
+                {
+                    output.Field("id", manufacturer);
+                    output.Field("name", company);
+                    output.Observe();
+                }
+            }
             _pendingBuilder = __0;
             _pendingCompany = company;
         }

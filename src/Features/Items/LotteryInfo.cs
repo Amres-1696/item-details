@@ -26,7 +26,7 @@ internal static class LotteryInfo
     private const string NumberTag = "LOTTERY_NUMBER_TAG";
     private const string WinningTag = "LOTTERY_WINNING_NUMBER_TAG";
 
-    internal static List<TooltipLine> Collect(GameItem? item)
+    internal static List<TooltipLine> Collect(GameItem? item, TooltipSections.Writer output = default)
     {
         var lines = new List<TooltipLine>();
         if (item == null) return lines;
@@ -38,6 +38,7 @@ internal static class LotteryInfo
             int? editionRaw = GameRead.TagInt(item, EditionTag);
             if (editionRaw is not int edition) return lines;   // 期号读不到：不猜
 
+            output.Field("edition", edition);
             string own = GameRead.TagString(item, WinningTag) ?? "";
 
             string winning = !string.IsNullOrWhiteSpace(own)
@@ -59,6 +60,9 @@ internal static class LotteryInfo
             int prize = 0;
             try { prize = LotteryHelper.GetPrizeForMatches(matches); } catch { }
 
+            output.Field("winningNumbers", winning);
+            output.Field("matches", matches);
+            output.Field("prize", prize);
             bool won = prize > 0;
             var color = won ? RenderHandler.ColorPalette.LightGreen : RenderHandler.ColorPalette.LightRed;
 

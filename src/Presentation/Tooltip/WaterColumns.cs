@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using ItemDetails.Integration;
 using TMPro;
 using UnityEngine;
 
@@ -98,40 +99,25 @@ internal static class WaterColumns
     private static string Pos(float em)
         => "<pos=" + em.ToString("0.##", CultureInfo.InvariantCulture) + "em>";
 
-    /// <summary>生成成分表的所有行（表头 + 每一条成分）；hidden 是低于显示阈值而未列出的项数。</summary>
-    internal static List<TooltipLine> Build(WaterInfo.Result r, GameItem item, out int hidden)
+    internal static List<TooltipLine> Build(LiquidAnalysis analysis, GameItem item)
     {
-        hidden = 0;
         var lines = new List<TooltipLine>();
-        int totalMl = r.TotalParts / 1000;
+        int totalMl = analysis.TotalMicroliters / 1000;
+        int capacityMl = analysis.CapacityMicroliters / 1000;
         bool liters = Volume.UseLiters(totalMl);
-
-        int capacityMl = 0;
-        try { capacityMl = item.GetTagReadonly("LIQUID_CONTAINER_CAPACITY").GetInt() / 1000; } catch { }
-        float ratio = capacityMl > 0 ? Math.Min(1f, (float)totalMl / capacityMl) : 0f;
+        float ratio = analysis.CapacityMicroliters > 0
+            ? Math.Min(1f, (float)analysis.TotalMicroliters / analysis.CapacityMicroliters) : 0f;
 
         var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
-        if (r.WaterParts > 0)
+        int activeIndex = 0, otherIndex = 0;
+        foreach (var component in analysis.Components)
         {
-            var color = ColorOf("water", 0);
-            string name = r.WaterName.Length > 0 ? r.WaterName : "?";
-            bool mismatch = !string.IsNullOrEmpty(r.Label) && !string.IsNullOrEmpty(r.Tier)
-                         && !string.Equals(r.Label, r.Tier, StringComparison.Ordinal);
-            comps.Add((mismatch ? name + Loc.T("water.mismatch", " (doesn't match label)") : name,
-                r.WaterParts, color));
+            string name = component.Name;
+            if (component.Role == "water" && analysis.LabelMismatch)
+                name += Loc.T("water.mismatch", " (doesn't match label)");
+            int index = component.Role == "active" ? activeIndex++ : component.Role == "other" ? otherIndex++ : 0;
+            comps.Add((name, component.Microliters, ColorOf(component.Id, index)));
         }
-        int activeIndex = 0;
-        foreach (var active in r.Actives)
-            comps.Add((active.Name, active.Parts, ColorOf(active.Id, activeIndex++)));
-
-        int colorIndex = 0;
-        foreach (var part in r.Impurities)
-        {
-            if (part.Parts < WaterInfo.MinVisibleParts) { hidden++; continue; }
-            if (part.Parts * 100.0 / r.TotalParts < 0.005) { hidden++; continue; }
-            comps.Add((part.Name, part.Parts, ColorOf(part.Id, colorIndex++)));
-        }
-        comps.Sort((a, b) => b.Parts.CompareTo(a.Parts));
 
         string label = Loc.T("water.components", "Components");
         float nameEm = Em(label);
@@ -145,9 +131,9 @@ internal static class WaterColumns
         float pctStart = volStart + volEm + ColumnGapEm;
 
         string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
-                    + (r.Tier.Length > 0 ? " " + r.Tier : "");
+                    + (analysis.Tier.Length > 0 ? " " + analysis.Tier : "");
 
-        if (SectionedLayout.Handles(item))
+        if (SectionedLayout.UsesFlowingText(item))
         {
             // 美化 MOD 接管了这件物品：它用自己的一套单元格宽度重排，不认识 <pos>，
             // 于是三列定位会失效。改成单行「名称 体积 百分比」，按它的补位单位（全角空格）分隔，
@@ -160,7 +146,7 @@ internal static class WaterColumns
             foreach (var c in comps)
             {
                 string text = c.Name + "　" + VolumeOf(c.Parts, liters) + "　"
-                            + WaterLayout.PercentText(c.Parts, r.TotalParts, Loc.Culture) + "%";
+                            + WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%";
                 plain.Add(new TooltipLine(text, c.Color));
             }
             return plain;
@@ -173,7 +159,7 @@ internal static class WaterColumns
         foreach (var c in comps)
         {
             string text = c.Name + Pos(volStart) + VolumeOf(c.Parts, liters) + Pos(pctStart)
-                        + WaterLayout.PercentText(c.Parts, r.TotalParts, Loc.Culture) + "%";
+                        + WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%";
             lines.Add(new TooltipLine(text, c.Color));
         }
         return lines;

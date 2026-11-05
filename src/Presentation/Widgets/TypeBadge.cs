@@ -158,6 +158,7 @@ internal static class TypeBadge
         try
         {
             Pending.Clear();
+            _externalDisplay = false;
             _pendingAt = UnityEngine.Time.unscaledTime;
             // 开关关闭：不记录分类，也就不会抑制原版正文里的「[类型]」。
             if (!ModSettings.TypeBadge) return;
@@ -184,6 +185,17 @@ internal static class TypeBadge
         }
 #endif
     }
+
+    internal static void Publish(RichTextBuilder builder, GameItem item)
+    {
+        if (Pending.Count == 0 || !ModSettings.TypeBadge || !ReferenceEquals(item, TooltipPipeline.Current)) return;
+        var output = new TooltipSections.Writer(builder, item, "categories");
+        if (!output.Capturing) return;
+        output.Field("types", Pending.ConvertAll(e => (e.TypeConst, e.Display)).AsReadOnly());
+        _externalDisplay = output.Finish();
+    }
+
+    private static bool _externalDisplay;
 
     // ---------------- Harmony 回调 ----------------
 
@@ -212,7 +224,7 @@ internal static class TypeBadge
         bool laidOut = false;
         try
         {
-            if (!ModSettings.TypeBadge) { Hide(); return; }
+            if (!ModSettings.TypeBadge || _externalDisplay) { Hide(); return; }
 
             // 超过 StaleSeconds 没有重新构建，说明这是缓存 tooltip，分类可能过期——不显示
             if (Pending.Count == 0 || UnityEngine.Time.unscaledTime - _pendingAt > StaleSeconds)

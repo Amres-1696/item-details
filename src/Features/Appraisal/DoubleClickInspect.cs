@@ -112,7 +112,11 @@ internal static class DoubleClickInspect
     private static void AddHint(RichTextBuilder builder)
     {
         _hintBuild = TooltipPipeline.BuildId;
-        builder.AddLine(HintText, true, RenderHandler.ColorPalette.LightBlue);
+        var item = TooltipPipeline.Current;
+        if (item == null) { builder.AddLine(HintText, true, RenderHandler.ColorPalette.LightBlue); return; }
+        var output = new TooltipSections.Writer(builder, item, "inspect-hint");
+        output.AddLine(HintText, RenderHandler.ColorPalette.LightBlue);
+        output.Finish();
     }
 
     private static string HintText => " " + Loc.T("hint.double_click", "Double-Click To Inspect");
@@ -138,7 +142,7 @@ internal static class DoubleClickInspect
     /// 由 TooltipPipeline 的 AddLine 前缀调用：原版放大镜提示换成双击提示，
     /// 同一个 tooltip 里第二次出现时丢弃。返回 false 表示丢弃这一行。
     /// </summary>
-    internal static bool TryRewriteHint(ref string text, ref RenderHandler.ColorPalette color, ref bool italic)
+    internal static bool TryRewriteHint(ref string text, ref RenderHandler.ColorPalette color, ref bool italic, RichTextBuilder? builder = null)
     {
         try
         {
@@ -158,6 +162,15 @@ internal static class DoubleClickInspect
             text = HintText;
             color = RenderHandler.ColorPalette.LightBlue;
             italic = false;
+            if (builder != null && cur != null)
+            {
+                var output = new TooltipSections.Writer(builder, cur, "inspect-hint");
+                if (output.Capturing)
+                {
+                    output.Field("text", text);
+                    output.Observe();
+                }
+            }
             return true;
         }
         catch { return true; }

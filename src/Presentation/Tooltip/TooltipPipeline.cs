@@ -126,6 +126,8 @@ internal static class TooltipPipeline
 
     private static void Reset()
     {
+        LiquidQueries.EndTooltip();
+        TooltipSections.EndTooltip();
         _current = null;
         _suppressEstimate = false;
         // 价格块状态必须逐次重置：否则上一次 tooltip 把进价写进括号后，
@@ -159,8 +161,8 @@ internal static class TooltipPipeline
             if (cur == null || __0 == null) return true;
 
             // 原版方法照常执行，只在它们写出的那一行上改：标签行补价格影响、放大镜提示换成双击提示
-            LabelImpact.TryRewrite(ref __0);
-            if (!DoubleClickInspect.TryRewriteHint(ref __0, ref __2, ref __4)) return false;
+            LabelImpact.TryRewrite(ref __0, __instance, cur);
+            if (!DoubleClickInspect.TryRewriteHint(ref __0, ref __2, ref __4, __instance)) return false;
             LineAnnotations.TryAppend(ref __0, cur);
 
             if (_suppressEstimate)
@@ -170,6 +172,8 @@ internal static class TooltipPipeline
                     return false;
             }
 
+            var originalColor = __2;
+            string originalDescription = __0;
             if (ModSettings.DimDescription
                 && !string.IsNullOrEmpty(cur.shortDescription)
                 && string.Equals(__0, cur.shortDescription, StringComparison.Ordinal))
@@ -179,11 +183,16 @@ internal static class TooltipPipeline
 
             // 描述与背景故事按常规宽度预折行，不让进度条把它们拉宽
             WrapDescription(ref __0, cur, __instance);
+            if (__2 != originalColor || __0 != originalDescription)
+                TooltipSections.ObserveText(__instance, cur, "description", __0, __2);
 
             // 价格术语本地化：预估价值→售价、基础价值→标价、购买价格→进价
             if (!RewritePriceTerms(ref __0, __instance, __2)) return false;
             if (!RewriteCalorieLine(ref __0, __instance)) return false;
+            string originalVolume = __0;
             RewriteLiquidVolume(ref __0, cur);
+            if (__0 != originalVolume)
+                TooltipSections.ObserveText(__instance, cur, "liquid-volume", __0, __2);
 
             // 模组加成行：-性能: +16% → -性能: +16%(+136毫升/天)
             if (ModuleEffectAnnotation.TryApply(ref __0, __instance, __2, cur)) return false;
@@ -214,10 +223,10 @@ internal static class TooltipPipeline
             || !int.TryParse(m.Groups[1].Value, out int cur)
             || !int.TryParse(m.Groups[2].Value, out int max)) return;
 
-        if (LiquidGate.Enabled && !GameRead.IsTag(item, "WINE_CONTAINER_TAG"))
+        if (!GameRead.IsTag(item, "WINE_CONTAINER_TAG"))
         {
-            var r = WaterInfo.Analyze(item);
-            if (r.HasData)
+            var r = LiquidQueries.Analyze(item);
+            if (r != null)
             {
                 bool liters = Volume.UseLiters(max);
                 text = " " + WaterLayout.Capacity(cur, max, liters, Loc.Culture)
@@ -362,6 +371,7 @@ internal static class TooltipPipeline
             {
                 if (_priceEmbeddedBuy) return false;
                 text = Loc.T("price.buy", "Buy: ") + text.Substring(_buyHead!.Length);
+                if (_current != null) TooltipSections.ObserveText(builder, _current, "purchase", text, color);
                 if (_perCellAfterBuy)
                 {
                     _perCellAfterBuy = false;
@@ -415,7 +425,9 @@ internal static class TooltipPipeline
             if (core.Length == 0) core = tail;
 
             string head = Loc.T("calorie.line", "Energy: {0} {1}", cal, tail);
-            builder.Add(head, RenderHandler.ColorPalette.LightCyan);
+            var output = new TooltipSections.Writer(builder, item, "calories");
+            output.Field("calories", cal);
+            output.Add(head, RenderHandler.ColorPalette.LightCyan);
 
             if (ModSettings.ValueEnhance)
             {
@@ -426,7 +438,8 @@ internal static class TooltipPipeline
                     if (value > 0)
                     {
                         double per = (double)cal / value;
-                        builder.Add(Loc.T("calorie.per_credit", " ({0} {1}/{2})",
+                        output.Field("caloriesPerCredit", per);
+                        output.Add(Loc.T("calorie.per_credit", " ({0} {1}/{2})",
                                           per.ToString("0.#", Loc.Culture), core, GeneralHelper.CreditIcon()),
                                     RenderHandler.ColorPalette.Gray);
                     }
@@ -434,7 +447,8 @@ internal static class TooltipPipeline
                 catch { }
             }
 
-            builder.NextLine();
+            output.NextLine();
+            output.Finish();
             return false;   // 已自行输出，丢弃原行
         }
         catch { return true; }
@@ -490,26 +504,31 @@ internal static class TooltipPipeline
             int maxWidth = scale > 1f ? 30 : builder.maxCharWidth;
             bool splitLines = width > maxWidth;
 
-            builder.Add(sellPart, color);
+            var output = new TooltipSections.Writer(builder, item, "price");
+            output.Field("sell", sell);
+            output.Field("list", list);
+            if (buy != 0) output.Field("buy", buy);
+            output.Add(sellPart, color);
             if (buy != 0)
             {
-                builder.Add(buyHead, RenderHandler.ColorPalette.Gray);
-                builder.Add(buy.ToString(), RenderHandler.ColorPalette.Gray);
-                if (diff != 0) builder.Add(diffTxt, diffColor);
-                builder.Add(buyTail, RenderHandler.ColorPalette.Gray);
+                output.Add(buyHead, RenderHandler.ColorPalette.Gray);
+                output.Add(buy.ToString(), RenderHandler.ColorPalette.Gray);
+                if (diff != 0) output.Add(diffTxt, diffColor);
+                output.Add(buyTail, RenderHandler.ColorPalette.Gray);
             }
 
             if (splitLines)
             {
-                builder.NextLine();
-                builder.Add(listPart.TrimStart(), color);
+                output.NextLine();
+                output.Add(listPart.TrimStart(), color);
             }
             else
             {
-                builder.Add(listPart, color);
+                output.Add(listPart, color);
             }
 
-            builder.NextLine();
+            output.NextLine();
+            output.Finish();
             _priceEmbeddedBuy = buy != 0;
 
             // 性价比紧跟价格行，与它的来源放在一起

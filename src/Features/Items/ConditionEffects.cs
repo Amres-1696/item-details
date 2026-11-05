@@ -99,7 +99,7 @@ internal static class ConditionEffects
             string signed = amount > 0 ? $"+{amount}{suffix}" : $"{amount}{suffix}";
             string text = Loc.T("condition.line", "Condition: {0} {1}", display, signed);
 
-            lines.Add(new TooltipLine(text, amount < 0 ? Penalty : Bonus));
+            lines.Add(new TooltipLine(text, amount < 0 ? Penalty : Bonus).WithData("modifier", (display, amount, suffix)));
             Log.MarkOk("ConditionEffects." + (cond.identifier ?? "?"));
         }
         catch (Exception ex)

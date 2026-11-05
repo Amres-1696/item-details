@@ -66,7 +66,7 @@ internal static class ModuleLearning
     }
 
     /// <summary>模块 tooltip：「学习进度：性能 12/30、质量已学满」。</summary>
-    internal static List<TooltipLine> Collect(GameItem? item)
+    internal static List<TooltipLine> Collect(GameItem? item, TooltipSections.Writer output = default)
     {
         var lines = new List<TooltipLine>();
         try
@@ -74,6 +74,8 @@ internal static class ModuleLearning
             var stats = Read(item);
             if (stats.Count == 0) return lines;
 
+            if (output.Capturing)
+                output.Field("stats", stats.ConvertAll(s => (Stats[s.Index], s.Current, s.Max)).AsReadOnly());
             var sb = new StringBuilder();
             bool allFull = true;
             foreach (var s in stats)

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
+using ItemDetails.Integration;
 
 namespace ItemDetails;
 
@@ -13,21 +13,26 @@ namespace ItemDetails;
 public sealed partial class ModEntry
 {
     // ---------------- 真伪 ----------------
-    private bool TryAppendAuthenticity(RichTextBuilder builder, GameItem item)
+    private bool TryAppendAuthenticity(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Auth) return false;
         var r = Authenticity.Analyze(item);
         if (!r.HasData) return false;
 
+        if (r.Faults > 0 || r.IsGenuine)
+        {
+            builder.Field("genuine", r.IsGenuine && r.Faults == 0);
+            if (builder.Capturing) builder.Field("faults", r.FaultNames.AsReadOnly());
+        }
         if (r.Faults > 0)
         {
             string names = string.Join(Loc.T("list.sep", ", "), r.FaultNames);
-            AddLine(builder, Loc.T("auth.counterfeit", "× Counterfeit ({0})", names),
+            builder.AddLine(Loc.T("auth.counterfeit", "× Counterfeit ({0})", names),
                 RenderHandler.ColorPalette.LightRed);
         }
         else if (r.IsGenuine)
         {
-            AddLine(builder, Loc.T("auth.genuine", "√ Genuine"), RenderHandler.ColorPalette.Green);
+            builder.AddLine(Loc.T("auth.genuine", "√ Genuine"), RenderHandler.ColorPalette.Green);
         }
         else
         {
@@ -40,7 +45,7 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 价值构成（机械手/汉堡/等离子） ----------------
-    private bool TryAppendValue(RichTextBuilder builder, GameItem item)
+    private bool TryAppendValue(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Value) return false;
         if (!GameRead.IsTag(item, "APPRAISAL_ITEM")) return false;
@@ -53,8 +58,11 @@ public sealed partial class ModEntry
         // Analyze 已校验 r.Total == 游戏真实值，不再重复调用 TrueValue。
         string totalLine = Loc.T("value.total_line", "Total: {0}", r.Total);
         var (lo, hi) = AppraisalRanges.GamePerfect(r.Total);
+        builder.Field("total", r.Total);
+        builder.Field("perfectMin", lo);
+        builder.Field("perfectMax", hi);
         totalLine += Loc.T("value.perfect_range", " | perfect {0}-{1}", lo, hi);
-        AddLine(builder, totalLine, RenderHandler.ColorPalette.Green);
+        builder.AddLine(totalLine, RenderHandler.ColorPalette.Green);
 
         AppendParts(builder, r);
         return true;
@@ -66,14 +74,16 @@ public sealed partial class ModEntry
     /// 符号与分隔符合一：正值写「+加固60」，负值写「-破裂150」并用红字。
     /// 旧写法把符号塞进数值（「+破裂-150」），一个负项会出现两个符号，既难读也占宽。
     /// </summary>
-    private void AppendParts(RichTextBuilder builder, ValueBreakdown.Result r)
+    private void AppendParts(TooltipSections.Writer builder, ValueBreakdown.Result r)
     {
         builder.Add(Loc.T("value.from", "From: "), RenderHandler.ColorPalette.White);
 
+        var parts = builder.Capturing ? new List<(string Label, int Amount, bool IsBase)>() : null;
         foreach (var p in r.Parts)
         {
             // 文案由纯公式层给出「键 + 英文兜底 + 参数」，这里只做解析。
             string label = Loc.T(p.Key, p.En, p.Args);
+            parts?.Add((label, p.Amount, p.IsBase));
 
             if (p.IsBase)
             {
@@ -87,25 +97,27 @@ public sealed partial class ModEntry
                 builder.Add($"+{label}{p.Amount}", RenderHandler.ColorPalette.White);
         }
 
+        if (parts != null) builder.Field("parts", parts.AsReadOnly());
         builder.NextLine();
     }
 
     // ---------------- 赝品肋明治：具体原因 ----------------
-    private bool TryAppendRibwichReasons(RichTextBuilder builder, GameItem item)
+    private bool TryAppendRibwichReasons(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Auth) return false;   // 赝品原因属于真伪鉴定
 
         var lines = RibwichCounterfeit.Collect(item);
         if (lines.Count == 0) return false;
+        if (builder.Capturing) builder.Field("reasons", lines.AsReadOnly());
 
-        AddLine(builder, Loc.T("ribwich.header", "Why it's counterfeit:"), RenderHandler.ColorPalette.LightRed);
+        builder.AddLine(Loc.T("ribwich.header", "Why it's counterfeit:"), RenderHandler.ColorPalette.LightRed);
         foreach (string s in lines)
-            AddLine(builder, "• " + s, RenderHandler.ColorPalette.LightRed);
+            builder.AddLine("• " + s, RenderHandler.ColorPalette.LightRed);
         return true;
     }
 
     // ---------------- 第三方显式提供的鉴定分解 ----------------
-    private bool TryAppendInjectedValue(RichTextBuilder builder, GameItem item)
+    private bool TryAppendInjectedValue(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Value) return false;
 
@@ -114,24 +126,30 @@ public sealed partial class ModEntry
 
         string totalLine = Loc.T("value.total_line", "Total: {0}", r.Total);
         var (lo, hi) = AppraisalRanges.GamePerfect(r.Total);
+        builder.Field("total", r.Total);
+        builder.Field("perfectMin", lo);
+        builder.Field("perfectMax", hi);
         totalLine += Loc.T("value.perfect_range", " | perfect {0}-{1}", lo, hi);
-        AddLine(builder, totalLine, RenderHandler.ColorPalette.Green);
+        builder.AddLine(totalLine, RenderHandler.ColorPalette.Green);
 
+        var fields = builder.Capturing ? new List<(string Label, int Amount, bool IsBase)>() : null;
         var parts = new List<string>();
         foreach (var p in r.Parts)
         {
             if (string.IsNullOrWhiteSpace(p.Label)) continue;
+            fields?.Add((p.Label, p.Amount, p.IsBase));
             string amount = p.IsBase || p.Amount < 0 ? p.Amount.ToString() : "+" + p.Amount;
             parts.Add($"{p.Label} {amount}");
         }
+        if (fields != null) builder.Field("parts", fields.AsReadOnly());
         if (parts.Count > 0)
-            AddLine(builder, Loc.T("generic.line", "From: {0}", string.Join(Loc.T("list.sep", ", "), parts)),
+            builder.AddLine(Loc.T("generic.line", "From: {0}", string.Join(Loc.T("list.sep", ", "), parts)),
                 RenderHandler.ColorPalette.White);
         return true;
     }
 
     // ---------------- 果实品质（BERRY_*） ----------------
-    private bool TryAppendBerry(RichTextBuilder builder, GameItem item)
+    private bool TryAppendBerry(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Plant && !ModSettings.Wine) return false;
 
@@ -159,12 +177,15 @@ public sealed partial class ModEntry
 
         try
         {
+            if (showQuality) builder.Field("quality", name!);
             if (showQuality)
                 builder.Add(Loc.T("berry.line", "{0} quality: {1}", itemName, name!), color);
             // 酿酒值：这颗莓在 WineHelper.StartFermentation 里给果酿评分加的点数，灰字补在同一行末尾。
             if (ModSettings.Wine)
             {
-                string score = GameRead.BerryWineScore(item).ToString("+0;-0;0");
+                int wineScore = GameRead.BerryWineScore(item);
+                builder.Field("wineScore", wineScore);
+                string score = wineScore.ToString("+0;-0;0");
                 builder.Add(showQuality
                         ? Loc.T("berry.wine", " (wine value {0})", score)
                         : Loc.T("berry.wine_value", "Wine value: {0}", score),
@@ -181,7 +202,7 @@ public sealed partial class ModEntry
     }
 
     // ---------------- P2 隐藏信息（真实耐久/纯度） ----------------
-    private bool TryAppendHidden(RichTextBuilder builder, GameItem item)
+    private bool TryAppendHidden(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.HiddenTruth) return false;
         if (IsLiquid(item)) return false;   // 水质模块已汇总
@@ -190,11 +211,11 @@ public sealed partial class ModEntry
 
     // ---------------- 性价比（兜底） ----------------
     // 正常由 TooltipPipeline 写在价格块下一行；价格行没改写时才落到这里，同一次构建只写一次。
-    private bool TryAppendValueEnhance(RichTextBuilder builder, GameItem item)
+    private bool TryAppendValueEnhance(TooltipSections.Writer builder, GameItem item)
         => ValueEnhance.TryWrite(builder, item);
 
     // ---------------- P1 隐藏特性揭示（真假条件） ----------------
-    private bool TryAppendFeatureReveal(RichTextBuilder builder, GameItem item)
+    private bool TryAppendFeatureReveal(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.HiddenTruth) return false;
         if (IsLiquid(item)) return false;   // 水质模块已汇总真假
@@ -202,17 +223,17 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 储存容器：压缩率 + 内容物图标格 ----------------
-    private bool TryAppendStorage(RichTextBuilder builder, GameItem item)
+    private bool TryAppendStorage(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.ValueEnhance && !ModSettings.Container) return false;
         return AppendLines(builder, StorageInfo.Collect(item,
             includeRatio: ModSettings.ValueEnhance,
             includeContents: ModSettings.Container,
-            allowGrid: true));
+            allowGrid: true, builder: builder.Native));
     }
 
     // ---------------- 机器与槽位容器内部：滤芯、液体、工具、剩余几晚 ----------------
-    private bool TryAppendMachineInterior(RichTextBuilder builder, GameItem item)
+    private bool TryAppendMachineInterior(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Container && !ModSettings.Machines && !ModSettings.MachineBattery) return false;
         return AppendLines(builder, MachineInterior.Collect(item,
@@ -223,14 +244,14 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 自学习算法模块：学习进度 ----------------
-    private bool TryAppendModuleLearning(RichTextBuilder builder, GameItem item)
+    private bool TryAppendModuleLearning(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.ModuleEffects) return false;
-        return AppendLines(builder, ModuleLearning.Collect(item));
+        return AppendLines(builder, ModuleLearning.Collect(item, builder));
     }
 
     // ---------------- 瑕疵/状态对价值的影响 ----------------
-    private bool TryAppendConditions(RichTextBuilder builder, GameItem item)
+    private bool TryAppendConditions(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.PriceImpact) return false;
         if (IsLiquid(item)) return false;   // 水质模块已汇总，避免重复
@@ -238,7 +259,7 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 违禁等级与黑市溢价 ----------------
-    private bool TryAppendContraband(RichTextBuilder builder, GameItem item)
+    private bool TryAppendContraband(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Contraband) return false;
 
@@ -246,84 +267,77 @@ public sealed partial class ModEntry
         if (!r.HasData) return false;
         // 原版 ContrabandHelper 已经显示违禁等级，这里只补它没有的黑市溢价。
         if (r.MarkupPercent < 0) return false;
+        builder.Field("markupPercent", r.MarkupPercent);
 
-        AddLine(builder,
+        builder.AddLine(
             Loc.T("contraband.markup", "Black market: +{0}%", r.MarkupPercent),
             RenderHandler.ColorPalette.LightTurquoise);
         return true;
     }
 
     // ---------------- 彩票开奖结果 ----------------
-    private bool TryAppendLottery(RichTextBuilder builder, GameItem item)
+    private bool TryAppendLottery(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Lottery) return false;
-        return AppendLines(builder, LotteryInfo.Collect(item));
+        return AppendLines(builder, LotteryInfo.Collect(item, builder));
     }
 
     // ---------------- 液体组分：水质 / 杂质 / 药物成分 ----------------
-    private bool TryAppendWater(RichTextBuilder builder, GameItem item)
+    private bool TryAppendWater(TooltipSections.Writer builder, GameItem item)
     {
-        if (!LiquidGate.Enabled) return false;
-
-        var r = WaterInfo.Analyze(item);
-        if (!r.HasData) return false;
+        var r = LiquidQueries.Analyze(item);
+        if (r == null) return false;
+        builder.Field("analysis", r.Data);
+        if (LiquidQueries.TryDisplay(ItemDetailsClient.AnalysisDisplay, item, r.Data))
+        {
+            if (!builder.Capturing) return true;
+            builder.AlreadyHandled();
+        }
 
         bool wrote = false;
 
-        if (!r.Solid)
+        if (!r.IsSolid)
         {
             // 液体容器：表头「成分 + 体积条 + 2000/2000mL 档位」，下面每种成分一行；
             // 三列用 TMP 的 <pos> 精确定位（见 WaterColumns），比空格补位准。
             // 三列按像素定位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度。
-            try { builder.maxCharWidth = Math.Max(builder.maxCharWidth, WaterTableWidth); } catch { }
+            builder.RequireWidth(WaterTableWidth);
 
-            AppendLines(builder, WaterColumns.Build(r, item, out _));
+            AppendLines(builder, WaterColumns.Build(r, item));
             wrote = true;
         }
         else
         {
             // 固体化学品（药片、净水片等）：没有容器与体积，仍按占比列出。
-            if (r.Actives.Count > 0)
+            var actives = new List<string>();
+            var others = new List<string>();
+            foreach (var component in r.Components)
             {
-                var actives = new StringBuilder();
-                actives.Append(Loc.T("water.actives", "Actives: "));
-                for (int i = 0; i < r.Actives.Count; i++)
-                {
-                    if (i > 0) actives.Append(Loc.T("list.sep", ", "));
-                    var active = r.Actives[i];
-                    actives.Append(active.Name).Append(' ').Append(WaterInfo.Amount(active.Parts));
-                }
-                AddLine(builder, actives.ToString(), RenderHandler.ColorPalette.LightYellow);
+                if (component.Role == "active")
+                    actives.Add(component.Name + " " + WaterInfo.Amount(component.Microliters));
+                else
+                    others.Add(component.Name + " " + WaterLayout.PercentText(component.Microliters, r.TotalMicroliters, Loc.Culture) + "%");
+            }
+            if (actives.Count > 0)
+            {
+                builder.AddLine(Loc.T("water.actives", "Actives: ") + string.Join(Loc.T("list.sep", ", "), actives),
+                    RenderHandler.ColorPalette.LightYellow);
                 wrote = true;
             }
-
-            if (r.Impurities.Count > 0)
+            if (others.Count > 0 || r.HiddenComponents > 0)
             {
-                var sb = new StringBuilder();
-                sb.Append(r.Actives.Count == 0 ? Loc.T("water.composition", "Composition: ")
-                                               : Loc.T("water.other", "Other: "));
-                bool any = false;
-                for (int i = 0; i < r.Impurities.Count; i++)
-                {
-                    var part = r.Impurities[i];
-                    if (part.Parts < WaterInfo.MinVisibleParts) continue;
-                    double partPct = part.Parts * 100.0 / r.TotalParts;
-                    if (partPct < 0.005) continue;
-                    if (any) sb.Append(' ');
-                    any = true;
-                    sb.Append(part.Name).Append(' ').Append(partPct.ToString("0.00", Loc.Culture)).Append('%');
-                }
-                if (!any) sb.Append(Loc.T("water.trace", "trace (below display threshold)"));
-                AddLine(builder, sb.ToString(), RenderHandler.ColorPalette.LightCyan);
+                string label = actives.Count == 0 ? Loc.T("water.composition", "Composition: ") : Loc.T("water.other", "Other: ");
+                string parts = others.Count > 0 ? string.Join(" ", others) : Loc.T("water.trace", "trace (below display threshold)");
+                builder.AddLine(label + parts, RenderHandler.ColorPalette.LightCyan);
                 wrote = true;
             }
         }
 
-        // 药效结论：与化学扫描仪同一组判定，省得玩家自己对阈值。
-        if (r.HasEffects)
+        string effects = r.Effects.Text;
+        if (effects.Length > 0)
         {
-            AddLine(builder, Loc.T("chem.effects", "Effects: {0}", ChemEffects(r)),
-                r.LethalDose > 0 || r.Toxic ? RenderHandler.ColorPalette.LightRed : RenderHandler.ColorPalette.LightYellow);
+            builder.AddLine(Loc.T("chem.effects", "Effects: {0}", effects),
+                r.Effects.LethalDose > 0 || r.Effects.Toxic ? RenderHandler.ColorPalette.LightRed : RenderHandler.ColorPalette.LightYellow);
             wrote = true;
         }
 
@@ -331,21 +345,21 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 密封箱预览（透视，默认关闭） ----------------
-    private bool TryAppendSealedBox(RichTextBuilder builder, GameItem item)
+    private bool TryAppendSealedBox(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.SealedBox) return false;
-        return AppendLines(builder, SealedBoxInfo.Collect(item, allowGrid: true));
+        return AppendLines(builder, SealedBoxInfo.Collect(item, allowGrid: true, builder: builder.Native));
     }
 
     // ---------------- 刮刮卡结果（透视） ----------------
-    private bool TryAppendScratcher(RichTextBuilder builder, GameItem item)
+    private bool TryAppendScratcher(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Scratcher) return false;
         return AppendLines(builder, ScratcherInfo.Collect(item));
     }
 
     // ---------------- 种子性状（透视） ----------------
-    private bool TryAppendSeed(RichTextBuilder builder, GameItem item)
+    private bool TryAppendSeed(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Plant) return false;
 
@@ -353,8 +367,15 @@ public sealed partial class ModEntry
         if (lines.Count == 0) return false;
 
         // 性状逐项一行太占版面，接在表头后写成一行
+        if (builder.Capturing)
+        {
+            var traits = new List<(string Id, string Name, int Rank)>();
+            foreach (var line in lines)
+                if (line.Data is ValueTuple<string, string, int> trait) traits.Add(trait);
+            builder.Field("traits", traits.AsReadOnly());
+        }
         var texts = lines.ConvertAll(l => l.Text);
-        AddLine(builder, Loc.T("seed.line", "Traits (unanalyzed): {0}", string.Join(Loc.T("list.sep", ", "), texts)),
+        builder.AddLine(Loc.T("seed.line", "Traits (unanalyzed): {0}", string.Join(Loc.T("list.sep", ", "), texts)),
             RenderHandler.ColorPalette.LightTurquoise);
         return true;
     }
@@ -362,38 +383,24 @@ public sealed partial class ModEntry
     /// <summary>水质成分表的折行预算（字符数）；原版 tooltip 约 40，三列定位后需要更宽。</summary>
     private const int WaterTableWidth = 64;
 
-    /// <summary>「致死（2 倍致死量）、强烈欣快、戒瘾」</summary>
-    private static string ChemEffects(WaterInfo.Result r)
-    {
-        var parts = new List<string>();
-        if (r.LethalDose > 0) parts.Add(Loc.T("chem.lethal", "lethal ({0}x lethal dose)", r.LethalDose));
-        else if (r.Toxic) parts.Add(Loc.T("chem.toxic", "toxic"));
-        switch (r.Euphoria)
-        {
-            case 1: parts.Add(Loc.T("chem.euphoria_weak", "weak euphoria")); break;
-            case 2: parts.Add(Loc.T("chem.euphoria_mild", "mild euphoria")); break;
-            case 3: parts.Add(Loc.T("chem.euphoria_strong", "strong euphoria")); break;
-            case 4: parts.Add(Loc.T("chem.euphoria_extreme", "extreme euphoria")); break;
-        }
-        if (r.Synaprest) parts.Add(Loc.T("chem.synaprest", "anti-addiction"));
-        if (r.Contraceptive) parts.Add(Loc.T("chem.contraceptive", "contraceptive"));
-        return string.Join(Loc.T("list.sep", ", "), parts);
-    }
-
     // ---------------- 含水容器：净化收益（探测版） ----------------
-    private bool TryAppendWaterAdvice(RichTextBuilder builder, GameItem item)
+    private bool TryAppendWaterAdvice(TooltipSections.Writer builder, GameItem item)
     {
-        if (!LiquidGate.Enabled) return false;
-
-        // 按玩家实际拥有的手段逐项列出纯度提升（每种都在独立深拷贝探针上模拟）
-        var methods = WaterAdvice.SimulateMethods(item);
-        if (methods.Count == 0) return false;
+        var methods = LiquidQueries.GetAdvice(item);
+        if (methods == null) return false;
+        builder.Field("methods", methods);
+        if (LiquidQueries.TryDisplay(ItemDetailsClient.AdviceDisplay, item, methods))
+        {
+            if (!builder.Capturing) return true;
+            builder.AlreadyHandled();
+        }
+        if (methods.Count == 0) return builder.Capturing;
 
         bool wrote = false;
         foreach (var mtd in methods)
         {
             if (wrote) builder.Add("　", RenderHandler.ColorPalette.Gray);
-            builder.Add(mtd.Name + " +" + mtd.GainPct.ToString("0.00", Loc.Culture) + "%", RenderHandler.ColorPalette.LightTurquoise);
+            builder.Add(mtd.Name + " +" + mtd.GainPercentagePoints.ToString("0.00", Loc.Culture) + "%", RenderHandler.ColorPalette.LightTurquoise);
             wrote = true;
         }
         builder.NextLine();
@@ -402,7 +409,7 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 酒：分数 / 成分 / 赝品（信息增强） ----------------
-    private bool TryAppendWine(RichTextBuilder builder, GameItem item)
+    private bool TryAppendWine(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Wine) return false;
         var lines = WineInfo.Collect(item);
@@ -412,29 +419,34 @@ public sealed partial class ModEntry
     }
 
     // ---------------- 肉类来源 / 朊病毒（信息增强） ----------------
-    private bool TryAppendMeat(RichTextBuilder builder, GameItem item)
+    private bool TryAppendMeat(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.Meat) return false;
         return AppendLines(builder, MeatInfo.Collect(item));
     }
 
     // ---------------- 市场修正（店铺事件对价格的百分比影响） ----------------
-    private bool TryAppendMarket(RichTextBuilder builder, GameItem item)
+    private bool TryAppendMarket(TooltipSections.Writer builder, GameItem item)
     {
         if (!ModSettings.PriceImpact) return false;
-        return AppendLines(builder, MarketModifier.Collect(item), RenderHandler.ColorPalette.Orange);
+        return AppendLines(builder, MarketModifier.Collect(item, builder), RenderHandler.ColorPalette.Orange);
     }
 
     // ---------------- 工具 ----------------
 
     /// <summary>输出模块已经定好颜色的一组行；返回是否真的写入了内容。</summary>
-    private static bool AppendLines(RichTextBuilder builder, List<TooltipLine> lines)
+    private static bool AppendLines(TooltipSections.Writer builder, List<TooltipLine> lines)
     {
-        foreach (var ln in lines)
+        List<(int Line, string Kind, object Value)>? rowData = null;
+        for (int i = 0; i < lines.Count; i++)
         {
-            if (ln.HasBar) AddBarLine(builder, ln);
-            else AddLine(builder, ln.Text, ln.Color);
+            var ln = lines[i];
+            if (builder.Capturing && ln.DataKind != null && ln.Data != null)
+                (rowData ??= new()).Add((i, ln.DataKind, ln.Data));
+            if (ln.HasBar) builder.Bar(ln);
+            else builder.AddLine(ln.Text, ln.Color);
         }
+        if (rowData != null) builder.Field("rowData", rowData.AsReadOnly());
         return lines.Count > 0;
     }
 
@@ -442,7 +454,7 @@ public sealed partial class ModEntry
     /// 输出进度条行：前缀 → 条文本 → 后缀。
     /// 原版布局直接输出条文本，避免 noBreak 改变 CJK 换行宽度。美化布局从 AddProgressBar 读取比例。
     /// </summary>
-    private static void AddBarLine(RichTextBuilder builder, TooltipLine ln)
+    internal static void AddBarLine(RichTextBuilder builder, TooltipLine ln)
     {
         try
         {
@@ -469,14 +481,14 @@ public sealed partial class ModEntry
     }
 
     /// <summary>输出同色的一组纯文本行（未做本地化的模块用）。</summary>
-    private static bool AppendLines(RichTextBuilder builder, List<string> lines, RenderHandler.ColorPalette color)
+    private static bool AppendLines(TooltipSections.Writer builder, List<string> lines, RenderHandler.ColorPalette color)
     {
         foreach (string s in lines)
-            AddLine(builder, s, color);
+            builder.AddLine(s, color);
         return lines.Count > 0;
     }
 
-    private static void AddLine(RichTextBuilder builder, string text, RenderHandler.ColorPalette color)
+    internal static void AddLine(RichTextBuilder builder, string text, RenderHandler.ColorPalette color)
     {
         try
         {

@@ -46,7 +46,9 @@ internal static class Loc
     {
         get
         {
-            float now = Time.realtimeSinceStartup;
+            // 语言缓存只把 Unity 时钟当 TTL 来源；非 Unity 宿主（离线测试）没有原生时钟。
+            float now;
+            try { now = Time.realtimeSinceStartup; } catch { now = 0f; }
             if (_codeAt >= 0f && now - _codeAt < CodeTtlSeconds) return _code;
             _codeAt = now;
 

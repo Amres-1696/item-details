@@ -27,8 +27,10 @@ internal static class FurnaceQuality
         internal bool CanSmelt => Ore + Scrap >= Needed;
     }
 
-    internal static string? Note(MachineInterior.Context ctx)
+    internal static string? Note(MachineInterior.Context ctx,
+        out (int? Ingots, int? Purity, int Gain, int? NextBonus)? data)
     {
+        data = null;
         try
         {
             var contents = Read(ctx);
@@ -92,6 +94,8 @@ internal static class FurnaceQuality
                     contents.BasicFlux, contents.AdvancedFlux))
                 parts.Add(Loc.T("module.furnace_basic", "basic flux consumed"));
             // Advanced flux is already visible in the input list; don't restate that it is reusable.
+            data = (contents.CanSmelt ? FurnacePurity.OutputCount(contents.Blast) : null,
+                contents.CanSmelt ? current : null, difference, next > 0 ? next : null);
             return parts.Count > 0 ? string.Join(Loc.T("list.sep", ", "), parts) : null;
         }
         catch (Exception ex)

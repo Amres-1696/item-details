@@ -94,8 +94,11 @@ internal static class WaterAdvice
     /// <summary>空白壳在溶解后被第三方销毁过；本场景内改为逐次克隆。</summary>
     private static bool _agentShellUnusable;
 
-    internal static List<Method> SimulateMethods(GameItem? item)
+    internal static List<Method> SimulateMethods(GameItem? item) => SimulateMethods(item, out _);
+
+    internal static List<Method> SimulateMethods(GameItem? item, out bool available)
     {
+        available = false;
         var result = new List<Method>();
         try
         {
@@ -142,12 +145,16 @@ internal static class WaterAdvice
 #if ITEMDETAILS_DIAG
                 TrackCache(hit: true, now);
 #endif
+                available = true;
                 return entry.Methods;
             }
 
             if (hovering && meansValid && now - recent!.ComputedAt < RecomputeSeconds
                 && recent.Means == means && recent.Locale == locale)
+            {
+                available = true;
                 return recent.Methods;
+            }
 
 #if ITEMDETAILS_DIAG
             TrackCache(hit: false, now);
@@ -261,6 +268,7 @@ internal static class WaterAdvice
                     Methods = result,
                 };
             }
+            available = true;
             return result;
         }
         catch (Exception ex)

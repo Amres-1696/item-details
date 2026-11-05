@@ -21,7 +21,7 @@ internal static class MarketModifier
 {
     private const int MaxLines = 3;
 
-    internal static List<string> Collect(GameItem? item)
+    internal static List<string> Collect(GameItem? item, TooltipSections.Writer output = default)
     {
         var lines = new List<string>();
         try
@@ -37,6 +37,7 @@ internal static class MarketModifier
             try { events = mgr.GetActiveEvents(); } catch { }
             if (events == null || events.Count == 0) return lines;
 
+            var modifiers = output.Capturing ? new List<(string Id, string Label, int Percent)>() : null;
             var sb = new StringBuilder();
             int shown = 0;
 
@@ -58,6 +59,7 @@ internal static class MarketModifier
                     if (string.IsNullOrEmpty(label)) label = Safe(() => ev.displayName);
                     if (string.IsNullOrEmpty(label)) label = nd.identifier ?? "?";
 
+                    modifiers?.Add((nd.identifier ?? "", label, nd.value));
                     string pct = nd.value > 0 ? $"+{nd.value}%" : $"{nd.value}%";
                     sb.Append(label).Append(' ').Append(pct);
                     shown++;
@@ -65,6 +67,7 @@ internal static class MarketModifier
                 if (shown >= MaxLines) break;
             }
 
+            if (modifiers?.Count > 0) output.Field("modifiers", modifiers.AsReadOnly());
             if (shown > 0)
                 lines.Add(Loc.T("market.line", "Market: {0}", sb.ToString()));
         }

@@ -54,9 +54,10 @@ internal static class MachineAdapters
     /// </summary>
     private static void Furnace(MachineInterior.Context ctx, List<TooltipLine> lines)
     {
-        string? note = FurnaceQuality.Note(ctx);
-        if (!string.IsNullOrEmpty(note))
-            lines.Add(new TooltipLine(note, RenderHandler.ColorPalette.Gray));
+        string? note = FurnaceQuality.Note(ctx, out var data);
+        if (string.IsNullOrEmpty(note)) return;
+        var line = new TooltipLine(note, RenderHandler.ColorPalette.Gray);
+        lines.Add(data.HasValue ? line.WithData("furnace", data.Value) : line);
     }
 
     // ---------------- 进度型机器：还需几天 ----------------
@@ -105,7 +106,7 @@ internal static class MachineAdapters
             text += Loc.T("machine.eta_water", " (water lasts {0} {0|day|days})", ctx.WaterDays);
             color = Warn;
         }
-        lines.Add(new TooltipLine(text, color));
+        lines.Add(new TooltipLine(text, color).WithData("eta", (cur, target, speed, days)));
     }
 
     // ---------------- 水培机：水还够浇几天 ----------------
@@ -136,7 +137,7 @@ internal static class MachineAdapters
         lines.Add(new TooltipLine(
             Loc.T("hydro.water", "Water {0}{3}, enough for {1} {1|day|days} ({2} ml/day)",
                 Volume.Number(ml, liters, Loc.Culture), days, perNight, WaterInfo.VolumeUnit(liters)),
-            days == 0 ? Bad : days < 3 ? Warn : Info));
+            days == 0 ? Bad : days < 3 ? Warn : Info).WithData("waterSupply", (ml, perNight, days)));
     }
 
     // ---------------- 净水器：今晚还能净化多少、净化到哪一档 ----------------
@@ -171,7 +172,7 @@ internal static class MachineAdapters
 
         string text = Loc.T("purifier.estimate", "Estimated removal tonight: {0} ml", WaterInfo.Ml(parts));
         text += TierChange(purityBefore, purityAfter);
-        lines.Add(new TooltipLine(text, Info));
+        lines.Add(new TooltipLine(text, Info).WithData("purification", (parts, purityBefore, purityAfter)));
     }
 
     /// <summary>
@@ -215,7 +216,7 @@ internal static class MachineAdapters
             ZoneLabel(chill, "mech_fridge_label_chill"), chill.Items.Count,
             ZoneLabel(freeze, "mech_fridge_label_freeze"), freeze.Items.Count);
         if (idle > 0) text += Loc.T("fridge.no_effect", ", {0} get no effect", idle);
-        lines.Add(new TooltipLine(text, idle > 0 ? Warn : Info));
+        lines.Add(new TooltipLine(text, idle > 0 ? Warn : Info).WithData("fridge", (chill.Items.Count, freeze.Items.Count, idle)));
 
         if (ctx.HasPowerPanel && !CanPower(ctx))
             lines.Add(Paused(NoPower));
@@ -262,7 +263,7 @@ internal static class MachineAdapters
 
         string text = Loc.T("wine.rack", "{0} {0|bottle|bottles} aging, +{1} {1|day|days}/day", aging, days);
         if (idle > 0) text += Loc.T("wine.rack_idle", ", {0} not aging", idle);
-        lines.Add(new TooltipLine(text, idle > 0 ? Warn : Info));
+        lines.Add(new TooltipLine(text, idle > 0 ? Warn : Info).WithData("aging", (aging, days, idle)));
 
         if (aging > 0 && ctx.HasPowerPanel && !CanPower(ctx))
             lines.Add(Paused(NoPower));
@@ -316,7 +317,7 @@ internal static class MachineAdapters
             {
                 if (!IsPenLearningMachine(machineId)) continue;
                 bars.Add(new TooltipLine(" ", 1f, LearningBar, Loc.T("learning.bar_full", "Maxed"),
-                    Maxed, RenderHandler.ColorPalette.DarkPurple));
+                    Maxed, RenderHandler.ColorPalette.DarkPurple).WithData("learning", (module.identifier, cur, max, remaining)));
                 continue;
             }
 
@@ -324,13 +325,13 @@ internal static class MachineAdapters
             bars.Add(new TooltipLine(" ", (float)cur / max, LearningBar,
                 // 模块名按当前语言取：item.name 是创建/读档时固化的，见 GameRead.ItemDisplayName
                 Loc.T("learning.bar_left", "{0}: {1} {1|point|points} to go", GameRead.ItemDisplayName(module), remaining),
-                Info, RenderHandler.ColorPalette.VeryDarkCyan));
+                Info, RenderHandler.ColorPalette.VeryDarkCyan).WithData("learning", (module.identifier, cur, max, remaining)));
         }
         if (bars.Count == 0) return;
 
         lines.Add(new TooltipLine(
             Loc.T("learning.machine", "Learning: {0}/{1} {1|module|modules}", learning, total),
-            learning == 0 ? Good : Info));
+            learning == 0 ? Good : Info).WithData("learningCount", (learning, total)));
         lines.AddRange(bars);
     }
 
@@ -346,7 +347,7 @@ internal static class MachineAdapters
         try { reason = LocHelper.GetLocalizedMechanic(mechanicKey) ?? ""; }
         catch { reason = ""; }
         if (reason.Length == 0) reason = mechanicKey == NoWater ? "Not enough water" : "Not enough power";
-        return new TooltipLine(Loc.T("machine.paused", "Paused: {0}", reason), Bad);
+        return new TooltipLine(Loc.T("machine.paused", "Paused: {0}", reason), Bad).WithData("paused", mechanicKey);
     }
 
     /// <summary>今晚能否供电：与原版 MachineHelper.CanPower 相同的判定，但电源按 role 找。</summary>

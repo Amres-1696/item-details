@@ -17,16 +17,21 @@ internal static class Log
         _counts.TryGetValue(key, out int n);
         n++;
         _counts[key] = n;
-        if (n == 1)
+        // 诊断输出绝不能打断功能路径：非 Unity 宿主（离线测试）里 Debug.Log* 会抛 ECall。
+        try
         {
-            if (warn) Debug.LogWarning($"[ItemDetails] {key} degraded (skipped this time): {detail}");
-            else Debug.LogError($"[ItemDetails] {key} failed: {detail}");
+            if (n == 1)
+            {
+                if (warn) Debug.LogWarning($"[ItemDetails] {key} degraded (skipped this time): {detail}");
+                else Debug.LogError($"[ItemDetails] {key} failed: {detail}");
+            }
+            else if (n == 50)
+            {
+                Debug.LogWarning($"[ItemDetails] {key} failed {n} times in a row; this feature may be unavailable. " +
+                                 "If the game was just updated, wait for a mod update.");
+            }
         }
-        else if (n == 50)
-        {
-            Debug.LogWarning($"[ItemDetails] {key} failed {n} times in a row; this feature may be unavailable. " +
-                             "If the game was just updated, wait for a mod update.");
-        }
+        catch { }
     }
 
     internal static void Warn(string key, string detail) => Once(key, detail, true);

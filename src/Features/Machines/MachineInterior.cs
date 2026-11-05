@@ -323,7 +323,7 @@ internal static class MachineInterior
             if (hiddenTruth && f.Fake != f.Cur && !IsDiscovered(f.Item, "DURABILITY_TAG"))
                 text += Loc.T("inner.faked", " (labelled {0})", f.Fake);
             if (f.Cur <= 0) text += Loc.T("inner.filter_spent", " (spent, no longer filters)");
-            lines.Add(new TooltipLine(text, Level(f.Cur, f.Max)));
+            lines.Add(new TooltipLine(text, Level(f.Cur, f.Max)).WithData("filter", (f.Cur, f.Max)));
             return;
         }
 
@@ -337,7 +337,8 @@ internal static class MachineInterior
         string summary = Loc.T("inner.filters", "Filters ×{0}: lowest durability {1}/{2}",
             filters.Count, lowest.Cur, lowest.Max);
         if (spent > 0) summary += Loc.T("inner.spent_count", ", {0} spent", spent);
-        lines.Add(new TooltipLine(summary, spent > 0 ? Bad : Level(lowest.Cur, lowest.Max)));
+        lines.Add(new TooltipLine(summary, spent > 0 ? Bad : Level(lowest.Cur, lowest.Max))
+            .WithData("filters", (filters.Count, lowest.Cur, lowest.Max, spent)));
     }
 
     /// <summary>液体容器：容量，按开关附带水质。超出上限的留给通用列表。</summary>
@@ -352,6 +353,7 @@ internal static class MachineInterior
             int cur = WaterHelper.GetCurrentCapacityML(it);
             int max = WaterHelper.GetTotalCapacityML(it);
             string state;
+            int? measuredPurity = null;
             if (cur <= 0)
             {
                 state = Loc.T("inner.liquid_empty", "empty");
@@ -365,15 +367,18 @@ internal static class MachineInterior
                 {
                     var r = WaterInfo.Analyze(it);
                     if (r.HasData && r.WaterParts > 0)
+                    {
+                        measuredPurity = r.Purity;
                         state += Loc.T("inner.liquid_purity", ", {0}% {1}",
                             (r.Purity / 100.0).ToString("0.00", Loc.Culture), r.Tier);
+                    }
                 }
             }
 
             ctx.Summarized.Add(it);
             lines.Add(new TooltipLine(
                 Loc.T("inner.line", "{0}: {1}", GameRead.ItemDisplayName(it), state),
-                Info));
+                Info).WithData("liquid", (it.identifier, cur, max, measuredPurity)));
             shown++;
         }
     }
@@ -399,7 +404,7 @@ internal static class MachineInterior
             lines.Add(new TooltipLine(
                 Loc.T("inner.uses", "{0}: uses remaining {1}/{2}",
                     GameRead.ItemDisplayName(t.Item), t.Cur, t.Max),
-                Level(t.Cur, t.Max)));
+                Level(t.Cur, t.Max)).WithData("tool", (t.Item.identifier, t.Cur, t.Max)));
             return;
         }
 
@@ -413,7 +418,8 @@ internal static class MachineInterior
         string text = Loc.T("inner.tools", "Tools ×{0}, fewest uses: {1} ({2}/{3})",
             tools.Count, GameRead.ItemDisplayName(fewest.Item), fewest.Cur, fewest.Max);
         if (spent > 0) text += Loc.T("inner.spent_count", ", {0} spent", spent);
-        lines.Add(new TooltipLine(text, spent > 0 ? Bad : Level(fewest.Cur, fewest.Max)));
+        lines.Add(new TooltipLine(text, spent > 0 ? Bad : Level(fewest.Cur, fewest.Max))
+            .WithData("tools", (tools.Count, fewest.Cur, fewest.Max, spent)));
     }
 
     /// <summary>
@@ -434,7 +440,7 @@ internal static class MachineInterior
             lines.Add(new TooltipLine(
                 Loc.T("inner.energy", "{0}: energy {1}/{2}",
                     GameRead.ItemDisplayName(it), cur, max),
-                Level(cur, max)));
+                Level(cur, max)).WithData("battery", (it.identifier, cur, max)));
         }
     }
 
@@ -464,13 +470,15 @@ internal static class MachineInterior
         if (allLabelled && groups.Count <= MaxPanelLines)
         {
             foreach (var g in groups)
-                lines.Add(new TooltipLine(Loc.T("inner.line", "{0}: {1}", g.Label, Names(g.Items)), Info));
+                lines.Add(new TooltipLine(Loc.T("inner.line", "{0}: {1}", g.Label, Names(g.Items)), Info)
+                    .WithData("slotContents", (g.Label, (IReadOnlyList<GameItem>)g.Items.AsReadOnly())));
             return;
         }
 
         var merged = new List<GameItem>();
         foreach (var g in groups) merged.AddRange(g.Items);
-        lines.Add(new TooltipLine(Loc.T("storage.contains", "Contains: ") + Names(merged), Info));
+        lines.Add(new TooltipLine(Loc.T("storage.contains", "Contains: ") + Names(merged), Info)
+            .WithData("contents", merged.AsReadOnly()));
     }
 
     /// <summary>

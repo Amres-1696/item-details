@@ -63,7 +63,7 @@ internal static class SeedInfo
                 string text = rank > 1
                     ? Loc.T("seed.trait_rank", "{0} (rank {1})", name, rank)
                     : name;
-                lines.Add(new TooltipLine(text, Color));
+                lines.Add(new TooltipLine(text, Color).WithData("trait", (trait.id ?? "", name, rank)));
                 shown++;
             }
 

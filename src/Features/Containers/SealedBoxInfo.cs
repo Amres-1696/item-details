@@ -44,7 +44,7 @@ internal static class SealedBoxInfo
     internal static void Stop() => Entries.Clear();
 
     /// <param name="allowGrid">tooltip 正文才传 true：允许把内容物交给图标格。</param>
-    internal static List<TooltipLine> Collect(GameItem? item, bool allowGrid = false)
+    internal static List<TooltipLine> Collect(GameItem? item, bool allowGrid = false, RichTextBuilder? builder = null)
     {
         var lines = new List<TooltipLine>();
         try
@@ -73,7 +73,7 @@ internal static class SealedBoxInfo
 
             string estimate = EstimateTitleValue(item, grid, items);
             // 没有文字回退：图标格不可用时，本次就不显示内容物与估价。
-            _ = ContentsGrid.Claim(item, items, sealedBox: true, sealedEstimate: estimate);
+            _ = ContentsGrid.Claim(item, items, sealedBox: true, sealedEstimate: estimate, builder: builder);
         }
         catch (Exception ex)
         {

@@ -90,7 +90,7 @@ internal static class FeatureReveal
                     realMod.ToString("+0;-0;0"), fakeMod.ToString("+0;-0;0"));
             }
 
-            lines.Add(new TooltipLine(text, Color));
+            lines.Add(new TooltipLine(text, Color).WithData("revealed", (real, fake, realMod, fakeMod)));
         }
         catch (Exception ex)
         {
