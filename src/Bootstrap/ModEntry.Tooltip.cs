@@ -295,7 +295,7 @@ public sealed partial class ModEntry
 
         if (!r.IsSolid)
         {
-            // 液体容器：表头「成分 + 体积条 + 2000/2000mL 档位」，下面每种成分一行；
+            // 液体容器：表头只画「体积条 + 2000/2000mL 档位」，下面每种成分一行；
             // 三列用 TMP 的 <pos> 精确定位（见 WaterColumns），比空格补位准。
             // 三列按像素定位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度。
             builder.RequireWidth(WaterTableWidth);
@@ -306,8 +306,7 @@ public sealed partial class ModEntry
         else
         {
             // 固体化学品（药片、作物、粪便等）：没有容器与体积，所以不画条；
-            // 成分仍按「名称 / 用量 / 百分比」三列排，列落点与液体容器同一套规则。
-            builder.RequireWidth(WaterTableWidth);
+            // 成分与液体容器共用同一套三列构造，列位置一致。
             AppendLines(builder, WaterColumns.BuildSolid(r));
             wrote = true;
         }

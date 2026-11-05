@@ -184,7 +184,6 @@ internal static class WaterInfo
         => r.TotalParts <= 0 ? 0 : (int)((long)(r.TotalParts - r.WaterParts) * PurityFull / r.TotalParts);
 
     internal static string Ml(int parts) => (parts / 1000.0).ToString("0.#", Loc.Culture);
-
     /// <summary>本模组自己写的体积行的单位；用 ml 还是 L 由调用方按 <see cref="Volume.UseLiters"/> 决定。</summary>
     internal static string VolumeUnit(bool liters)
         => liters ? Loc.T("unit.liter", " L") : Loc.T("unit.ml", " ml");

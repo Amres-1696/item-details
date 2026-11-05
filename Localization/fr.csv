@@ -121,13 +121,8 @@ value.cost_perf,Valeur par case : {0}
 value.cost_perf_detail," ({0}/{1} {1|case|cases})"
 value.perfect_range," | parfait {0}-{1}"
 value.total_line,Total : {0}
-water.actives,"Principes actifs : "
-water.other,"Autres : "
 water.mismatch," (étiquette incohérente)"
-water.trace,trace (sous le seuil d'affichage)
 water.trace_count,(+{0} de plus sous le seuil d'affichage)
-water.composition,Composition : 
-water.components,Composants
 chem.effects,Effets : {0}
 chem.lethal,mortel ({0}x la dose létale)
 chem.toxic,toxique

@@ -121,13 +121,8 @@ value.cost_perf,性价比：{0}
 value.cost_perf_detail,（{0}/{1}格）
 value.perfect_range," ｜ 完美 {0}–{1}"
 value.total_line,总价：{0}
-water.actives,活性成分：
-water.other,其他成分：
 water.mismatch,（与标签不符）
-water.trace,微量（低于显示阈值）
 water.trace_count,（另 {0} 项低于显示阈值）
-water.composition,成分：
-water.components,成分
 chem.effects,药效：{0}
 chem.lethal,致死（{0} 倍致死量）
 chem.toxic,有毒

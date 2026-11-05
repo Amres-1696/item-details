@@ -14,12 +14,12 @@ namespace ItemDetails;
 /// <c>&lt;pos&gt;</c>（像素 / em / 百分比三种单位，走 <c>m_xAdvance = …</c>）。
 /// 用 em（字号倍数）定位与字体无关，中英文混排也不会错位：
 ///
-///     成分     ██████ 2000/2000mL 纯水
+///     ██████ 2000/2000mL 纯水
 ///     水       1998.0mL   99.90%
 ///     化学污染物  0.6mL    0.03%
 ///
-/// 列宽按实测字宽算（名称列取最宽的名称/表头），但落点交给 &lt;pos&gt;，
-/// 所以每条成分的体积、百分比都在同一条竖直线上。
+/// 表头只有体积条与档位，与原版空瓶的写法一致；列宽按实测字宽算（名称列取最宽的名称），
+/// 落点交给 &lt;pos&gt;，所以每条成分的体积、百分比都在同一条竖直线上。
 /// </summary>
 internal static class WaterColumns
 {
@@ -99,34 +99,33 @@ internal static class WaterColumns
     private static string Pos(float em)
         => "<pos=" + em.ToString("0.##", CultureInfo.InvariantCulture) + "em>";
 
-    /// <summary>表头文字（「成分」）与三条列的起点，单位是 em。</summary>
+    /// <summary>表头以下三条列的起点，单位是 em。</summary>
     internal readonly struct Layout
     {
-        internal readonly string Label;
         internal readonly float VolumeStart;
         internal readonly float PercentStart;
 
-        internal Layout(string label, float volumeStart, float percentStart)
+        internal Layout(float volumeStart, float percentStart)
         {
-            Label = label;
             VolumeStart = volumeStart;
             PercentStart = percentStart;
         }
-
-        /// <summary>把文案放到体积列。</summary>
-        internal string ToVolume(string text) => text + Pos(VolumeStart);
-
-        /// <summary>把文案放到百分比列（体积列已写过的行用这个）。</summary>
-        internal string ToPercent(string text) => text + Pos(PercentStart);
     }
 
     /// <summary>
-    /// 按表头与所有行的名称/用量算出列落点。液体容器与固体化学品共用这一套，
+    /// 一列成分行：名称 → 跳到用量列写用量 → 跳到百分比列写百分比。
+    /// 液体容器与固体化学品共用这一套，两条路径的列位置因此一致。
+    /// </summary>
+    internal static string Row(string name, string amount, string percent, Layout layout)
+        => name + Pos(layout.VolumeStart) + amount + Pos(layout.PercentStart) + percent;
+
+    /// <summary>
+    /// 按所有行的名称/用量算出列落点。液体容器与固体化学品共用这一套，
     /// 两条路径的列位置因此一致。
     /// </summary>
-    internal static Layout Measure(string label, IEnumerable<(string Name, string Amount)> rows)
+    internal static Layout Measure(IEnumerable<(string Name, string Amount)> rows)
     {
-        float nameEm = Em(label);
+        float nameEm = 0f;
         float volEm = 0f;
         foreach (var row in rows)
         {
@@ -134,38 +133,52 @@ internal static class WaterColumns
             volEm = Math.Max(volEm, Em(row.Amount));
         }
         float volStart = nameEm + ColumnGapEm;
-        return new Layout(label, volStart, volStart + volEm + ColumnGapEm);
+        return new Layout(volStart, volStart + volEm + ColumnGapEm);
     }
 
     /// <summary>液体容器的一行体积，单位随 <see cref="Volume.UseLiters"/>。</summary>
     internal static string AmountOf(int parts, bool liters) => VolumeOf(parts, liters);
 
+    /// <summary>百分比列的文案（含 %）。</summary>
+    internal static string Percent(int parts, int totalParts)
+        => WaterLayout.PercentText(parts, totalParts, Loc.Culture) + "%";
+
     /// <summary>
-    /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一落点规则。
-    /// 没有容器与体积条，表头只用「成分」。
+    /// 成分列表：名称、用量、配色。液体容器与固体化学品共用，两条路径只差
+    /// 「水行是否追加标签不符提示」这一项。
     /// </summary>
-    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis)
+    private static List<(string Name, int Parts, RenderHandler.ColorPalette Color)> Components(
+        LiquidAnalysis analysis, bool waterMismatch)
     {
         var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
         int activeIndex = 0, otherIndex = 0;
         foreach (var component in analysis.Components)
         {
+            string name = component.Name;
+            if (waterMismatch && component.Role == "water" && analysis.LabelMismatch)
+                name += Loc.T("water.mismatch", " (doesn't match label)");
             int index = component.Role == "active" ? activeIndex++ : component.Role == "other" ? otherIndex++ : 0;
-            comps.Add((component.Name, component.Microliters, ColorOf(component.Id, index)));
+            comps.Add((name, component.Microliters, ColorOf(component.Id, index)));
         }
+        return comps;
+    }
 
-        string label = Loc.T("water.components", "Components");
+    /// <summary>
+    /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一落点规则。
+    /// 没有容器与体积，所以这里不写表头，直接从第一行成分开始。
+    /// </summary>
+    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis)
+    {
+        var comps = Components(analysis, waterMismatch: false);
         var rows = new List<(string Name, string Amount)>();
         foreach (var c in comps) rows.Add((c.Name, WaterInfo.Amount(c.Parts)));
-        var layout = Measure(label, rows);
+        var layout = Measure(rows);
 
-        var lines = new List<TooltipLine> { new(label, RenderHandler.ColorPalette.LightCyan) };
+        var lines = new List<TooltipLine>();
         foreach (var c in comps)
-        {
-            string text = layout.ToVolume(WaterInfo.Amount(c.Parts))
-                        + layout.ToPercent(WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%");
-            lines.Add(new TooltipLine(text, c.Color));
-        }
+            lines.Add(new TooltipLine(
+                Row(c.Name, WaterInfo.Amount(c.Parts), Percent(c.Parts, analysis.TotalMicroliters), layout),
+                c.Color));
         if (analysis.HiddenComponents > 0)
             lines.Add(new TooltipLine(Loc.T("water.trace_count", "(+{0} more below display threshold)", analysis.HiddenComponents),
                 RenderHandler.ColorPalette.Gray));
@@ -181,22 +194,11 @@ internal static class WaterColumns
         float ratio = analysis.CapacityMicroliters > 0
             ? Math.Min(1f, (float)analysis.TotalMicroliters / analysis.CapacityMicroliters) : 0f;
 
-        var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
-        int activeIndex = 0, otherIndex = 0;
-        foreach (var component in analysis.Components)
-        {
-            string name = component.Name;
-            if (component.Role == "water" && analysis.LabelMismatch)
-                name += Loc.T("water.mismatch", " (doesn't match label)");
-            int index = component.Role == "active" ? activeIndex++ : component.Role == "other" ? otherIndex++ : 0;
-            comps.Add((name, component.Microliters, ColorOf(component.Id, index)));
-        }
+        var comps = Components(analysis, waterMismatch: true);
 
-        string label = Loc.T("water.components", "Components");
         var measureRows = new List<(string Name, string Amount)>();
         foreach (var c in comps) measureRows.Add((c.Name, VolumeOf(c.Parts, liters)));
-        var layout = Measure(label, measureRows);
-        string pos = Pos(layout.VolumeStart);
+        var layout = Measure(measureRows);
         string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
                     + (analysis.Tier.Length > 0 ? " " + analysis.Tier : "");
 
@@ -207,7 +209,7 @@ internal static class WaterColumns
             // 列对齐和表头进度条的绘制交给它。
             var plain = new List<TooltipLine>
             {
-                new(label + "  " + tail.TrimStart(), ratio, 6, "",
+                new(tail.TrimStart(), ratio, 6, "",
                     RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
             };
             foreach (var c in comps)
@@ -219,16 +221,14 @@ internal static class WaterColumns
             return plain;
         }
 
-        // 条长 6：原版 10 格加上表头文字会折行
-        lines.Add(new TooltipLine(label + pos, ratio, 6, tail,
+        // 表头只有体积条与档位，和空瓶一样：条长 6，原版 10 格加上文字会折行
+        lines.Add(new TooltipLine("", ratio, 6, tail,
             RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan));
 
         foreach (var c in comps)
-        {
-            string text = c.Name + pos + VolumeOf(c.Parts, liters)
-                        + layout.ToPercent(WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%");
-            lines.Add(new TooltipLine(text, c.Color));
-        }
+            lines.Add(new TooltipLine(
+                Row(c.Name, VolumeOf(c.Parts, liters), Percent(c.Parts, analysis.TotalMicroliters), layout),
+                c.Color));
         return lines;
     }
 

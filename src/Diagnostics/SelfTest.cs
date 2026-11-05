@@ -514,6 +514,14 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
+        // 额外验证：固体与液体的成分行共用同一套三列构造
+        {
+            string line = CheckComponentColumns(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
         // 额外验证：tooltip 框宽按「去掉富文本标签后的可见字符数」计算
         {
             string line = CheckTooltipWidth.Run(out bool ok);

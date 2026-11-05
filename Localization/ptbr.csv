@@ -121,13 +121,8 @@ value.cost_perf,Valor por célula: {0}
 value.cost_perf_detail," ({0}/{1} {1|célula|células})"
 value.perfect_range," | perfeito {0}-{1}"
 value.total_line,Total: {0}
-water.actives,"Princípios ativos: "
-water.other,"Outros: "
 water.mismatch," (rótulo não confere)"
-water.trace,traço (abaixo do limite de exibição)
 water.trace_count,(+{0} mais abaixo do limite de exibição)
-water.composition,Composição: 
-water.components,Componentes
 chem.effects,Efeitos: {0}
 chem.lethal,letal ({0}x a dose letal)
 chem.toxic,tóxico

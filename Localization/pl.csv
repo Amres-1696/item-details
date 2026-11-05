@@ -121,13 +121,8 @@ value.cost_perf,Wartość na kratkę: {0}
 value.cost_perf_detail," ({0}/{1} {1|kratka|kratki|kratek})"
 value.perfect_range," | idealnie {0}-{1}"
 value.total_line,Razem: {0}
-water.actives,"Substancje czynne: "
-water.other,"Pozostałe: "
 water.mismatch," (niezgodność etykiety)"
-water.trace,śladowe (poniżej progu wyświetlania)
 water.trace_count,(+{0} więcej poniżej progu wyświetlania)
-water.composition,Skład: 
-water.components,Składniki
 chem.effects,Działanie: {0}
 chem.lethal,śmiertelne ({0}x dawka śmiertelna)
 chem.toxic,toksyczne

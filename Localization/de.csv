@@ -121,13 +121,8 @@ value.cost_perf,Wert pro Feld: {0}
 value.cost_perf_detail," ({0}/{1} {1|Feld|Felder})"
 value.perfect_range," | perfekt {0}-{1}"
 value.total_line,Gesamt: {0}
-water.actives,"Wirkstoffe: "
-water.other,"Sonstige: "
 water.mismatch," (Etikett passt nicht)"
-water.trace,Spur (unter der Anzeigeschwelle)
 water.trace_count,(+{0} weitere unter der Anzeigeschwelle)
-water.composition,Zusammensetzung: 
-water.components,Bestandteile
 chem.effects,Wirkung: {0}
 chem.lethal,tödlich ({0}-fache tödliche Dosis)
 chem.toxic,giftig
