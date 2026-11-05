@@ -196,7 +196,7 @@ internal static class TooltipDump
             tmp.font = font;
             tmp.fontSize = 16f;
             tmp.enableWordWrapping = false;
-            foreach (string s in new[] { " ", "0", "水", "成分", "化学污染物", "物理污染物", "1962.0mL", "11.4mL", "2000/2000mL", "98.10%" })
+            foreach (string s in new[] { " ", "0", "水", "化学污染物", "物理污染物", "1962.0mL", "11.4mL", "2000/2000mL", "98.10%" })
                 Report.AppendLine($"  宽[{s}] = {tmp.GetPreferredValues(s, 5000f, 5000f).x:0.00}px");
             UnityEngine.Object.Destroy(go);
         }

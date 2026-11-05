@@ -9,9 +9,9 @@ namespace ItemDetails;
 /// 且条长 10 格、没有档位。液体组分分析开启时整段跳过原版行，
 /// 由 <see cref="ModEntry.TryAppendWater"/> 在成分表顶端重画：
 ///
-///     成分  ██████ 2000/2000mL 优质水
+///     ██████ 2000/2000mL 优质水
 ///
-/// 这样进度条落在 [标签] 行下面、条也更短，不再折行。
+/// 表头不留文字，和空瓶一样只画体积条；这样进度条落在 [标签] 行下面、条也更短，不再折行。
 /// 关闭液体分析时原版行照旧，一点不影响。
 /// </summary>
 internal static class WaterContainerLine
