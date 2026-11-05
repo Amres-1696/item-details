@@ -6,8 +6,8 @@ namespace ItemDetails;
 
 /// <summary>
 /// 机器能量行：把原版「所需能量：8/天 （基础：10/天）」与电池余量压成一行
-///   `耗能：10 → 8/天（剩余12，可用1天）`
-/// 基础值灰色；当前值比基础低绿、高红，不变时只写当前值；括号按可运行天数着色。
+///   `耗能：10 → 8/天 ▇▇▇ 22/25kJ (4天)`
+/// 基础值灰色；当前值比基础低绿、高红，不变时只写当前值；天数按可运行天数着色。
 ///
 /// 原版在 CreateMachineryTooltip 里先 Add("所需能量")，耗能变化时再 Add("X/天")，
 /// 最后 AddLine 结束能量块。这里跟踪这次构建：吞掉标签与数值段，在那次 AddLine 处改写出整行。
@@ -160,12 +160,12 @@ internal static class MachineBatteryInfo
         output.Field("basePerDay", baseDrawn);
         output.Field("currentPerDay", drawn);
 
-        // 冒号连同其前的空格一起去掉：整行读作「耗能 4→5/天 ▇▇▇ 22/25kJ (4天)」。
-        // 中文模板的「耗能：」不会命中下面的模式，单独处理。
-        // Some locales also write the colon with a non-breaking space before it.
-        string raw = Loc.T("machine.energy_label", "Power: ");
-        string label = raw.TrimStart().Replace('\u00A0', ' ');
-        label = System.Text.RegularExpressions.Regex.Replace(label, "\\s*[:：]$", "").TrimEnd() + " ";
+        // 标签保留冒号：整行读作「耗能：4→5/天 ▇▇▇ 22/25kJ（4天）」。
+        // 中文模板「耗能：」自带全角冒号、不需要再补空格；西文模板是「Power: 」。
+        string label = Loc.T("machine.energy_label", "Power: ").Replace('\u00A0', ' ');
+        // 中文模板「耗能：」自带全角冒号，后面直接接数值；西文模板「Power: 」补一个空格。
+        if (label.Length == 0) label = " ";
+        else if (label[label.Length - 1] != '：' && label[label.Length - 1] != ':') label = label.TrimEnd() + " ";
         var head = new List<(string Text, RenderHandler.ColorPalette Color)>
         {
             (label, RenderHandler.ColorPalette.LightCyan),
@@ -194,7 +194,7 @@ internal static class MachineBatteryInfo
         output.Field("remaining", energy);
         output.Field("maxEnergy", maxEnergy);
         output.Field("days", days);
-        // 条画的是剩余/最大电量；括号是按可运行天数着色的「22/25kJ (4天)」。
+        // 条画的是剩余/最大电量；尾部是按可运行天数着色的「22/25kJ (4天)」。
         // 头部已由上面的 Direct 逐段写出，这里只画条与尾部：TooltipLine 的 Text 必须传空，
         // 否则 AddInlineBarLine/AddBarLine 会把头部再写一遍（实测「耗能 4/天」出现两次）。
         foreach (var part in head) output.Direct(part.Text, part.Color);
@@ -238,8 +238,8 @@ internal static class MachineBatteryInfo
                       : RenderHandler.ColorPalette.LightRed;
 
             return new TooltipLine(maxEnergy > 0
-                ? Loc.T("machine.energy_battery", " ({0}/{1}kJ ({2} day))", energy, maxEnergy, days)
-                : Loc.T("machine.energy_left", " ({0}kJ, {1} day)", energy, days),
+                ? Loc.T("machine.energy_battery", " {0}/{1}kJ ({2} day)", energy, maxEnergy, days)
+                : Loc.T("machine.energy_left", " {0}kJ, {1} day", energy, days),
                 color);
         }
         catch (Exception ex)
@@ -269,6 +269,6 @@ internal static class MachineBatteryInfo
         return _requiredLabel;
     }
 
-    /// <summary>能量行末尾的括号：剩余能量 + 按当前每日耗能向下取整的可运行天数。</summary>
+    /// <summary>能量行末尾的说明：剩余能量 + 按当前每日耗能向下取整的可运行天数。</summary>
     internal static TooltipLine? Collect(GameItem? item) => Collect(item, out _, out _, out _);
 }

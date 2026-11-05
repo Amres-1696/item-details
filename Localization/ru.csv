@@ -148,8 +148,8 @@ wine.yeast_effect,"Вино +{0} (не сумм.), брожение {1} тик."
 wine.yeast_illegal,Вино станет подделкой
 machine.energy_label,"Расход: "
 machine.energy_unit,/дн.
-machine.energy_battery," ({0}/{1} кДж, хватит на {2} дн.)"
-machine.energy_left," ({0} кДж, хватит на {1} дн.)"
+machine.energy_battery," {0}/{1} кДж, хватит на {2} дн."
+machine.energy_left," {0} кДж, хватит на {1} дн."
 config.section.display,Отображение
 config.authenticity,Проверка подлинности
 config.authenticity.tip,"Отличает подлинник от подделки, называет дефекты и причины подделки, показывает качество цветоягоды и непроанализированные признаки семян."

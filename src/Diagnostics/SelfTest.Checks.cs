@@ -991,12 +991,16 @@ internal static partial class SelfTest
             string required = "";
             try { required = LocHelper.GetLocalizedMechanic("mech_machinery_required_energy") ?? ""; } catch { }
             int maxEnergy = GameRead.TagInt(battery, "power_source_item_max_energy") ?? 0;
-            // 条画在耗能数值与括号之间：文本里夹着 █ 与空格，比对时先去掉。
-            string energyLine = Loc.T("machine.energy_label", "Power: ").TrimStart().TrimEnd('：', ':').TrimEnd() + " "
+            // 条画在耗能数值与尾部说明之间：文本里夹着 █ 与空格，比对时先去掉。
+            // 标签规则与产品一致：中文模板自带全角冒号、其后不补空格；西文模板补一个空格。
+            string label = Loc.T("machine.energy_label", "Power: ");
+            if (label.Length > 0 && !(label[label.Length - 1] is '：' or ':')) { label = label.TrimEnd() + " "; }
+            else label = label.TrimEnd() + " ";
+            string energyLine = label
                 + (baseDrawn > 0 && baseDrawn != drawn ? baseDrawn + " → " : "")
                 + drawn + Loc.T("machine.energy_unit", "/day") + " "
-                + Loc.T("machine.energy_battery", " ({0}/{1}kJ ({2} day))", 100, maxEnergy, days).TrimStart();
-            // 条夹在耗能数值与括号之间；把条从比对文本里去掉，只看文字是否按新格式拼好。
+                + Loc.T("machine.energy_battery", " {0}/{1}kJ ({2} day)", 100, maxEnergy, days).TrimStart();
+            // 条夹在耗能数值与尾部说明之间；把条从比对文本里去掉，只看文字是否按新格式拼好。
             string withoutBar = System.Text.RegularExpressions.Regex.Replace(text, @"█+|<[^>]*>|<sprite[^>]*>", "");
             int paren = withoutBar.IndexOf('(');
             string head = paren > 0 ? withoutBar.Substring(0, paren).TrimEnd() : withoutBar;

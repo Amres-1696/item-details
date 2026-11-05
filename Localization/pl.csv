@@ -148,8 +148,8 @@ wine.yeast_effect,"Wino +{0} (nie sumuje), {1} takt. fermentacji"
 wine.yeast_illegal,Wino będzie podróbką
 machine.energy_label,"Zużycie: "
 machine.energy_unit,/dzień
-machine.energy_battery," ({0}/{1} kJ, starczy na {2} {2|dzień|dni|dni})"
-machine.energy_left," ({0} kJ, starczy na {1} {1|dzień|dni|dni})"
+machine.energy_battery," {0}/{1} kJ, starczy na {2} {2|dzień|dni|dni}"
+machine.energy_left," {0} kJ, starczy na {1} {1|dzień|dni|dni}"
 config.section.display,Wyświetlanie
 config.authenticity,Sprawdzanie autentyczności
 config.authenticity.tip,"Odróżnia oryginał od podróbki, wymienia wady i powody podróbki, pokazuje jakość KwiatoGody i niezbadane cechy nasion."

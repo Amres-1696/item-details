@@ -148,8 +148,8 @@ wine.yeast_effect,"Vino +{0} (non somma), fermenta in {1} {1|ciclo|cicli}"
 wine.yeast_illegal,Il vino sarà un falso
 machine.energy_label,"Consumo: "
 machine.energy_unit,/giorno
-machine.energy_battery," ({0}/{1} kJ, per {2} {2|giorno|giorni})"
-machine.energy_left," ({0} kJ, per {1} {1|giorno|giorni})"
+machine.energy_battery," {0}/{1} kJ, per {2} {2|giorno|giorni}"
+machine.energy_left," {0} kJ, per {1} {1|giorno|giorni}"
 config.section.display,Visualizzazione
 config.authenticity,Verifica di autenticità
 config.authenticity.tip,"Distingue l'originale dal falso, indica difetti e motivi del falso e mostra la qualità della bacca e i tratti non analizzati dei semi."

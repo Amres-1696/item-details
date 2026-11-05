@@ -148,8 +148,8 @@ wine.yeast_effect,"Vin +{0} (sans cumul), fermente en {1} {1|cycle|cycles}"
 wine.yeast_illegal,Le vin sera une contrefaçon
 machine.energy_label,"Consommation : "
 machine.energy_unit,/jour
-machine.energy_battery," ({0}/{1} kJ, pour {2} {2|jour|jours})"
-machine.energy_left," ({0} kJ, pour {1} {1|jour|jours})"
+machine.energy_battery," {0}/{1} kJ, pour {2} {2|jour|jours}"
+machine.energy_left," {0} kJ, pour {1} {1|jour|jours}"
 config.section.display,Affichage
 config.authenticity,Vérification d'authenticité
 config.authenticity.tip,"Distingue l'authentique de la contrefaçon, indique les défauts et les raisons de la contrefaçon, et affiche la qualité de la grappe et les traits non analysés des graines."

@@ -148,8 +148,8 @@ wine.yeast_effect,果酿评分 +{0}（不叠加），发酵 {1} 次
 wine.yeast_illegal,会酿成赝品
 machine.energy_label,耗能：
 machine.energy_unit,/天
-machine.energy_battery," （{0}/{1}kJ，可用{2}天）"
-machine.energy_left," （{0}kJ，可用{1}天）"
+machine.energy_battery, {0}/{1}kJ（{2}天）
+machine.energy_left, {0}kJ（{1}天）
 config.section.display,显示优化
 config.authenticity,真伪鉴定
 config.authenticity.tip,判定真品或赝品并列出瑕疵与赝品原因，显示荧光莓品质和未分析的种子性状。

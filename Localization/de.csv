@@ -148,8 +148,8 @@ wine.yeast_effect,"Wein +{0} (einmalig), Gärung: {1} {1|Tick|Ticks}"
 wine.yeast_illegal,Der Wein wird eine Fälschung
 machine.energy_label,"Verbrauch: "
 machine.energy_unit,/Tag
-machine.energy_battery," ({0}/{1} kJ, noch {2} {2|Tag|Tage})"
-machine.energy_left," ({0} kJ, {1} {1|Tag|Tage})"
+machine.energy_battery," {0}/{1} kJ, noch {2} {2|Tag|Tage}"
+machine.energy_left," {0} kJ, {1} {1|Tag|Tage}"
 config.section.display,Anzeige
 config.authenticity,Echtheitsprüfung
 config.authenticity.tip,"Unterscheidet echt von gefälscht, nennt Mängel und Fälschungsgründe und zeigt Blühbeerenqualität sowie unanalysierte Samenmerkmale."

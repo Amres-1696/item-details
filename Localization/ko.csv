@@ -148,8 +148,8 @@ wine.yeast_effect,"과실주 +{0}(중복 없음), {1}회 발효"
 wine.yeast_illegal,위조품이 됨
 machine.energy_label,"소비 전력: "
 machine.energy_unit,/일
-machine.energy_battery," ({0}/{1}kJ, {2}일분)"
-machine.energy_left," ({0}kJ, {1}일분)"
+machine.energy_battery," {0}/{1}kJ, {2}일분"
+machine.energy_left," {0}kJ, {1}일분"
 config.section.display,표시
 config.authenticity,진위 감정
 config.authenticity.tip,"진품과 위조품을 판정해 결함과 위조 사유를 보여 주고, 블룸베리 품질과 미분석 씨앗 형질을 표시합니다."
