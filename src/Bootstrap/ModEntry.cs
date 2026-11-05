@@ -113,8 +113,7 @@ public sealed partial class ModEntry : IMod
         // 一次性测试套件：ModData/item_details/testkit.flag（内容为槽位 ID）
         try { TestKit.MaybeStart(manifest.ID); }
         catch (Exception ex) { Log.Error("TestKit", ex); }
-        try { CrateProbe.MaybeStart(manifest.ID); }
-        catch (Exception ex) { Log.Error("CrateProbe", ex); }
+        // tooltip 正文导出：ModData/item_details/tooltipdump.flag（内容为槽位 ID）
         try { TooltipDump.MaybeStart(manifest.ID); }
         catch (Exception ex) { Log.Error("TooltipDump", ex); }
 #endif
