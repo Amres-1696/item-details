@@ -95,6 +95,7 @@ internal static class ModSettings
 
     // ---- 操作优化 ----
     private static readonly Toggle DoubleClickInspectToggle = new(true);
+    private static readonly Toggle FoldWaterToggle = new(true);            // 水质成分表折叠（按住 Ctrl 展开）
     private static readonly Toggle DoubleClickScanToggle = new(false);    // 保留旧版双击扫描及旧设置
     private static readonly Toggle ContextMenuScanToggle = new(true);   // 右键菜单添加扫描（独立开关）
 
@@ -163,6 +164,12 @@ internal static class ModSettings
                 Text("config.context_menu_scan.tip", "While you own the matching device, the item's right-click menu " +
                      "gains a Scan entry that opens its scan panel: water or chem scanner for liquids and chemicals, " +
                      "X-ray scanner for locked supply crates, plant analyser for seeds."));
+
+            FoldWaterToggle.Define(_cfg, "fold_water_components", SecInteractionKey, SecInteractionEn,
+                Text("config.fold_water_components", "Fold Water Components"),
+                Text("config.fold_water_components.tip", "Only components above 1% are listed. Hold either Ctrl " +
+                     "to expand the folded ones together with the purification advice. Turn off to always list " +
+                     "every component."));
 
             // ================= 透视 =================
             AuthenticityToggle.Define(_cfg, "show_authenticity", SecRevealKey, SecRevealEn,
@@ -596,6 +603,7 @@ internal static class ModSettings
     internal static bool DoubleClickInspect => DoubleClickInspectToggle.Value;
     internal static bool DoubleClickScan => DoubleClickScanToggle.Value;
     internal static bool ContextMenuScan => ContextMenuScanToggle.Value;
+    internal static bool FoldWaterComponents => FoldWaterToggle.Value;
     internal static bool TypeBadge => InfoEnhance && TypeBadgeToggle.Value;
     internal static bool TypeBadgeMuted => TypeBadgeMutedToggle.Value;
     internal static bool BlockProgressBar => InfoEnhance && ProgressBarToggle.Value;

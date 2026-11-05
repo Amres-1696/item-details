@@ -194,9 +194,13 @@ internal static class WaterColumns
     /// 而这一行本身要短才好对齐。没有折叠的杂质时也会显示（建议被折叠），只是不带合计百分比。</summary>
     private static string FoldHint => Loc.T("water.fold_expand", "Ctrl to expand impurities");
 
-    /// <summary>按住左右 Ctrl 时展开被折叠的成分；读不到输入设备时按未按住处理。</summary>
+    /// <summary>
+    /// 是否列出全部成分：关掉「折叠水质成分」时始终为 true；
+    /// 否则按住左右 Ctrl 才展开，读不到输入设备时按未按住处理。
+    /// </summary>
     internal static bool Expanded()
     {
+        if (!ModSettings.FoldWaterComponents) return true;
         try { return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl); }
         catch { return false; }
     }
