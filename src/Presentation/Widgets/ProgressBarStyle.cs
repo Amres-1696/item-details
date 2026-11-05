@@ -1,44 +1,57 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using HarmonyLib;
+using TMPro;
+using UnityEngine;
 
 namespace ItemDetails;
 
 /// <summary>
-/// 把原版 tooltip 里的 `[=====     ]` 文字进度条换成一排 `█`：
-/// 已填部分用调用方给的前景色，未填部分用它给的暗色（原版每处都传了 VeryDarkCyan 之类的背景色，
-/// 但 <c>AddProgressBar</c> 里把背景色强制清成 None，等于没用上）。
-///
-/// 不跳过 <c>AddProgressBar</c>：原方法照常拼串、Add、再把这一段标成不折行；这里只在它
-/// 调用 Add 的那一刻换掉文本。所以不折行标记、tooltip 换行宽度和其它模组对 AddProgressBar
-/// 的补丁都保留。原方法传给 Add 的文本不是 `[` 开头 `]` 结尾时（被别人改过）原样放过。
-///
-/// 字形用 U+2588：原版自己的背景色层就是用它铺底（RichTextBuilder.TextSlice.GetFillString），
-/// tooltip 字体里一定有这个字。
-///
-/// 物品 tooltip 里优先画成 sprite 条（外框 + 暗底 + 填充，见 <see cref="SpriteProgressBar"/>），
-/// 宽度仍按 length 格计；sprite 不可用或不在 tooltip 构建期间时退回 `█` 条。
+/// 逻辑层与渲染层分离的进度条实现：
+/// - 逻辑层（RichTextBuilder / TextSlice）：保留原版 `[=====     ]` 纯文本格式与字符宽度，
+///   并在内部上下文中记录高精度条元数据（BarRecord）；
+/// - 第三方层：像 SectionedTooltips 等美化排版 Mod 读取和切分原版文本时，看到的是标准原版字符，
+///   正则提取与列宽计算完全不会被 TMP sprite 标签破坏；
+/// - 渲染层（RichTextElement.SetRichText）：在实际向屏幕 TextMeshPro 提交富文本的前夕，
+///   统一匹配 `[=====     ]` 并根据之前记录的高精度浮点数替换为高清 SpriteProgressBar（或回退为 █ 块）。
 /// </summary>
 internal static class ProgressBarStyle
 {
     private const string HarmonyId = "item_details.progress_bar";
     private const char Block = '█';
-    /// <summary>调用方没给暗色时，未填部分用前景色加这个透明度。</summary>
+    private const int MaxLength = 40;
     private const string DimAlpha = "<alpha=#40>";
+    private static readonly Regex BarRegex = new Regex(@"\[([= ]{2,40})\]", RegexOptions.Compiled);
 
     private static Harmony? _harmony;
     private static bool _patched;
 
-    /// <summary>AddProgressBar 正在构建的那一条；只在它执行期间非空，由它里面唯一一次 Add 消费。</summary>
-    private static Pending? _pending;
+    private static FieldInfo? _textNodeField;
+    private static PropertyInfo? _textProp;
 
-    private sealed class Pending
+    internal readonly struct BarRecord
     {
-        internal float Ratio;
-        internal int Length;
-        internal bool FullLength;
-        internal RenderHandler.ColorPalette Dark;
+        internal readonly float Ratio;
+        internal readonly int Length;
+        internal readonly RenderHandler.ColorPalette Dark;
+        internal readonly bool FullLength;
+
+        internal BarRecord(float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true)
+        {
+            Ratio = ratio;
+            Length = length;
+            Dark = dark;
+            FullLength = fullLength;
+        }
     }
+
+    private static readonly ConditionalWeakTable<RichTextBuilder, List<BarRecord>> BuilderBars = new();
+    private static readonly ConditionalWeakTable<RichText, List<BarRecord>> RichTextBars = new();
+    private static List<BarRecord>? _lastBuildBars;
 
     internal static void Apply()
     {
@@ -50,25 +63,32 @@ internal static class ProgressBarStyle
                 typeof(float), typeof(int), typeof(RenderHandler.ColorPalette), typeof(RenderHandler.ColorPalette),
                 typeof(char[]), typeof(string), typeof(bool), typeof(bool)
             });
-            var add = AccessTools.Method(typeof(RichTextBuilder), "Add", new[]
+            var addBuilder = AccessTools.Method(typeof(RichTextBuilder), "Add", new[] { typeof(RichTextBuilder) });
+            var clear = AccessTools.Method(typeof(RichTextBuilder), "Clear", Type.EmptyTypes);
+            var build = AccessTools.Method(typeof(RichTextBuilder), "Build", new[] { typeof(int) });
+            var setRich = AccessTools.Method(typeof(RichTextElement), "SetRichText",
+                new[] { typeof(RichText), typeof(int) });
+
+            if (bar == null || build == null || setRich == null)
             {
-                typeof(string), typeof(RenderHandler.ColorPalette), typeof(string), typeof(bool),
-                typeof(bool), typeof(bool), typeof(bool), typeof(RenderHandler.ColorPalette),
-                typeof(RenderHandler.ColorPalette), typeof(RenderHandler.ColorPalette)
-            });
-            if (bar == null || add == null)
-            {
-                Log.Warn("ProgressBar.Apply", "未找到 RichTextBuilder.AddProgressBar/Add，进度条保持原版");
+                Log.Warn("ProgressBar.Apply", "未找到 AddProgressBar/Build/SetRichText，进度条保持原版");
                 return;
             }
 
+            _textNodeField = AccessTools.Field(typeof(RichTextElement), "textNode");
+            _textProp = AccessTools.Property(typeof(TreeNodeRender), "text");
+
             _harmony = new Harmony(HarmonyId);
-            _harmony.Patch(bar,
-                prefix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(BeforeBar)),
-                finalizer: new HarmonyMethod(typeof(ProgressBarStyle), nameof(AfterBar)));
-            _harmony.Patch(add, prefix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(AddPrefix)));
+            _harmony.Patch(bar, prefix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(BeforeBar)));
+            if (addBuilder != null)
+                _harmony.Patch(addBuilder, postfix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(AfterAddBuilder)));
+            if (clear != null)
+                _harmony.Patch(clear, postfix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(AfterClear)));
+            _harmony.Patch(build, postfix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(AfterBuild)));
+            _harmony.Patch(setRich, prefix: new HarmonyMethod(typeof(ProgressBarStyle), nameof(BeforeSetRichText)));
+
             _patched = true;
-            Log.Msg("ProgressBarStyle patched RichTextBuilder.AddProgressBar/Add");
+            Log.Msg("ProgressBarStyle: hooked AddProgressBar/Build/SetRichText for decoupled bar rendering");
         }
         catch (Exception ex)
         {
@@ -81,59 +101,184 @@ internal static class ProgressBarStyle
         try { _harmony?.UnpatchAll(HarmonyId); } catch { }
         _harmony = null;
         _patched = false;
-        _pending = null;
+        _lastBuildBars = null;
     }
 
-    private static void BeforeBar(float __0, int __1, RenderHandler.ColorPalette __3, bool __6)
+    internal static void RecordBar(RichTextBuilder builder, float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true)
     {
-        _pending = ModSettings.BlockProgressBar && __1 > 0 && !SectionedLayout.UsesNativeBars
-            ? new Pending { Ratio = __0, Length = __1, Dark = __3, FullLength = __6 }
-            : null;
+        if (builder == null || length <= 0) return;
+        lock (BuilderBars)
+        {
+            BuilderBars.GetOrCreateValue(builder).Add(new BarRecord(ratio, length, dark, fullLength));
+        }
     }
 
-    private static void AfterBar()
+    private static void BeforeBar(RichTextBuilder __instance, float __0, int __1, RenderHandler.ColorPalette __3, bool __6)
     {
-        _pending = null;
+        if (ModSettings.BlockProgressBar && __1 > 0)
+        {
+            RecordBar(__instance, __0, __1, __3, __6);
+        }
     }
 
-    private static void AddPrefix(ref string __0)
+    private static void AfterAddBuilder(RichTextBuilder __instance, RichTextBuilder __0)
     {
-        var p = _pending;
-        if (p == null) return;
-        _pending = null;   // 只换 AddProgressBar 里那一次 Add
+        if (__0 == null) return;
+        lock (BuilderBars)
+        {
+            if (BuilderBars.TryGetValue(__0, out var otherBars) && otherBars.Count > 0)
+            {
+                BuilderBars.GetOrCreateValue(__instance).AddRange(otherBars);
+            }
+        }
+    }
 
+    private static void AfterClear(RichTextBuilder __instance)
+    {
+        lock (BuilderBars)
+        {
+            if (BuilderBars.TryGetValue(__instance, out var bars)) bars.Clear();
+        }
+    }
+
+    private static void AfterBuild(RichTextBuilder __instance, ref RichText __result)
+    {
+        if (__result == null) return;
+        lock (BuilderBars)
+        {
+            if (BuilderBars.TryGetValue(__instance, out var bars) && bars.Count > 0)
+            {
+                var copy = new List<BarRecord>(bars);
+                lock (RichTextBars)
+                {
+                    RichTextBars.Add(__result, copy);
+                }
+                _lastBuildBars = copy;
+            }
+        }
+    }
+
+    private static void BeforeSetRichText(RichTextElement __instance, ref RichText richText)
+    {
+        if (!ModSettings.BlockProgressBar || richText == null) return;
+        string fg = richText.richTextForeground;
+        if (string.IsNullOrEmpty(fg) || fg.IndexOf('[') < 0) return;
+
+        List<BarRecord>? bars = null;
+        lock (RichTextBars)
+        {
+            if (RichTextBars.TryGetValue(richText, out var list))
+            {
+                bars = new List<BarRecord>(list);
+            }
+        }
+        if (bars == null && _lastBuildBars != null && _lastBuildBars.Count > 0)
+        {
+            bars = new List<BarRecord>(_lastBuildBars);
+        }
+
+        TMP_Text? targetText = null;
         try
         {
-            string text = __0;
-            if (text == null || text.Length < 2 || text[0] != '[' || text[text.Length - 1] != ']') return;
-            // 原版这一段带不折行标记，sprite 标签里的空格不会被当成断行点。
-            string? sprite = p.FullLength && TooltipPipeline.InTooltip
-                ? SpriteProgressBar.TryRender(p.Ratio, p.Length, p.Dark)
-                : null;
-            __0 = sprite ?? RenderBlocks(p.Ratio, p.Length, p.Dark, p.FullLength);
+            if (_textNodeField != null && _textProp != null)
+            {
+                object? node = _textNodeField.GetValue(__instance);
+                if (node != null) targetText = _textProp.GetValue(node) as TMP_Text;
+            }
         }
-        catch (Exception ex)
+        catch { }
+
+        string newFg = BarRegex.Replace(fg, match =>
         {
-            Log.Warn("ProgressBar.Render", ex);
+            string inner = match.Groups[1].Value;
+            int len = inner.Length;
+            if (len < 2 || len > MaxLength) return match.Value;
+            int firstSpace = inner.IndexOf(' ');
+            if (firstSpace >= 0 && inner.IndexOf('=', firstSpace) >= 0) return match.Value;
+
+            int equals = 0;
+            for (int i = 0; i < len; i++) if (inner[i] == '=') equals++;
+            float fallbackRatio = (float)equals / len;
+
+            BarRecord? record = MatchBar(bars, len, equals);
+            float ratio = record?.Ratio ?? fallbackRatio;
+            var dark = record?.Dark ?? RenderHandler.ColorPalette.None;
+            bool fullLength = record?.FullLength ?? true;
+
+            string? sprite = fullLength
+                ? SpriteProgressBar.TryRender(ratio, len, dark, targetText)
+                : null;
+            return sprite ?? RenderBlocks(ratio, len, dark, fullLength);
+        });
+
+        if (!string.Equals(newFg, fg, StringComparison.Ordinal))
+        {
+            richText = new RichText(
+                richText.nakedText,
+                richText.richTextStrikethrough,
+                richText.richTextUnderline,
+                newFg,
+                richText.richTextBackground,
+                richText.recommendedWidth,
+                richText.recommendedHeight,
+                richText.isTruncated
+            );
         }
+    }
+
+    private static BarRecord? MatchBar(List<BarRecord>? bars, int length, int equalsCount)
+    {
+        if (bars == null || bars.Count == 0) return null;
+
+        // 1. 优先：长度与已填格数均完全一致（第三方即使重排行也能精准找回原纪录）
+        for (int i = 0; i < bars.Count; i++)
+        {
+            var b = bars[i];
+            if (b.Length == length && ProgressFill.Filled(b.Ratio, b.Length) == equalsCount)
+            {
+                bars.RemoveAt(i);
+                return b;
+            }
+        }
+
+        // 2. 次选：长度匹配
+        for (int i = 0; i < bars.Count; i++)
+        {
+            var b = bars[i];
+            if (b.Length == length)
+            {
+                bars.RemoveAt(i);
+                return b;
+            }
+        }
+
+        // 3. 兜底：取第一个
+        var first = bars[0];
+        bars.RemoveAt(0);
+        return first;
     }
 
     /// <summary>
-    /// 直接生成进度条文本。供模组内新增行（如学习进度）直接写入 RichTextBuilder，
-    /// 避免调用原生 AddProgressBar 引入 noBreak 影响整段 tooltip 折行宽度。
-    ///
-    /// allowSprite：调用方已确认整行不会被折行时才传 true。这条路径没有不折行标记，
-    /// 原版折行会在 slice 文本的空格处断开，而 sprite 标签内部带空格。
+    /// 生成进度条文本。在逻辑层返回标准原版格式 `[=====     ]`，
+    /// 同时在 builder 上记录高精度条元数据，供后续渲染层替换为 Sprite 进度条。
     /// </summary>
+    internal static string Format(RichTextBuilder? builder, float ratio, int length, RenderHandler.ColorPalette dark,
+        bool fullLength = true)
+    {
+        if (length <= 0) return "";
+        if (builder != null && ModSettings.BlockProgressBar)
+        {
+            RecordBar(builder, ratio, length, dark, fullLength);
+        }
+        return RenderAscii(ratio, length, fullLength);
+    }
+
+    /// <summary>无 builder 重载（向下兼容）：生成纯 ASCII 条</summary>
     internal static string Format(float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true,
         bool allowSprite = false)
     {
         if (length <= 0) return "";
-        if (!ModSettings.BlockProgressBar) return RenderAscii(ratio, length, fullLength);
-        string? sprite = allowSprite && fullLength && TooltipPipeline.InTooltip
-            ? SpriteProgressBar.TryRender(ratio, length, dark)
-            : null;
-        return sprite ?? RenderBlocks(ratio, length, dark, fullLength);
+        return RenderAscii(ratio, length, fullLength);
     }
 
     /// <summary>原版 RichTextBuilder 计折行时的可见字符数：跳过 &lt;…&gt; 标签与控制字符。</summary>

@@ -297,10 +297,13 @@ public sealed partial class ModEntry
         {
             // 液体容器：表头只画「体积条 + 2000/2000mL 档位」，下面每种成分一行；
             // 三列用 TMP 的 <pos> 精确定位（见 WaterColumns），比空格补位准。
-            // 三列按像素定位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度。
-            builder.RequireWidth(WaterTableWidth);
-
-            AppendLines(builder, WaterColumns.Build(r, item));
+            var table = WaterColumns.Build(r, item,
+                advicePossible: !ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.WaterAdvice));
+            // 折行预算按本表实际最宽的一行算：原版 40（中文折算 26）通常够用，
+            // 只有名称特别长的行才放宽，且只放宽到够用。以前一律放到 64，
+            // 连净化建议那条长行也不再折行，把整个 tooltip 撑宽。
+            RequireTableWidth(builder, table);
+            AppendLines(builder, table);
             wrote = true;
         }
         else
@@ -320,6 +323,33 @@ public sealed partial class ModEntry
         }
 
         return wrote;
+    }
+
+    /// <summary>
+    /// 成分表需要多宽的折行预算：取表里最长一行的可见字符数（跳过富文本标签），
+    /// 超过当前预算才放宽，且只放到刚好够用。中日韩按原版 0.66 系数折算。
+    /// </summary>
+    private static void RequireTableWidth(TooltipSections.Writer builder, List<TooltipLine> table)
+    {
+        try
+        {
+            int widest = 0;
+            foreach (var line in table)
+            {
+                int visible = ProgressBarStyle.VisibleLength(line.Text);
+                if (line.HasBar)
+                    visible += line.BarLength + 1 + ProgressBarStyle.VisibleLength(line.Tail);
+                widest = Math.Max(widest, visible);
+            }
+            if (widest <= 0) return;
+
+            float scale = UISettings.current != null ? UISettings.current.GetCharWidthScale() : 1f;
+            int limit = scale > 1f ? (int)(builder.MaxCharWidth * 0.66f) : builder.MaxCharWidth;
+            if (widest <= limit) return;
+            int need = scale > 1f ? (int)Math.Ceiling(widest / 0.66f) : widest;
+            builder.RequireWidth(need + 1);
+        }
+        catch (Exception ex) { Log.Warn("RequireTableWidth", ex); }
     }
 
     // ---------------- 密封箱预览（透视，默认关闭） ----------------
@@ -358,28 +388,45 @@ public sealed partial class ModEntry
         return true;
     }
 
-    /// <summary>水质成分表的折行预算（字符数）；原版 tooltip 约 40，三列定位后需要更宽。</summary>
-    private const int WaterTableWidth = 64;
-
     // ---------------- 含水容器：净化收益（探测版） ----------------
     private bool TryAppendWaterAdvice(TooltipSections.Writer builder, GameItem item)
     {
         var methods = LiquidQueries.GetAdvice(item);
         if (methods == null) return false;
-        builder.Field("methods", methods);
-        if (LiquidQueries.TryDisplay(ItemDetailsClient.AdviceDisplay, item, methods)) return true;
-        if (methods.Count == 0) return builder.Capturing;
+        // 过滤结果完全相同的手段只留第一个：滤水器与高级滤水器在这瓶水上收益一样时，
+        // 写两遍只是重复同一个数字。接管方拿到的也是去重后的列表。
+        var shown = DedupeByGain(methods);
+        builder.Field("methods", shown);
+        if (LiquidQueries.TryDisplay(ItemDetailsClient.AdviceDisplay, item, shown)) return true;
+        if (shown.Count == 0) return builder.Capturing;
+
+        // 折叠态不画建议行：默认只留水和大于 1% 的杂质，按 Ctrl 连建议一起展开。
+        // 数据仍然通过 Field 暴露给快照与接管方。
+        if (!WaterColumns.Expanded()) return builder.Capturing;
 
         bool wrote = false;
-        foreach (var mtd in methods)
+        foreach (var mtd in shown)
         {
-            if (wrote) builder.Add("　", RenderHandler.ColorPalette.Gray);
+            // 分隔用普通空格而不是全角空格：原版折行只在普通空格处断，
+            // 建议行因此能自然折成两行，不会把 tooltip 撑宽。
+            if (wrote) builder.Add(" ", RenderHandler.ColorPalette.Gray);
             builder.Add(mtd.Name + " +" + mtd.GainPercentagePoints.ToString("0.00", Loc.Culture) + "%", RenderHandler.ColorPalette.LightTurquoise);
             wrote = true;
         }
         builder.NextLine();
 
         return true;
+    }
+
+    /// <summary>按提升幅度去重：收益相同的手段只留第一个（顺序即扫描顺序）。</summary>
+    private static List<(string Name, double GainPercentagePoints)> DedupeByGain(
+        IReadOnlyList<(string Name, double GainPercentagePoints)> methods)
+    {
+        var seen = new HashSet<double>();
+        var result = new List<(string Name, double GainPercentagePoints)>(methods.Count);
+        foreach (var m in methods)
+            if (seen.Add(m.GainPercentagePoints)) result.Add(m);
+        return result;
     }
 
     // ---------------- 酒：分数 / 成分 / 赝品（信息增强） ----------------
@@ -443,8 +490,7 @@ public sealed partial class ModEntry
             if (ln.Text.Length > 0) builder.Add(ln.Text, ln.Color);
             int visible = ProgressBarStyle.VisibleLength(ln.Text) + ln.BarLength + 1
                 + ProgressBarStyle.VisibleLength(ln.Tail);
-            string bar = ProgressBarStyle.Format(ln.Bar, ln.BarLength, ln.BarDark, fullLength: true,
-                allowSprite: ProgressBarStyle.FitsOneLine(builder, visible));
+            string bar = ProgressBarStyle.Format(builder, ln.Bar, ln.BarLength, ln.BarDark, fullLength: true);
             builder.Add(bar, ln.Color, end: " ");
             AddLine(builder, ln.Tail ?? "", ln.Color);
         }
@@ -471,8 +517,8 @@ public sealed partial class ModEntry
                 + ProgressBarStyle.VisibleLength(ln.Tail);
             bool fits = ProgressBarStyle.FitsOneLine(builder, visible);
             if (ln.Text.Length > 0) builder.Add(ln.Text, ln.Color);
-            builder.Add(ProgressBarStyle.Format(ln.Bar, ln.BarLength, ln.BarDark,
-                fullLength: true, allowSprite: fits), ln.Color, end: " ");
+            builder.Add(ProgressBarStyle.Format(builder, ln.Bar, ln.BarLength, ln.BarDark,
+                fullLength: true), ln.Color, end: " ");
             if (!string.IsNullOrEmpty(ln.Tail)) builder.Add(ln.Tail, ln.Color);
             builder.NextLine();
         }
@@ -504,3 +550,4 @@ public sealed partial class ModEntry
         }
     }
 }
+

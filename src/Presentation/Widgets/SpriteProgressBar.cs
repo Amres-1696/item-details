@@ -73,12 +73,12 @@ internal static class SpriteProgressBar
     /// 返回 sprite 进度条文本；不适用或失败时返回 null，由调用方画 `█` 条。
     /// 文本不带前景色，外层 slice 的颜色就是条的颜色。
     /// </summary>
-    internal static string? TryRender(float rawRatio, int length, RenderHandler.ColorPalette dark)
+    internal static string? TryRender(float rawRatio, int length, RenderHandler.ColorPalette dark, TMP_Text? targetText = null)
     {
         if (_failed || length <= 0 || length > MaxLength) return null;
         try
         {
-            if (!EnsureAsset() || !EnsureGeometry()) return null;
+            if (!EnsureAsset() || !EnsureGeometry(targetText)) return null;
 
             int steps = length * SubSteps;
             int step = Step(rawRatio, steps);
@@ -188,9 +188,9 @@ internal static class SpriteProgressBar
     // ---------------- 度量 ----------------
 
     /// <summary>按当前 tooltip 字体与屏幕缩放算出条的几何；字体或缩放变化时清空已建的字形。</summary>
-    private static bool EnsureGeometry()
+    private static bool EnsureGeometry(TMP_Text? targetText = null)
     {
-        TMP_Text? text = TooltipText();
+        TMP_Text? text = targetText ?? TooltipText();
         TMP_FontAsset? font = text != null ? text.font : null;
         if (font == null) font = TypeBadge.TooltipFont;
         if (font == null) font = TMP_Settings.defaultFontAsset;
