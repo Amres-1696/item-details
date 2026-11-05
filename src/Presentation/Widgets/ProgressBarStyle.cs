@@ -51,7 +51,6 @@ internal static class ProgressBarStyle
 
     private static readonly ConditionalWeakTable<RichTextBuilder, List<BarRecord>> BuilderBars = new();
     private static readonly ConditionalWeakTable<RichText, List<BarRecord>> RichTextBars = new();
-    private static List<BarRecord>? _lastBuildBars;
 
     internal static void Apply()
     {
@@ -101,7 +100,6 @@ internal static class ProgressBarStyle
         try { _harmony?.UnpatchAll(HarmonyId); } catch { }
         _harmony = null;
         _patched = false;
-        _lastBuildBars = null;
     }
 
     internal static void RecordBar(RichTextBuilder builder, float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true)
@@ -141,6 +139,11 @@ internal static class ProgressBarStyle
         }
     }
 
+    /// <summary>
+    /// 把这一份 builder 记录的条挂到它构建出的 <see cref="RichText"/> 上。
+    /// 只有这条关联能让渲染层确认「这段文字里的 [=====  ] 就是我刚算的那条」；
+    /// 别的文本没有关联时一律按它自己写的填充格数还原，不借别人的比例。
+    /// </summary>
     private static void AfterBuild(RichTextBuilder __instance, ref RichText __result)
     {
         if (__result == null) return;
@@ -151,9 +154,9 @@ internal static class ProgressBarStyle
                 var copy = new List<BarRecord>(bars);
                 lock (RichTextBars)
                 {
+                    if (RichTextBars.TryGetValue(__result, out _)) RichTextBars.Remove(__result);
                     RichTextBars.Add(__result, copy);
                 }
-                _lastBuildBars = copy;
             }
         }
     }
@@ -164,6 +167,8 @@ internal static class ProgressBarStyle
         string fg = richText.richTextForeground;
         if (string.IsNullOrEmpty(fg) || fg.IndexOf('[') < 0) return;
 
+        // 只认这个 RichText 自己的记录。没有记录时（别的模组重建的文字、原生条、旧缓存）
+        // 就按文字里的填充格数还原：宁可少一位小数，也不能把另一件物品的精确比例套上去。
         List<BarRecord>? bars = null;
         lock (RichTextBars)
         {
@@ -171,10 +176,6 @@ internal static class ProgressBarStyle
             {
                 bars = new List<BarRecord>(list);
             }
-        }
-        if (bars == null && _lastBuildBars != null && _lastBuildBars.Count > 0)
-        {
-            bars = new List<BarRecord>(_lastBuildBars);
         }
 
         TMP_Text? targetText = null;
@@ -226,11 +227,15 @@ internal static class ProgressBarStyle
         }
     }
 
+    /// <summary>
+    /// 找这条 [=====  ] 对应的记录：长度与填充格数都要一致才算同一根条。
+    /// 只按长度、或干脆取第一条，会在第三方改写了填充格数后套上别的比例和底色；
+    /// 匹配不上就返回 null，由调用方按文字自己的比例画。
+    /// </summary>
     private static BarRecord? MatchBar(List<BarRecord>? bars, int length, int equalsCount)
     {
         if (bars == null || bars.Count == 0) return null;
 
-        // 1. 优先：长度与已填格数均完全一致（第三方即使重排行也能精准找回原纪录）
         for (int i = 0; i < bars.Count; i++)
         {
             var b = bars[i];
@@ -240,22 +245,7 @@ internal static class ProgressBarStyle
                 return b;
             }
         }
-
-        // 2. 次选：长度匹配
-        for (int i = 0; i < bars.Count; i++)
-        {
-            var b = bars[i];
-            if (b.Length == length)
-            {
-                bars.RemoveAt(i);
-                return b;
-            }
-        }
-
-        // 3. 兜底：取第一个
-        var first = bars[0];
-        bars.RemoveAt(0);
-        return first;
+        return null;
     }
 
     /// <summary>

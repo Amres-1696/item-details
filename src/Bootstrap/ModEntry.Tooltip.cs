@@ -293,12 +293,17 @@ public sealed partial class ModEntry
 
         bool wrote = false;
 
+        // 只有接管方在看的时候才留一份行数据，平时不付这份分配。
+        var visible = builder.Capturing ? new List<WaterRow>() : null;
+
         if (!r.IsSolid)
         {
             // 液体容器：表头只画「体积条 + 2000/2000mL 档位」，下面每种成分一行；
             // 三列用 TMP 的 <pos> 精确定位（见 WaterColumns），比空格补位准。
             var table = WaterColumns.Build(r, item,
-                advicePossible: !ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.WaterAdvice));
+                advicePossible: !ThirdPartyProviders.HandlesTooltip(item, ItemDetailsTooltipSection.WaterAdvice),
+                visible: visible);
+            PublishWaterRows(builder, visible);
             // 折行预算按本表实际最宽的一行算：原版 40（中文折算 26）通常够用，
             // 只有名称特别长的行才放宽，且只放宽到够用。以前一律放到 64，
             // 连净化建议那条长行也不再折行，把整个 tooltip 撑宽。
@@ -309,8 +314,10 @@ public sealed partial class ModEntry
         else
         {
             // 固体化学品（药片、作物、粪便等）：没有容器与体积，所以不画条；
-            // 成分与液体容器共用同一套三列构造，列位置一致。
-            AppendLines(builder, WaterColumns.BuildSolid(r));
+            // 成分与液体容器共用同一份行数据，列位置一致。
+            var table = WaterColumns.BuildSolid(r, visible);
+            PublishWaterRows(builder, visible);
+            AppendLines(builder, table);
             wrote = true;
         }
 
@@ -350,6 +357,23 @@ public sealed partial class ModEntry
             builder.RequireWidth(need + 1);
         }
         catch (Exception ex) { Log.Warn("RequireTableWidth", ex); }
+    }
+
+    /// <summary>
+    /// 把这一帧实际画出的成分行交给接管方：名称、用量、百分比已经是分好的格子，
+    /// 不必再从全角空格或 &lt;pos&gt; 里反推。折叠提示行的用量为空，百分比是折起来的合计。
+    /// 只在观察或接管方在场时写入，字段缺失时读取方按「没有表格」处理。
+    /// </summary>
+    private static void PublishWaterRows(TooltipSections.Writer builder, List<WaterRow>? rows)
+    {
+        if (rows == null || rows.Count == 0) return;
+        var payload = new List<(string Kind, string Name, string Amount, string Percent)>(rows.Count);
+        foreach (var row in rows)
+            payload.Add((row.Kind == WaterRowKind.Component
+                ? WaterRowKinds.Component
+                : WaterRowKinds.FoldHint, row.Name, row.Amount, row.Percent));
+        IReadOnlyList<(string Kind, string Name, string Amount, string Percent)> published = payload.AsReadOnly();
+        builder.Field("rows", published);
     }
 
     // ---------------- 密封箱预览（透视，默认关闭） ----------------

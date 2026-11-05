@@ -20,11 +20,17 @@ namespace ItemDetails;
 ///
 /// 表头只有体积条与档位，与原版空瓶的写法一致；列宽按实测字宽算（名称列取最宽的名称），
 /// 落点交给 &lt;pos&gt;，所以每条成分的体积、百分比都在同一条竖直线上。
+///
+/// 画哪些行由 <see cref="WaterTable"/> 决定，这里只负责落位：液体容器与固体化学品走同一份
+/// 行数据，只是表头、用量单位和末尾说明不同。
 /// </summary>
 internal static class WaterColumns
 {
     /// <summary>数字列与上一列之间的间距（em）。</summary>
     private const float ColumnGapEm = 0.9f;
+
+    /// <summary>流式布局里格子之间的分隔：美化布局按全角空格切列（U+3000）。</summary>
+    private const char FlowingSeparator = '\u3000';
 
     /// <summary>
     /// 固定配色（按液体 identifier）：水蓝、化学污染物紫、有机废物绿、微生物黄、
@@ -112,25 +118,19 @@ internal static class WaterColumns
         }
     }
 
-    /// <summary>
-    /// 一列成分行：名称 → 跳到用量列写用量 → 跳到百分比列写百分比。
-    /// 液体容器与固体化学品共用这一套，两条路径的列位置因此一致。
-    /// </summary>
-    internal static string Row(string name, string amount, string percent, Layout layout)
-        => name + Pos(layout.VolumeStart) + amount + Pos(layout.PercentStart) + percent;
+    /// <summary>一行按列落位：名称 → 跳到用量列写用量 → 跳到百分比列写百分比。</summary>
+    private static string Row(WaterRow row, Layout layout)
+        => row.Name + Pos(layout.VolumeStart) + row.Amount + Pos(layout.PercentStart) + row.Percent;
 
-    /// <summary>
-    /// 按所有行的名称/用量算出列落点。液体容器与固体化学品共用这一套，
-    /// 两条路径的列位置因此一致。
-    /// </summary>
-    internal static Layout Measure(IEnumerable<(string Name, string Amount)> rows)
+    /// <summary>按所有可见行的名称/用量算出列落点，折叠提示行也参与。</summary>
+    private static Layout Measure(IReadOnlyList<WaterRow> rows)
     {
         float nameEm = 0f;
         float volEm = 0f;
-        foreach (var row in rows)
+        for (int i = 0; i < rows.Count; i++)
         {
-            nameEm = Math.Max(nameEm, Em(row.Name));
-            volEm = Math.Max(volEm, Em(row.Amount));
+            nameEm = Math.Max(nameEm, Em(rows[i].Name));
+            volEm = Math.Max(volEm, Em(rows[i].Amount));
         }
         float volStart = nameEm + ColumnGapEm;
         return new Layout(volStart, volStart + volEm + ColumnGapEm);
@@ -138,10 +138,6 @@ internal static class WaterColumns
 
     /// <summary>液体容器的一行体积，单位随 <see cref="Volume.UseLiters"/>。</summary>
     internal static string AmountOf(int parts, bool liters) => VolumeOf(parts, liters);
-
-    /// <summary>百分比列的文案（含 %）。</summary>
-    internal static string Percent(int parts, int totalParts)
-        => WaterLayout.PercentText(parts, totalParts, Loc.Culture) + "%";
 
     /// <summary>
     /// 成分列表：名称、用量、配色。液体容器与固体化学品共用，两条路径只差
@@ -163,33 +159,8 @@ internal static class WaterColumns
         return comps;
     }
 
-    /// <summary>
-    /// 按 1% 阈值把成分分成「显示」与「折起来」两堆。按住 Ctrl 时全部显示。
-    /// 固体与液体成分表共用；净水建议由调用方按同一个 <see cref="Expanded"/> 决定显不显示。
-    /// </summary>
-    private static (List<(string Name, int Parts, RenderHandler.ColorPalette Color)> Shown,
-                   int FoldedParts, int FoldedCount)
-        Split(List<(string Name, int Parts, RenderHandler.ColorPalette Color)> comps, int total)
-    {
-        var shown = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
-        int foldedParts = 0, foldedCount = 0;
-        foreach (var c in comps)
-        {
-            if (WaterLayout.BelowOnePercent(c.Parts, total))
-            {
-                foldedParts += c.Parts;
-                foldedCount++;
-                if (!Expanded()) continue;
-            }
-            shown.Add(c);
-        }
-        return (shown, foldedParts, foldedCount);
-    }
-
-    /// <summary>
-    /// 折叠提示行的文案。固定只提杂质：净水建议也在展开时才画，但写进文案只会让它变长，
-    /// 而这一行本身要短才好对齐。没有折叠的杂质时也会显示（建议被折叠），只是不带合计百分比。
-    /// </summary>
+    /// <summary>折叠提示行的文案。固定只提杂质：净水建议也在展开时才画，但写进文案只会让它变长，
+    /// 而这一行本身要短才好对齐。没有折叠的杂质时也会显示（建议被折叠），只是不带合计百分比。</summary>
     private static string FoldHint => Loc.T("water.fold_expand", "Ctrl to expand impurities");
 
     /// <summary>按住左右 Ctrl 时展开被折叠的成分；读不到输入设备时按未按住处理。</summary>
@@ -200,33 +171,21 @@ internal static class WaterColumns
     }
 
     /// <summary>
-    /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一落点规则。
-    /// 没有容器与体积，所以这里不写表头，直接从第一行成分开始。
-    ///
-    /// 低于 1% 的成分折成一行「按Ctrl展开杂质 xx.xx%」：百分比是折起来那几项的合计，
-    /// 对齐到百分比列；按住 Ctrl 全部展开，展开时不画提示行（每项都已列出）。
-    /// 列宽把提示行也算进去，展开时列不抖。
+    /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一份行数据。
+    /// 没有容器与体积，所以这里不写表头，直接从第一行成分开始；末尾补一行低于显示阈值的数量。
     /// </summary>
-    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis)
+    /// <param name="visible">非 null 时填入这一帧实际画出的行，供区块协议发布。</param>
+    internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis, List<WaterRow>? visible = null)
     {
         var comps = Components(analysis, waterMismatch: false);
-        var (shown, foldedParts, foldedCount) = Split(comps, analysis.TotalMicroliters);
-        string hint = FoldHint;
+        var plan = WaterTable.Build(Pairs(comps), analysis.TotalMicroliters, Expanded(),
+            hintWithoutFolded: false, FoldHint, WaterInfo.Amount, Loc.Culture);
+        visible?.AddRange(plan.Rows);
 
-        var rows = new List<(string Name, string Amount)>();
-        foreach (var c in shown) rows.Add((c.Name, WaterInfo.Amount(c.Parts)));
-        if (foldedCount > 0) rows.Add((hint, ""));
-        var layout = Measure(rows);
-
-        var lines = new List<TooltipLine>();
-        foreach (var c in shown)
-            lines.Add(new TooltipLine(
-                Row(c.Name, WaterInfo.Amount(c.Parts), Percent(c.Parts, analysis.TotalMicroliters), layout),
-                c.Color));
-        // 展开状态下每一项都已列出，不再画提示行
-        if (foldedCount > 0 && !Expanded())
-            lines.Add(new TooltipLine(Row(hint, "", Percent(foldedParts, analysis.TotalMicroliters), layout),
-                RenderHandler.ColorPalette.Gray));
+        var layout = Measure(plan.Rows);
+        var lines = new List<TooltipLine>(plan.Rows.Count + 1);
+        foreach (var row in plan.Rows)
+            lines.Add(new TooltipLine(Row(row, layout), ColorOf(comps, row)));
         if (analysis.HiddenComponents > 0)
             lines.Add(new TooltipLine(Loc.T("water.trace_count", "(+{0} more below display threshold)", analysis.HiddenComponents),
                 RenderHandler.ColorPalette.Gray));
@@ -236,14 +195,15 @@ internal static class WaterColumns
     /// <summary>
     /// 液体容器的成分表：体积条表头 + 每种成分一行。
     /// 低于 1% 的成分折起，按住 Ctrl 全部展开——默认只留水和大项，行数少、
-    /// tooltip 也就不被那条长建议撑宽。净水建议同样只在展开时出现（见
-    /// ModEntry.TryAppendWaterAdvice），但提示行只提杂质，不拉长文案。
+    /// tooltip 也就不被那条长建议撑宽。净化建议同样只在展开时出现（见
+    /// ModEntry.TryAppendWaterAdvice），所以建议被折起来时也要留一行提示。
     /// </summary>
     /// <param name="advicePossible">净化建议这段是否可能显示；被第三方接管时不模拟，
     /// 免得白跑一次昂贵的净化试算。</param>
-    internal static List<TooltipLine> Build(LiquidAnalysis analysis, GameItem item, bool advicePossible = true)
+    /// <param name="visible">非 null 时填入这一帧实际画出的行，供区块协议发布。</param>
+    internal static List<TooltipLine> Build(LiquidAnalysis analysis, GameItem item, bool advicePossible = true,
+        List<WaterRow>? visible = null)
     {
-        var lines = new List<TooltipLine>();
         int totalMl = analysis.TotalMicroliters / 1000;
         int capacityMl = analysis.CapacityMicroliters / 1000;
         bool liters = Volume.UseLiters(totalMl);
@@ -257,57 +217,59 @@ internal static class WaterColumns
         var advice = advicePossible ? LiquidQueries.GetAdvice(item) : null;
         bool adviceFolded = !expand && advice != null && advice.Count > 0;
 
-        var (comps, foldedParts, foldedCount) = Split(Components(analysis, waterMismatch: true),
-            analysis.TotalMicroliters);
-        string hint = FoldHint;
+        var comps = Components(analysis, waterMismatch: true);
+        var plan = WaterTable.Build(Pairs(comps), analysis.TotalMicroliters, expand, adviceFolded,
+            FoldHint, parts => VolumeOf(parts, liters), Loc.Culture);
+        visible?.AddRange(plan.Rows);
+
         string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
                     + (analysis.Tier.Length > 0 ? " " + analysis.Tier : "");
 
         if (SectionedLayout.UsesFlowingText(item))
         {
             // 美化 MOD 接管了这件物品：它用自己的一套单元格宽度重排，不认识 <pos>，
-            // 于是三列定位会失效。改成单行「名称 体积 百分比」，按它的补位单位（全角空格）分隔，
+            // 于是三列定位会失效。改成单行「名称 体积 百分比」，按全角空格分隔，
             // 列对齐和表头进度条的绘制交给它。
-            var plain = new List<TooltipLine>
+            var plain = new List<TooltipLine>(plan.Rows.Count + 1)
             {
+                // 表头只有体积条与档位，和空瓶一样：条长 6，原版 10 格加上文字会折行
                 new(tail.TrimStart(), ratio, 6, "",
                     RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
             };
-            foreach (var c in comps)
-            {
-                string text = c.Name + "　" + VolumeOf(c.Parts, liters) + "　"
-                            + WaterLayout.PercentText(c.Parts, analysis.TotalMicroliters, Loc.Culture) + "%";
-                plain.Add(new TooltipLine(text, c.Color));
-            }
-            if ((foldedCount > 0 || adviceFolded) && !expand)
-                plain.Add(new TooltipLine(hint + "　"
-                    + (foldedCount > 0
-                        ? WaterLayout.PercentText(foldedParts, analysis.TotalMicroliters, Loc.Culture) + "%"
-                        : ""),
-                    RenderHandler.ColorPalette.Gray));
+            foreach (var row in plan.Rows)
+                plain.Add(new TooltipLine(RowCells(row), ColorOf(comps, row)));
             return plain;
         }
 
-        var measureRows = new List<(string Name, string Amount)>();
-        foreach (var c in comps) measureRows.Add((c.Name, VolumeOf(c.Parts, liters)));
-        if (foldedCount > 0 || adviceFolded) measureRows.Add((hint, ""));
-        var layout = Measure(measureRows);
-
-        // 表头只有体积条与档位，和空瓶一样：条长 6，原版 10 格加上文字会折行
-        lines.Add(new TooltipLine("", ratio, 6, tail,
-            RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan));
-
-        foreach (var c in comps)
-            lines.Add(new TooltipLine(
-                Row(c.Name, VolumeOf(c.Parts, liters), Percent(c.Parts, analysis.TotalMicroliters), layout),
-                c.Color));
-        // 展开状态下每一项都已列出，不再画提示行
-        if ((foldedCount > 0 || adviceFolded) && !expand)
-            lines.Add(new TooltipLine(
-                Row(hint, "", foldedCount > 0 ? Percent(foldedParts, analysis.TotalMicroliters) : "", layout),
-                RenderHandler.ColorPalette.Gray));
+        var layout = Measure(plan.Rows);
+        var lines = new List<TooltipLine>(plan.Rows.Count + 1)
+        {
+            new("", ratio, 6, tail,
+                RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
+        };
+        foreach (var row in plan.Rows)
+            lines.Add(new TooltipLine(Row(row, layout), ColorOf(comps, row)));
         return lines;
     }
+
+    /// <summary>流式布局的一行：三个格子用全角空格隔开，空格子留成连续分隔符。</summary>
+    private static string RowCells(WaterRow row)
+        => row.Name + FlowingSeparator + row.Amount + FlowingSeparator + row.Percent;
+
+    private static List<(string Name, int Parts)> Pairs(
+        List<(string Name, int Parts, RenderHandler.ColorPalette Color)> comps)
+    {
+        var pairs = new List<(string Name, int Parts)>(comps.Count);
+        foreach (var c in comps) pairs.Add((c.Name, c.Parts));
+        return pairs;
+    }
+
+    /// <summary>行的颜色：成分看自己，折叠提示行用灰色。</summary>
+    private static RenderHandler.ColorPalette ColorOf(
+        List<(string Name, int Parts, RenderHandler.ColorPalette Color)> comps, WaterRow row)
+        => row.Kind == WaterRowKind.Component
+            ? comps[row.Index].Color
+            : RenderHandler.ColorPalette.Gray;
 
     private static RenderHandler.ColorPalette ColorOf(string id, int fallbackIndex)
         => id != null && FixedColors.TryGetValue(id, out var color)

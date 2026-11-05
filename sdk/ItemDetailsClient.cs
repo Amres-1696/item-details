@@ -179,6 +179,15 @@ internal sealed class TooltipSection
     internal LiquidAnalysis? Liquid => TryGet<LiquidPayload>("analysis", out var data) ? new LiquidAnalysis(data) : null;
     internal Advice? PurificationMethods => TryGet<Advice>("methods", out var methods) ? methods : null;
 
+    /// <summary>
+    /// 成分表这一帧实际画出的行（`water` 区块）：Kind、名称、用量、百分比。
+    /// 只列真正显示的行，已经按 Ctrl 状态折叠过；折叠提示行的用量为空、百分比是折起来的合计。
+    /// 要判断表头（容量条、档位）用 <see cref="Liquid"/>。
+    /// </summary>
+    internal IReadOnlyList<(string Kind, string Name, string Amount, string Percent)> WaterRows =>
+        TryGet<IReadOnlyList<(string, string, string, string)>>("rows", out var rows)
+            ? rows : Array.Empty<(string, string, string, string)>();
+
     internal bool TryGetAppraisal(out (int Total, int PerfectMin, int PerfectMax,
         IReadOnlyList<(string Label, int Amount, bool IsBase)> Parts) appraisal)
     {
@@ -252,4 +261,16 @@ internal static class TooltipSectionIds
     internal const string Label = "label";
     internal const string Manufacturer = "manufacturer";
     internal const string InspectHint = "inspect-hint";
+}
+
+/// <summary>
+/// `water` 区块 `rows` 字段里每一行的 Kind。只增不改：读取方遇到不认识的 Kind 按普通成分行处理。
+/// </summary>
+internal static class WaterRowKinds
+{
+    /// <summary>一种成分：名称、用量、百分比三格都有值。</summary>
+    internal const string Component = "component";
+
+    /// <summary>折叠提示：用量为空，百分比是被折起来那几项的合计（可能为空）。</summary>
+    internal const string FoldHint = "fold-hint";
 }

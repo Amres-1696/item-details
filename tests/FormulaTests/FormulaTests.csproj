@@ -9,5 +9,7 @@
     <Compile Include="../../src/Domain/ValueFormula.Pure.cs" Link="ValueFormula.Pure.cs" />
     <Compile Include="../../src/Domain/FurnacePurity.Pure.cs" Link="FurnacePurity.Pure.cs" />
     <Compile Include="../../src/Domain/Volume.Pure.cs" Link="Volume.Pure.cs" />
+    <Compile Include="../../src/Domain/WaterLayout.Pure.cs" Link="WaterLayout.Pure.cs" />
+    <Compile Include="../../src/Domain/WaterTable.Pure.cs" Link="WaterTable.Pure.cs" />
   </ItemGroup>
 </Project>

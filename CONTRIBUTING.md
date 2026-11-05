@@ -90,7 +90,7 @@ _liquidDisplay = ItemDetailsClient.RegisterLiquidAnalysisDisplay((item, analysis
 ```
 
 - 数据和回调在游戏主线程使用。上述回调在对应物品的提示框构建期间执行；仅在替代区块准备成功后返回 true。返回 false 或抛错时会尝试下一个显示方，全部放弃则由物品详情输出。区块应随本次构建清理，包括下一件物品无数据、用户关闭分析的情况。
-- `analysis.Components` 按含量降序，含稳定 ID、当前语言名称、整数微升和角色（`water`、`active`、`other`）。占比的分母是 `TotalMicroliters`，包含已隐藏的微量成分。`CapacityMicroliters` 为 0 表示无容量信息，`IsSolid` 区分固体药物。可从 `Tier`、`LabelMismatch` 和 `Effects` 取水质档位、标签差异和药效（致死倍数、毒性、欣快等级、戒瘾、避孕）。`Effects.Text` 可直接显示当前语言的药效说明。
+- `analysis.Components` 按含量降序，含稳定 ID、当前语言名称、整数微升和角色（`water`、`active`、`other`）。占比的分母是 `TotalMicroliters`，包含已隐藏的微量成分。`CapacityMicroliters` 为 0 表示无容量信息，`IsSolid` 区分固体药物。可从 `Tier`、`LabelMismatch` 和 `Effects` 取水质档位、标签差异和药效（致死倍数、毒性、欣快等级、戒瘾、避孕）。`Effects.Text` 可直接显示当前语言的药效说明。要看这一帧实际画出的表格行，用区块快照的 `WaterRows`，它已经按 Ctrl 状态折叠过、用量也按该物品的规则格式化好了。
 - 用 `RegisterWaterAdviceDisplay` 可单独接管净化建议。每项包括当前语言名称和纯度提升的**百分点**。成功的空列表表示该物品当前没有可列出的手段。只查成分不会触发净化模拟。
 - 两项查询都遵守「液体组分分析」的设置与扫描仪条件。未安装、未启用、旧版或数据不可用时查询返回 false。注册可以早于物品详情加载。已用旧接口接管同一信息块的 Mod，迁移时应移除对应的旧接管标志，再注册新回调。
 - 客户端通过带版本号的 AppDomain 键传递游戏和 .NET 自带类型。对现有签名作不兼容更改时应新增版本键。SDK 类型仅在各自程序集内部使用。
@@ -112,7 +112,7 @@ _claim = ItemDetailsClient.RegisterTooltipSections((item, builder, section) =>
 ```
 
 - `section.Runs` 是这次构建实际要输出的有序片段：`text`（行内文字）、`line`（整行）、`break`（换行）、`bar`（进度条，带 0–1 比例、格数与后缀）。每段带游戏调色板枚举。直接复用这些片段即可换行、缩进、改列宽，不必再猜字符串。
-- `section.Fields` 是结构化字段，键为字符串，值为 BCL 元组、基础类型或游戏类型。列表型区块（滤芯、工具、电池、性状、特性等）把逐行数据放在 `rowData`：每项是 `(行号, 数据键, 值)`，行号对应 `Runs` 下标。常用区块有便捷读取：`TryGetAppraisal`（总价、完美区间、逐项金额）、`TryGetMachineEffect`（性能/效率/质量注释与数值差）、`Liquid`（同液体分析快照）、`PurificationMethods`（净化建议）。
+- `section.Fields` 是结构化字段，键为字符串，值为 BCL 元组、基础类型或游戏类型。列表型区块（滤芯、工具、电池、性状、特性等）把逐行数据放在 `rowData`：每项是 `(行号, 数据键, 值)`，行号对应 `Runs` 下标。常用区块有便捷读取：`TryGetAppraisal`（总价、完美区间、逐项金额）、`TryGetMachineEffect`（性能/效率/质量注释与数值差）、`Liquid`（同液体分析快照）、`WaterRows`（`water` 区块这一帧实际画出的成分行）、`PurificationMethods`（净化建议）。`WaterRows` 每项是 `(Kind, 名称, 用量, 百分比)`，Kind 取 `WaterRowKinds.Component` 或 `WaterRowKinds.FoldHint`；折叠提示行的用量为空，百分比是被折起来那几项的合计。行序即输出顺序，表头不在其中。
 - `section.CanReplace` 为 false 的区块（`label`、`manufacturer`、`inspect-hint` 等）只是原生行的展示，物品详情没有独立输出它们，接管方应改写对应原生行而不是删除。
 - 区块 ID 即功能名：`auth`、`value`、`injected-value`、`ribwich`、`berry`、`hidden`、`value-enhance`、`feature-reveal`、`storage`、`machine-interior`、`module-learning`、`conditions`、`contraband`、`lottery`、`water`、`sealed-box`、`scratcher`、`seed`、`water-advice`、`wine`、`meat`、`market`，以及内嵌改写 `price`、`calories`、`machine-speed`、`machine-power`、`machine-effect`、`categories`、`contents`、`sealed-contents`、`label`、`manufacturer`、`inspect-hint`。字段随功能演进可能新增，读取方用 `TryGet` 并给默认值。
 - 已用旧 `ItemDetailsTooltipSection` 标志接管的区块仍按旧行为跳过，不产生快照。两种接管不要对同一区块混用。

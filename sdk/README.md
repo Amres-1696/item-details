@@ -55,6 +55,46 @@ private void OnTooltipLate(RichTextBuilder builder, GameItem item)
 }
 ```
 
+## 成分表的可见行
+
+`water` 区块除了 `analysis`（原始成分），还带一份 `rows`：这一帧**实际画出来的**表格行，已经按 Ctrl 状态折叠过。
+
+```csharp
+if (section.Id == TooltipSectionIds.Liquid && section.WaterRows.Count > 0)
+{
+    foreach (var row in section.WaterRows)
+    {
+        // row.Kind: WaterRowKinds.Component（三格都有值）或 WaterRowKinds.FoldHint（用量为空）
+        // row.Name / row.Amount / row.Percent 已经是分好的格子，不必再按全角空格或 <pos> 反推
+        DrawMyColumn(row.Name, row.Amount, row.Percent);
+    }
+}
+```
+
+- 表头（容量条、档位）不在 `rows` 里，用 `analysis` 或 `Runs` 里的 `bar` 段。
+- 行序就是输出顺序，折叠提示行排在最后一行成分之后。它的百分比是被折起来那几项的合计，没有折起来的成分时为空。
+- 液体容器和固体化学品发同一份结构，用量格的单位由物品详情按自己的规则写好。
+
+C# 5 的老编译器也能读，不必复制 `ItemDetailsClient.cs`：按字段名取，值类型是 BCL 元组。
+
+```csharp
+// C# 5：用 -langversion:5、引用游戏 Managed 的 mscorlib/netstandard 已验证可编译。
+private static void ReadWaterRows(IReadOnlyDictionary<string, object> fields)
+{
+    object raw;
+    if (!fields.TryGetValue("rows", out raw)) return;
+    var rows = raw as IReadOnlyList<ValueTuple<string, string, string, string>>;
+    if (rows == null) return;
+    foreach (var row in rows)
+    {
+        string kind = row.Item1;     // "component" / "fold-hint"
+        string name = row.Item2;
+        string amount = row.Item3;   // 折叠提示行为空
+        string percent = row.Item4;  // 含 %，可能为空
+    }
+}
+```
+
 ## 规则清单
 
 - **可用性**：`SectionProtocolAvailable` / `LiquidProtocolAvailable` 反映物品详情是否在线；区块是否**适用**仍以快照/查询返回为准（设置关闭、缺扫描仪时返回空）。
