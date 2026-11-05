@@ -62,22 +62,52 @@ internal static class WaterColumns
     private static TMP_Text? _probe;
     private static readonly Dictionary<string, float> Cache = new(StringComparer.Ordinal);
     private const float ProbeFontSize = 16f;
+    /// <summary>探针当前绑定的字体；tooltip 字体变了必须换过来，否则列宽是按别的字体算的。</summary>
+    private static TMP_FontAsset? _probeFont;
+    /// <summary>宽度缓存上限：键是具体文案（体积数字一直在变），不清会随会话无限增长。</summary>
+    private const int CacheLimit = 512;
+
+    /// <summary>最贴近 tooltip 正文的字体：内容物格子模板优先，其次是分类标签用的正文模板。</summary>
+    private static TMP_FontAsset? PreferredFont()
+    {
+        try { return ContentsGrid.TemplateFont ?? TypeBadge.TooltipFont; }
+        catch { return null; }
+    }
 
     private static void Ensure()
     {
-        if (_probe != null) return;
+        if (_probe != null)
+        {
+            // 首次量宽可能早于 tooltip 模板就位，探针会落到场景里任意一个 TMP 字体上，且再也不刷新；
+            // tooltip 字体一旦可知且与探针不同，就换过来并丢掉按旧字体算出的宽度。
+            var preferred = PreferredFont();
+            if (preferred != null && !ReferenceEquals(preferred, _probeFont)) Rebind(preferred);
+            return;
+        }
         try
         {
             var go = new GameObject("ItemDetails_WaterMeasure", typeof(RectTransform), typeof(TextMeshProUGUI));
             UnityEngine.Object.DontDestroyOnLoad(go);
             var tmp = go.GetComponent<TextMeshProUGUI>();
-            tmp.font = ContentsGrid.TemplateFont
+            tmp.font = PreferredFont()
                        ?? UnityEngine.Object.FindObjectOfType<TMP_Text>()?.font
                        ?? TMP_Settings.defaultFontAsset;
             tmp.fontSize = ProbeFontSize;
             tmp.enableWordWrapping = false;
             tmp.raycastTarget = false;
             _probe = tmp;
+            _probeFont = tmp.font;
+        }
+        catch (Exception ex) { Log.Warn("WaterColumns.Probe", ex); }
+    }
+
+    private static void Rebind(TMP_FontAsset font)
+    {
+        try
+        {
+            _probe!.font = font;
+            _probeFont = font;
+            Cache.Clear();
         }
         catch (Exception ex) { Log.Warn("WaterColumns.Probe", ex); }
     }
@@ -86,8 +116,8 @@ internal static class WaterColumns
     internal static float Measure(string? text)
     {
         if (string.IsNullOrEmpty(text)) return 0f;
+        Ensure();   // 先确认字体：换过字体的话缓存已经清空，命中旧值就会量错
         if (Cache.TryGetValue(text!, out float cached)) return cached;
-        Ensure();
         float width;
         try
         {
@@ -96,6 +126,7 @@ internal static class WaterColumns
                 : text!.Length * 8f;
         }
         catch { width = text!.Length * 8f; }
+        if (Cache.Count >= CacheLimit) Cache.Clear();
         Cache[text!] = width;
         return width;
     }

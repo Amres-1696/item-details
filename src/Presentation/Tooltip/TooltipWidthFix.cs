@@ -86,17 +86,40 @@ internal static class TooltipWidthFix
                 Math.Max(VisibleWidth(text.richTextUnderline), VisibleWidth(text.richTextStrikethrough))));
     }
 
+    /// <summary>
+    /// <c>&lt;</c> 处若是富文本标签，返回其 <c>&gt;</c> 的下标，否则返回 -1。
+    /// 只有「&lt; 后面跟字母或 /，且同一行内出现 &gt;」才算标签：文案里本来就有字面尖括号
+    /// （水培机的「不足 1 天」在各语言写作 <c>&lt;1 day</c>），旧写法会把 &lt; 之后的整段文本
+    /// ——包括以下所有行——都当标签吃掉，框宽只剩它前面的最长行。
+    /// </summary>
+    private static int TagEnd(string text, int start)
+    {
+        int i = start + 1;
+        if (i >= text.Length) return -1;
+        char first = text[i];
+        if (!char.IsLetter(first) && first != '/') return -1;
+        for (; i < text.Length; i++)
+        {
+            char c = text[i];
+            if (c == '>') return i;
+            if (c == '\n') return -1;
+        }
+        return -1;
+    }
+
     /// <summary>逐行去掉 &lt;…&gt; 标签后取最大的可见字符数（控制字符不计）。</summary>
     internal static int VisibleWidth(string? text)
     {
         if (string.IsNullOrEmpty(text)) return 0;
         int longest = 0, current = 0;
-        bool tag = false;
-        foreach (char c in text!)
+        for (int i = 0; i < text!.Length; i++)
         {
-            if (c == '<') { tag = true; continue; }
-            if (c == '>') { tag = false; continue; }
-            if (tag) continue;
+            char c = text[i];
+            if (c == '<')
+            {
+                int end = TagEnd(text, i);
+                if (end >= 0) { i = end; continue; }   // 标签整体跳过；不是标签就按普通字符计
+            }
             if (c == '\n') { if (current > longest) longest = current; current = 0; continue; }
             if (!char.IsControl(c)) current++;
         }

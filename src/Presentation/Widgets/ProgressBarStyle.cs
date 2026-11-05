@@ -271,20 +271,11 @@ internal static class ProgressBarStyle
         return RenderAscii(ratio, length, fullLength);
     }
 
-    /// <summary>原版 RichTextBuilder 计折行时的可见字符数：跳过 &lt;…&gt; 标签与控制字符。</summary>
-    internal static int VisibleLength(string? text)
-    {
-        if (string.IsNullOrEmpty(text)) return 0;
-        int n = 0;
-        bool tag = false;
-        foreach (char c in text!)
-        {
-            if (c == '<') { tag = true; continue; }
-            if (c == '>') { tag = false; continue; }
-            if (!tag && !char.IsControl(c)) n++;
-        }
-        return n;
-    }
+    /// <summary>
+    /// 原版 RichTextBuilder 计折行时的可见字符数：跳过 &lt;…&gt; 标签与控制字符。
+    /// 与框宽修正共用同一套标签判定，字面尖括号（「不足 1 天」写作 &lt;1 day）按普通字符计。
+    /// </summary>
+    internal static int VisibleLength(string? text) => TooltipWidthFix.VisibleWidth(text);
 
     /// <summary>
     /// 一行文字在原版 Build 里会不会折行。中日韩（字宽缩放 &gt; 1）取不带不折行片段时的 0.66 倍宽，

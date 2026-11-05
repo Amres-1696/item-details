@@ -56,9 +56,11 @@ internal static class MachineBatteryInfo
             }
 
             _harmony = new Harmony(HarmonyId);
+            // 用 finalizer 而不是 postfix：原版 CreateMachineryTooltip 抛异常时 postfix 不会执行，
+            // _machine 会残留到下一件物品的 tooltip 上，AddLinePrefix 就可能把能量行写进别人的提示框。
             _harmony.Patch(machineTooltip,
                 prefix: new HarmonyMethod(typeof(MachineBatteryInfo), nameof(BeforeMachineTooltip)),
-                postfix: new HarmonyMethod(typeof(MachineBatteryInfo), nameof(AfterMachineTooltip)));
+                finalizer: new HarmonyMethod(typeof(MachineBatteryInfo), nameof(AfterMachineTooltip)));
             _harmony.Patch(add, prefix: new HarmonyMethod(typeof(MachineBatteryInfo), nameof(AddPrefix)));
             _harmony.Patch(addLine, prefix: new HarmonyMethod(typeof(MachineBatteryInfo), nameof(AddLinePrefix)));
             _patched = true;

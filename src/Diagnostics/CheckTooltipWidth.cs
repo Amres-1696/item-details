@@ -29,9 +29,16 @@ internal static class CheckTooltipWidth
             int raw = sample.Length;
             bool shrunk = visible == 16 && visible < raw;
 
-            ok = patched && shrunk;
+            // 文案里的字面尖括号（水培机「不足 1 天」）不是标签：它后面的文字必须照常计入，
+            // 否则整段 tooltip 会被当成标签吃掉、框宽骤减。
+            const string literal = "Water: 4L (1L/day), <1 day";
+            int literalWidth = TooltipWidthFix.VisibleWidth(literal);
+            bool kept = literalWidth == literal.Length;
+
+            ok = patched && shrunk && kept;
             return $"tooltip width: patched={patched} visible={visible} raw={raw} " +
-                   $"(期望 patched=True、visible=16 < raw=40)";
+                   $"literal={literalWidth}/{literal.Length} " +
+                   "(期望 patched=True、visible=16 < raw=40、literal 等于原长)";
         }
         catch (Exception ex) { return "tooltip width: " + ex; }
     }
