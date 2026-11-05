@@ -123,6 +123,7 @@ value.perfect_range," ｜ 完美 {0}–{1}"
 value.total_line,总价：{0}
 water.mismatch,（与标签不符）
 water.trace_count,（另 {0} 项低于显示阈值）
+water.fold_expand,按Ctrl展开杂质
 chem.effects,药效：{0}
 chem.lethal,致死（{0} 倍致死量）
 chem.toxic,有毒

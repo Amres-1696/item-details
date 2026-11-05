@@ -123,6 +123,7 @@ value.perfect_range," | perfekt {0}-{1}"
 value.total_line,Gesamt: {0}
 water.mismatch," (Etikett passt nicht)"
 water.trace_count,(+{0} weitere unter der Anzeigeschwelle)
+water.fold_expand,Strg zum Ausklappen der Verunreinigungen
 chem.effects,Wirkung: {0}
 chem.lethal,tödlich ({0}-fache tödliche Dosis)
 chem.toxic,giftig

@@ -123,6 +123,7 @@ value.perfect_range," | perfeito {0}-{1}"
 value.total_line,Total: {0}
 water.mismatch," (rótulo não confere)"
 water.trace_count,(+{0} mais abaixo do limite de exibição)
+water.fold_expand,Ctrl para expandir impurezas
 chem.effects,Efeitos: {0}
 chem.lethal,letal ({0}x a dose letal)
 chem.toxic,tóxico

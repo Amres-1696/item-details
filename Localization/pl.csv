@@ -123,6 +123,7 @@ value.perfect_range," | idealnie {0}-{1}"
 value.total_line,Razem: {0}
 water.mismatch," (niezgodność etykiety)"
 water.trace_count,(+{0} więcej poniżej progu wyświetlania)
+water.fold_expand,"Ctrl, aby rozwinąć zanieczyszczenia"
 chem.effects,Działanie: {0}
 chem.lethal,śmiertelne ({0}x dawka śmiertelna)
 chem.toxic,toksyczne

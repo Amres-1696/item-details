@@ -123,6 +123,7 @@ value.perfect_range," | идеально {0}-{1}"
 value.total_line,Итого: {0}
 water.mismatch," (несовпадение этикетки)"
 water.trace_count,(ещё {0} ниже порога отображения)
+water.fold_expand,"Ctrl, чтобы развернуть примеси"
 chem.effects,Действие: {0}
 chem.lethal,смертельно ({0}x смертельная доза)
 chem.toxic,токсично

@@ -166,23 +166,57 @@ internal static class WaterColumns
     /// <summary>
     /// 固体化学品的成分行：名称 / 用量 / 百分比三列，与液体容器同一落点规则。
     /// 没有容器与体积，所以这里不写表头，直接从第一行成分开始。
+    ///
+    /// 低于 1% 的成分折成一行「按Ctrl展开杂质 xx.xx%」：百分比是折起来那几项的合计，
+    /// 按住 Ctrl 全部展开。列宽把提示行也算进去，展开时列不抖。
     /// </summary>
     internal static List<TooltipLine> BuildSolid(LiquidAnalysis analysis)
     {
         var comps = Components(analysis, waterMismatch: false);
+        int total = analysis.TotalMicroliters;
+        bool expand = Expanded();
+
+        var shown = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
+        int foldedParts = 0, foldedCount = 0;
+        foreach (var c in comps)
+        {
+            if (WaterLayout.BelowOnePercent(c.Parts, total))
+            {
+                foldedParts += c.Parts;
+                foldedCount++;
+                if (!expand) continue;
+            }
+            shown.Add(c);
+        }
+
+        string hint = Loc.T("water.fold_expand", "Ctrl to expand impurities");
+
         var rows = new List<(string Name, string Amount)>();
-        foreach (var c in comps) rows.Add((c.Name, WaterInfo.Amount(c.Parts)));
+        foreach (var c in shown) rows.Add((c.Name, WaterInfo.Amount(c.Parts)));
+        // 展开时也把提示行算进列宽：按住 Ctrl 前后三列位置不变
+        if (foldedCount > 0) rows.Add((hint, ""));
         var layout = Measure(rows);
 
         var lines = new List<TooltipLine>();
-        foreach (var c in comps)
+        foreach (var c in shown)
             lines.Add(new TooltipLine(
-                Row(c.Name, WaterInfo.Amount(c.Parts), Percent(c.Parts, analysis.TotalMicroliters), layout),
+                Row(c.Name, WaterInfo.Amount(c.Parts), Percent(c.Parts, total), layout),
                 c.Color));
+        // 展开状态下每一项都已列出，不再画提示行
+        if (foldedCount > 0 && !expand)
+            lines.Add(new TooltipLine(Row(hint, "", Percent(foldedParts, total), layout),
+                RenderHandler.ColorPalette.Gray));
         if (analysis.HiddenComponents > 0)
             lines.Add(new TooltipLine(Loc.T("water.trace_count", "(+{0} more below display threshold)", analysis.HiddenComponents),
                 RenderHandler.ColorPalette.Gray));
         return lines;
+    }
+
+    /// <summary>按住左右 Ctrl 时展开被折叠的成分；读不到输入设备时按未按住处理。</summary>
+    private static bool Expanded()
+    {
+        try { return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl); }
+        catch { return false; }
     }
 
     internal static List<TooltipLine> Build(LiquidAnalysis analysis, GameItem item)

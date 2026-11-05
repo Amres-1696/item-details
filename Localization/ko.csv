@@ -123,6 +123,7 @@ value.perfect_range," | 완벽 {0}–{1}"
 value.total_line,총액: {0}
 water.mismatch," (라벨과 불일치)"
 water.trace_count,(표시 임계값 미만 {0} 항목 더)
+water.fold_expand,Ctrl로 불순물 펼치기
 chem.effects,효과: {0}
 chem.lethal,치명적 (치사량의 {0}배)
 chem.toxic,유독

@@ -123,6 +123,7 @@ value.perfect_range," ｜ 完璧 {0}–{1}"
 value.total_line,総額：{0}
 water.mismatch,（ラベルと不一致）
 water.trace_count,（ほか {0} 種が表示閾値未満）
+water.fold_expand,Ctrlで杂质を表示
 chem.effects,効果：{0}
 chem.lethal,致死（致死量の {0} 倍）
 chem.toxic,有毒

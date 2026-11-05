@@ -42,4 +42,11 @@ internal static class WaterLayout
         return Volume.Number(currentMl, liters, culture) + "/"
              + Volume.Number(capacityMl, liters, culture) + unit;
     }
+
+    /// <summary>
+    /// 该成分是否低于 1%：固体成分表把这类折成一行提示，按住 Ctrl 展开。
+    /// 用整数比较（parts × 100 &lt; total）而不是先除再比，避免 0.999…% 被算成 1%。
+    /// </summary>
+    internal static bool BelowOnePercent(int parts, int total)
+        => total > 0 && (long)parts * 100L < total;
 }
