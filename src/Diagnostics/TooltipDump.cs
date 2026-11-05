@@ -129,6 +129,8 @@ internal static class TooltipDump
                     Report.AppendLine(text ?? "（渲染失败）");
                 }
                 Report.AppendLine();
+                Report.AppendLine("== 三列位置验证 ==");
+                DumpColumnPositions();
                 Report.AppendLine("== 字体度量 ==");
                 DumpMetrics();
                 Finish(true, Report.ToString());
@@ -201,6 +203,48 @@ internal static class TooltipDump
         catch (Exception ex) { Report.AppendLine("字体度量失败：" + ex.GetType().Name + " " + ex.Message); }
     }
 
+
+    private static void DumpColumnPositions()
+    {
+        try
+        {
+            GameItem? sample = null;
+            foreach (var it in Liquids()) { if (it.identifier == "large_bottled_water") { sample = it; break; } }
+            if (sample == null) { Report.AppendLine("没有大瓶水样本"); return; }
+            var r = WaterInfo.Analyze(sample);
+            var rows = WaterColumns.Build(r, sample, out _);
+
+            TMPro.TMP_FontAsset? font = null;
+            foreach (var t in UnityEngine.Object.FindObjectsOfType<TMPro.TMP_Text>())
+                if (t.font != null && t.font.name.Contains("SC")) { font = t.font; break; }
+            font ??= TMPro.TMP_Settings.defaultFontAsset;
+            var canvasGo = new GameObject("MeasureCanvas", typeof(RectTransform), typeof(UnityEngine.Canvas));
+            var canvas = canvasGo.GetComponent<UnityEngine.Canvas>();
+            canvas.renderMode = UnityEngine.RenderMode.ScreenSpaceOverlay;
+            var go = new GameObject("MeasureCols", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
+            go.transform.SetParent(canvasGo.transform, false);
+            var tmp = go.GetComponent<TMPro.TextMeshProUGUI>();
+            tmp.font = font;
+            tmp.fontSize = 16f;
+            tmp.enableWordWrapping = false;
+            foreach (var line in rows)
+            {
+                tmp.text = line.Text;
+                tmp.ForceMeshUpdate();
+                var ti = tmp.textInfo;
+                var parts = new List<string>();
+                for (int i = 0; i < ti.characterCount && parts.Count < 14; i++)
+                {
+                    var ci = ti.characterInfo[i];
+                    if (ci.isVisible) parts.Add($"{ci.character}@{ci.bottomLeft.x:0.0}");
+                }
+                Report.AppendLine(string.Join(" ", parts));
+            }
+            UnityEngine.Object.Destroy(canvasGo);
+        }
+        catch (Exception ex) { Report.AppendLine("列位置验证失败：" + ex.GetType().Name + " " + ex.Message); }
+    }
+
     private static void Write(string status, string details)
     {
         try { ModHelper.WriteModDataFileText(_modId, ReportFile, $"status={status}{Environment.NewLine}{details}"); }
@@ -216,3 +260,4 @@ internal static class TooltipDump
     }
 }
 #endif
+

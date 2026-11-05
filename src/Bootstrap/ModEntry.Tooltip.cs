@@ -272,79 +272,13 @@ public sealed partial class ModEntry
 
         if (!r.Solid)
         {
-            // 液体容器：表头「成分 + 体积条 + 2000/2000mL 档位」，下面每种成分一行。
-            // 三列（名称 / 体积 / 百分比）按 tooltip 实际字体像素宽补位，左对齐，
-            // 见 WaterColumns：中文约是西文的 1.9 倍宽，按字符补空格对不齐。
-            // 成分表三列按字体宽度补位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度，
-            // 否则每行都会被按字符数拆开（中文按 0.66 计，估不准实际宽度）。
+            // 液体容器：表头「成分 + 体积条 + 2000/2000mL 档位」，下面每种成分一行；
+            // 三列用 TMP 的 <pos> 精确定位（见 WaterColumns），比空格补位准。
+            // 三列按像素定位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度。
             try { builder.maxCharWidth = Math.Max(builder.maxCharWidth, WaterTableWidth); } catch { }
 
-            int totalMl = r.TotalParts / 1000;
-            bool liters = Volume.UseLiters(totalMl);
-
-            int capacityMl = 0;
-            try { capacityMl = item.GetTagReadonly("LIQUID_CONTAINER_CAPACITY").GetInt() / 1000; } catch { }
-            float ratio = capacityMl > 0 ? Math.Min(1f, (float)totalMl / capacityMl) : 0f;
-
-            var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
-            bool mismatch = false;
-            if (r.WaterParts > 0)
-            {
-                var color = r.Purity >= WaterInfo.PurityGood ? RenderHandler.ColorPalette.LightGreen
-                          : r.Purity >= WaterInfo.PurityFair ? RenderHandler.ColorPalette.LightYellow
-                          : RenderHandler.ColorPalette.LightRed;
-                string name = r.WaterName.Length > 0 ? r.WaterName : "?";
-                mismatch = !string.IsNullOrEmpty(r.Label) && !string.IsNullOrEmpty(r.Tier)
-                        && !string.Equals(r.Label, r.Tier, StringComparison.Ordinal);
-                comps.Add((mismatch ? name + Loc.T("water.mismatch", " (doesn't match label)") : name,
-                    r.WaterParts, color));
-            }
-            foreach (var active in r.Actives)
-                comps.Add((active.Name, active.Parts, RenderHandler.ColorPalette.LightYellow));
-
-            int hidden = 0, colorIndex = 0;
-            foreach (var part in r.Impurities)
-            {
-                if (part.Parts < WaterInfo.MinVisibleParts) { hidden++; continue; }
-                if (part.Parts * 100.0 / r.TotalParts < 0.005) { hidden++; continue; }
-                comps.Add((part.Name, part.Parts, ImpurityColor(colorIndex++)));
-            }
-            comps.Sort((a, b) => b.Parts.CompareTo(a.Parts));
-
-            // 先量列宽：名称列取表头与所有成分名的最大值，体积列取所有体积串的最大值。
-            string label = Loc.T("water.components", "Components");
-            float nameWidth = WaterColumns.Measure(label);
-            float volWidth = 0f;
-            foreach (var c in comps)
-            {
-                nameWidth = Math.Max(nameWidth, WaterColumns.Measure(c.Name));
-                volWidth = Math.Max(volWidth, WaterColumns.Measure(VolumeOf(c.Parts, liters)));
-            }
-            const string gap = "  ";
-
-            string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
-                        + (r.Tier.Length > 0 ? " " + r.Tier : "");
-            // 条长 6：原版 10 格加上前面名称与后面体积会折行
-            AppendLines(builder, new List<TooltipLine>
-            {
-                new(WaterColumns.PadTo(label, nameWidth) + gap, ratio, 6, tail,
-                    RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
-            });
+            AppendLines(builder, WaterColumns.Build(r, item, out _));
             wrote = true;
-
-            foreach (var c in comps)
-            {
-                string line = WaterColumns.PadTo(c.Name, nameWidth) + gap
-                            + WaterColumns.PadTo(VolumeOf(c.Parts, liters), volWidth) + gap
-                            + WaterLayout.PercentText(c.Parts, r.TotalParts, Loc.Culture) + "%";
-                AddLine(builder, line, c.Color);
-            }
-
-            if (hidden > 0)
-            {
-                AddLine(builder, Loc.T("water.trace", "trace (below display threshold)"),
-                    RenderHandler.ColorPalette.Gray);
-            }
         }
         else
         {
@@ -425,29 +359,8 @@ public sealed partial class ModEntry
         return true;
     }
 
-    /// <summary>水质成分表的折行预算（字符数）；原版 tooltip 约 40，三列按像素补位后需要更宽。</summary>
+    /// <summary>水质成分表的折行预算（字符数）；原版 tooltip 约 40，三列定位后需要更宽。</summary>
     private const int WaterTableWidth = 64;
-
-    /// <summary>杂质配色：每种杂质按出现顺序取一个不同颜色，超出调色板长度才循环。</summary>
-    private static readonly RenderHandler.ColorPalette[] ImpurityColors =
-    {
-        RenderHandler.ColorPalette.LightRed,
-        RenderHandler.ColorPalette.LightOrange,
-        RenderHandler.ColorPalette.LightYellow,
-        RenderHandler.ColorPalette.LightPurple,
-        RenderHandler.ColorPalette.LightBlue,
-        RenderHandler.ColorPalette.LightTurquoise,
-        RenderHandler.ColorPalette.ERed,
-        RenderHandler.ColorPalette.Orange,
-        RenderHandler.ColorPalette.Purple,
-    };
-
-    private static string VolumeOf(int parts, bool liters)
-        => WaterLayout.VolumeText(parts, liters, Loc.Culture)
-           + (liters ? WaterLayout.LiterUnit : WaterLayout.MilliliterUnit);
-
-    private static RenderHandler.ColorPalette ImpurityColor(int index)
-        => ImpurityColors[index % ImpurityColors.Length];
 
     /// <summary>「致死（2 倍致死量）、强烈欣快、戒瘾」</summary>
     private static string ChemEffects(WaterInfo.Result r)
