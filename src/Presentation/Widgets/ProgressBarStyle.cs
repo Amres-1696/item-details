@@ -86,7 +86,7 @@ internal static class ProgressBarStyle
 
     private static void BeforeBar(float __0, int __1, RenderHandler.ColorPalette __3, bool __6)
     {
-        _pending = ModSettings.BlockProgressBar && __1 > 0
+        _pending = ModSettings.BlockProgressBar && __1 > 0 && !SectionedLayout.UsesNativeBars
             ? new Pending { Ratio = __0, Length = __1, Dark = __3, FullLength = __6 }
             : null;
     }

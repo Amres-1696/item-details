@@ -440,12 +440,20 @@ public sealed partial class ModEntry
 
     /// <summary>
     /// 输出进度条行：前缀 → 条文本 → 后缀。
-    /// 不调用原版 AddProgressBar()，避免该方法添加的 noBreak 标记改变整个 tooltip 在 CJK 下的换行宽度。
+    /// 原版布局直接输出条文本，避免 noBreak 改变 CJK 换行宽度。美化布局从 AddProgressBar 读取比例。
     /// </summary>
     private static void AddBarLine(RichTextBuilder builder, TooltipLine ln)
     {
         try
         {
+            if (SectionedLayout.UsesNativeBars)
+            {
+                // 完整说明在前，让带冒号的译文也把条留在值列。美化布局自行决定条与文字的位置。
+                builder.Add((ln.Text + " " + ln.Tail).Trim() + " ", ln.Color);
+                builder.AddProgressBar(ln.Bar, ln.BarLength, ln.Color, ln.BarDark);
+                builder.NextLine();
+                return;
+            }
             if (ln.Text.Length > 0) builder.Add(ln.Text, ln.Color);
             int visible = ProgressBarStyle.VisibleLength(ln.Text) + ln.BarLength + 1
                 + ProgressBarStyle.VisibleLength(ln.Tail);

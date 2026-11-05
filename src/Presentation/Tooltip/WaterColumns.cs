@@ -151,7 +151,7 @@ internal static class WaterColumns
         {
             // 美化 MOD 接管了这件物品：它用自己的一套单元格宽度重排，不认识 <pos>，
             // 于是三列定位会失效。改成单行「名称 体积 百分比」，按它的补位单位（全角空格）分隔，
-            // 列对齐交给它；进度条也退回字符块，避免 sprite 标签在它的窗口里变成纯文本。
+            // 列对齐和表头进度条的绘制交给它。
             var plain = new List<TooltipLine>
             {
                 new(label + "  " + tail.TrimStart(), ratio, 6, "",

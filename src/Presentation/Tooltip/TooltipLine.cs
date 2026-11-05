@@ -8,8 +8,7 @@ namespace ItemDetails;
 /// 于是同一段表达式被抄了两遍（有的甚至直接把同一个字符串塞进两个字段）。
 /// 现在模块直接给出最终文本与颜色，调用方只负责输出。
 ///
-/// 带进度条的行（<see cref="HasBar"/>）由 <see cref="ProgressBarStyle.Format"/> 生成文本后直接输出，
-/// 避免调用原版 AddProgressBar() 引入 noBreak 影响整段 tooltip 折行宽度。
+/// 带进度条的行（<see cref="HasBar"/>）保留比例、颜色和文字，由输出端按提示框布局绘制。
 /// </summary>
 internal readonly struct TooltipLine
 {

@@ -7,17 +7,20 @@ namespace ItemDetails;
 /// 的兼容层。它按物品接管 tooltip 后，会用自己的一套「单元格」宽度模型重排全部文本，
 /// 并且**不认识 TMP 的 &lt;pos&gt; 标签**——我们把 &lt;pos&gt; 当普通文本塞进去，列定位会失效。
 ///
-/// 这里只回答一个问题：现在这一件物品的 tooltip 是不是被它接管了。
-/// 接管时调用方改用不依赖 &lt;pos&gt; 的单行写法；没接管时照常用三列定位。
-///
-/// 判定来源，按可靠性排序：
+/// 进度条随整个提示框的排版走。内容物/液体段则逐件判断：
 ///   1. 它通过 <see cref="ThirdPartyProviders"/> 注册的逐件接管（Contents 段）；
 ///   2. 程序集已加载但没注册（旧版）：液体容器一律按接管处理——宁可退化成单行，
 ///      也不要在它的窗口里显示错位的列。
 /// </summary>
 internal static class SectionedLayout
 {
+    private const string ModId = "amres.sectioned_tooltips";
     private static bool? _loaded;
+
+    // 1.6.2 的排版总开关可在局内切换。GraphicBars 关闭时也应交给它显示原生文字条。
+    internal static bool UsesNativeBars => TooltipPipeline.InTooltip
+        && ModLoader.Mods.Exists(m => m.IsEnabled && m.Manifest.ID == ModId)
+        && (ModConfig.Find(ModId)?.Get("Enabled") as ConfigEntry<bool>)?.Value != false;
 
     /// <summary>美化 MOD 是否已加载。</summary>
     internal static bool Present => _loaded ??= Detect();
