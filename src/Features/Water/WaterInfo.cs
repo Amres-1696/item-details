@@ -52,10 +52,12 @@ internal static class WaterInfo
         internal string Tier = "";  // 游戏档位名，如「洁净水」
         /// <summary>标签上写的水质名（未揭露时是伪装值），用于判断与实测档位是否匹配。</summary>
         internal string Label = "";
-        /// <summary>药物活性成分：显示精确用量（µl / ml）。</summary>
-        internal readonly List<(string Name, int Parts)> Actives = new();
+        /// <summary>水的显示名（取水量最多的那一种水类液体，通常是「水」）。</summary>
+        internal string WaterName = "";
+        /// <summary>药物活性成分：显示精确用量（µl / ml）。Id 是液体 identifier，用于配色。</summary>
+        internal readonly List<(string Name, int Parts, string Id)> Actives = new();
         /// <summary>杂质与试剂：仍按占总体积的百分比显示。</summary>
-        internal readonly List<(string Name, int Parts)> Impurities = new();
+        internal readonly List<(string Name, int Parts, string Id)> Impurities = new();
 
         /// <summary>固体化学品：没有水质行，水并入 <see cref="Impurities"/>。</summary>
         internal bool Solid;
@@ -88,6 +90,7 @@ internal static class WaterInfo
             }
             else return r;
 
+            int waterNameParts = 0;
             foreach (Liquid liquid in Liquid.Liquids)
             {
                 int parts = Parts(item, liquid.currentPart);
@@ -98,12 +101,17 @@ internal static class WaterInfo
                 {
                     case LiquidRole.Water when !r.Solid:
                         r.WaterParts += parts;
+                        if (parts > waterNameParts)
+                        {
+                            waterNameParts = parts;
+                            r.WaterName = DisplayName(liquid);
+                        }
                         break;
                     case LiquidRole.Active:
-                        r.Actives.Add((DisplayName(liquid), parts));
+                        r.Actives.Add((DisplayName(liquid), parts, liquid.identifier ?? ""));
                         break;
                     default:
-                        r.Impurities.Add((DisplayName(liquid), parts));
+                        r.Impurities.Add((DisplayName(liquid), parts, liquid.identifier ?? ""));
                         break;
                 }
             }
@@ -198,7 +206,7 @@ internal static class WaterInfo
         return parts + " uL";
     }
 
-    private static void SortByParts(List<(string Name, int Parts)> list)
+    private static void SortByParts(List<(string Name, int Parts, string Id)> list)
         => list.Sort((a, b) => b.Parts.CompareTo(a.Parts));
 
     private static int Parts(GameItem item, string tag) => GameRead.TagInt(item, tag) ?? 0;

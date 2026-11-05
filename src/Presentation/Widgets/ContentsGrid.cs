@@ -77,6 +77,12 @@ internal static class ContentsGrid
     private static RectTransform? _box;
     private static int _boxTextHash;
 
+    /// <summary>当前 tooltip 用的字体；供水质成分表按实际字宽补位。还没显示过 tooltip 时为 null。</summary>
+    internal static TMP_FontAsset? TemplateFont
+    {
+        get { try { return _template != null ? _template.font : null; } catch { return null; } }
+    }
+
     internal static void Apply()
     {
         if (_patched) return;

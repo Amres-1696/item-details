@@ -1,4 +1,4 @@
-# Item Details Italiano (it)
+﻿# Item Details Italiano (it)
 auth.amount,Difetto del valore nominale
 auth.body,Corpo danneggiato
 auth.box,Difetto della confezione
@@ -123,11 +123,10 @@ value.perfect_range," | perfetto {0}-{1}"
 value.total_line,Totale: {0}
 water.actives,"Principi attivi: "
 water.other,"Altri: "
-water.head,Acqua: {0}% {1}
-water.impurities,"Impurità: "
 water.mismatch," (etichetta non corrispondente)"
 water.trace,tracce (sotto soglia)
 water.composition,Composizione: 
+water.components,Componenti
 chem.effects,Effetti: {0}
 chem.lethal,letale ({0}x dose letale)
 chem.toxic,tossico

@@ -1,4 +1,4 @@
-# Item Details Русский (ru)
+﻿# Item Details Русский (ru)
 auth.amount,Номиналы карточек
 auth.body,Проблемы с корпусом
 auth.box,Проблемы с упаковкой
@@ -123,11 +123,10 @@ value.perfect_range," | идеально {0}-{1}"
 value.total_line,Итого: {0}
 water.actives,"Активные вещества: "
 water.other,"Прочее: "
-water.head,Вода: {0}% {1}
-water.impurities,"Примеси: "
 water.mismatch," (несовпадение этикетки)"
 water.trace,следы (ниже порога отображения)
 water.composition,Состав: 
+water.components,Компоненты
 chem.effects,Действие: {0}
 chem.lethal,смертельно ({0}x смертельная доза)
 chem.toxic,токсично

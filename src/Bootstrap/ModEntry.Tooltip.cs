@@ -270,45 +270,119 @@ public sealed partial class ModEntry
 
         bool wrote = false;
 
-        // 第一行：水质纯度。无水时（纯药物/溶剂混合物）没有“纯度”可言，只列成分。
-        if (r.WaterParts > 0)
+        if (!r.Solid)
         {
-            double purityPct = r.Purity / 100.0;
+            // 液体容器：表头「成分 + 体积条 + 2000/2000mL 档位」，下面每种成分一行。
+            // 三列（名称 / 体积 / 百分比）按 tooltip 实际字体像素宽补位，左对齐，
+            // 见 WaterColumns：中文约是西文的 1.9 倍宽，按字符补空格对不齐。
+            // 成分表三列按字体宽度补位后比原版折行预算宽，先放宽本段 tooltip 的折行宽度，
+            // 否则每行都会被按字符数拆开（中文按 0.66 计，估不准实际宽度）。
+            try { builder.maxCharWidth = Math.Max(builder.maxCharWidth, WaterTableWidth); } catch { }
 
-            // 水相关百分比统一两位小数；标签行由 LabelImpact 原样输出，此处不重复。
-            string head = Loc.T("water.head", "Water: {0}% {1}",
-                purityPct.ToString("0.00", Loc.Culture), r.Tier);
+            int totalMl = r.TotalParts / 1000;
+            bool liters = Volume.UseLiters(totalMl);
 
-            var headColor = r.Purity >= WaterInfo.PurityGood ? RenderHandler.ColorPalette.LightGreen
+            int capacityMl = 0;
+            try { capacityMl = item.GetTagReadonly("LIQUID_CONTAINER_CAPACITY").GetInt() / 1000; } catch { }
+            float ratio = capacityMl > 0 ? Math.Min(1f, (float)totalMl / capacityMl) : 0f;
+
+            var comps = new List<(string Name, int Parts, RenderHandler.ColorPalette Color)>();
+            bool mismatch = false;
+            if (r.WaterParts > 0)
+            {
+                var color = r.Purity >= WaterInfo.PurityGood ? RenderHandler.ColorPalette.LightGreen
                           : r.Purity >= WaterInfo.PurityFair ? RenderHandler.ColorPalette.LightYellow
                           : RenderHandler.ColorPalette.LightRed;
-
-            // 标签写着的水质与实测档位不一致时，用灰字标注
-            bool mismatch = !string.IsNullOrEmpty(r.Label)
-                         && !string.IsNullOrEmpty(r.Tier)
-                         && !string.Equals(r.Label, r.Tier, StringComparison.Ordinal);
-
-            builder.Add(head.Trim(), headColor);
-            if (mismatch)
-                builder.Add(Loc.T("water.mismatch", " (doesn't match label)"), RenderHandler.ColorPalette.Gray);
-            builder.NextLine();
-            wrote = true;
-        }
-
-        // 第二行：药物活性成分。游戏按绝对量判定效果（致死/中毒/兴奋等级/戒断/避孕），
-        // 百分比无法表达 600 µl 与 602 µl 的差异，因此这里给精确用量。
-        if (r.Actives.Count > 0)
-        {
-            var actives = new StringBuilder();
-            actives.Append(Loc.T("water.actives", "Actives: "));
-            for (int i = 0; i < r.Actives.Count; i++)
-            {
-                if (i > 0) actives.Append(Loc.T("list.sep", ", "));
-                var active = r.Actives[i];
-                actives.Append(active.Name).Append(' ').Append(WaterInfo.Amount(active.Parts));
+                string name = r.WaterName.Length > 0 ? r.WaterName : "?";
+                mismatch = !string.IsNullOrEmpty(r.Label) && !string.IsNullOrEmpty(r.Tier)
+                        && !string.Equals(r.Label, r.Tier, StringComparison.Ordinal);
+                comps.Add((mismatch ? name + Loc.T("water.mismatch", " (doesn't match label)") : name,
+                    r.WaterParts, color));
             }
-            AddLine(builder, actives.ToString(), RenderHandler.ColorPalette.LightYellow);
+            foreach (var active in r.Actives)
+                comps.Add((active.Name, active.Parts, RenderHandler.ColorPalette.LightYellow));
+
+            int hidden = 0, colorIndex = 0;
+            foreach (var part in r.Impurities)
+            {
+                if (part.Parts < WaterInfo.MinVisibleParts) { hidden++; continue; }
+                if (part.Parts * 100.0 / r.TotalParts < 0.005) { hidden++; continue; }
+                comps.Add((part.Name, part.Parts, ImpurityColor(colorIndex++)));
+            }
+            comps.Sort((a, b) => b.Parts.CompareTo(a.Parts));
+
+            // 先量列宽：名称列取表头与所有成分名的最大值，体积列取所有体积串的最大值。
+            string label = Loc.T("water.components", "Components");
+            float nameWidth = WaterColumns.Measure(label);
+            float volWidth = 0f;
+            foreach (var c in comps)
+            {
+                nameWidth = Math.Max(nameWidth, WaterColumns.Measure(c.Name));
+                volWidth = Math.Max(volWidth, WaterColumns.Measure(VolumeOf(c.Parts, liters)));
+            }
+            const string gap = "  ";
+
+            string tail = " " + WaterLayout.Capacity(totalMl, capacityMl, liters, Loc.Culture)
+                        + (r.Tier.Length > 0 ? " " + r.Tier : "");
+            // 条长 6：原版 10 格加上前面名称与后面体积会折行
+            AppendLines(builder, new List<TooltipLine>
+            {
+                new(WaterColumns.PadTo(label, nameWidth) + gap, ratio, 6, tail,
+                    RenderHandler.ColorPalette.LightCyan, RenderHandler.ColorPalette.VeryDarkCyan),
+            });
             wrote = true;
+
+            foreach (var c in comps)
+            {
+                string line = WaterColumns.PadTo(c.Name, nameWidth) + gap
+                            + WaterColumns.PadTo(VolumeOf(c.Parts, liters), volWidth) + gap
+                            + WaterLayout.PercentText(c.Parts, r.TotalParts, Loc.Culture) + "%";
+                AddLine(builder, line, c.Color);
+            }
+
+            if (hidden > 0)
+            {
+                AddLine(builder, Loc.T("water.trace", "trace (below display threshold)"),
+                    RenderHandler.ColorPalette.Gray);
+            }
+        }
+        else
+        {
+            // 固体化学品（药片、净水片等）：没有容器与体积，仍按占比列出。
+            if (r.Actives.Count > 0)
+            {
+                var actives = new StringBuilder();
+                actives.Append(Loc.T("water.actives", "Actives: "));
+                for (int i = 0; i < r.Actives.Count; i++)
+                {
+                    if (i > 0) actives.Append(Loc.T("list.sep", ", "));
+                    var active = r.Actives[i];
+                    actives.Append(active.Name).Append(' ').Append(WaterInfo.Amount(active.Parts));
+                }
+                AddLine(builder, actives.ToString(), RenderHandler.ColorPalette.LightYellow);
+                wrote = true;
+            }
+
+            if (r.Impurities.Count > 0)
+            {
+                var sb = new StringBuilder();
+                sb.Append(r.Actives.Count == 0 ? Loc.T("water.composition", "Composition: ")
+                                               : Loc.T("water.other", "Other: "));
+                bool any = false;
+                for (int i = 0; i < r.Impurities.Count; i++)
+                {
+                    var part = r.Impurities[i];
+                    if (part.Parts < WaterInfo.MinVisibleParts) continue;
+                    double partPct = part.Parts * 100.0 / r.TotalParts;
+                    if (partPct < 0.005) continue;
+                    if (any) sb.Append(' ');
+                    any = true;
+                    sb.Append(part.Name).Append(' ').Append(partPct.ToString("0.00", Loc.Culture)).Append('%');
+                }
+                if (!any) sb.Append(Loc.T("water.trace", "trace (below display threshold)"));
+                AddLine(builder, sb.ToString(), RenderHandler.ColorPalette.LightCyan);
+                wrote = true;
+            }
         }
 
         // 药效结论：与化学扫描仪同一组判定，省得玩家自己对阈值。
@@ -316,40 +390,6 @@ public sealed partial class ModEntry
         {
             AddLine(builder, Loc.T("chem.effects", "Effects: {0}", ChemEffects(r)),
                 r.LethalDose > 0 || r.Toxic ? RenderHandler.ColorPalette.LightRed : RenderHandler.ColorPalette.LightYellow);
-            wrote = true;
-        }
-
-        // 第三行：杂质与试剂仍按占比；显示阈值只用于这一类，不裁掉小剂量药物。
-        // 纯水没有杂质时不写「杂质：无」，第一行的纯度和档位已经说明了。
-        if (r.Impurities.Count > 0)
-        {
-            var sb = new StringBuilder();
-            // 无水混合物里酒精/提取液不是“杂质”，仍按占比但换个更准确的说法；
-            // 固体化学品、以及只有试剂的液体容器（酸碱溶液瓶）没有活性成分时，
-            // 这一行就是它的全部成分。
-            if (r.WaterParts > 0) sb.Append(Loc.T("water.impurities", "Impurities: "));
-            else if (r.Actives.Count == 0) sb.Append(Loc.T("water.composition", "Composition: "));
-            else sb.Append(Loc.T("water.other", "Other: "));
-            bool any = false;
-            for (int i = 0; i < r.Impurities.Count; i++)
-            {
-                var part = r.Impurities[i];
-                if (part.Parts < WaterInfo.MinVisibleParts) continue;
-
-                double partPct = part.Parts * 100.0 / r.TotalParts;
-                // 两位小数下会显示成 0.00% 的项不列，避免“有杂质但看起来是 0”。
-                if (partPct < 0.005) continue;
-
-                if (any) sb.Append(' ');
-                any = true;
-                sb.Append(part.Name).Append(' ').Append(partPct.ToString("0.00", Loc.Culture)).Append('%');
-            }
-            if (!any) sb.Append(Loc.T("water.trace", "trace (below display threshold)"));
-
-            AddLine(builder, sb.ToString(),
-                r.Solid ? RenderHandler.ColorPalette.LightCyan
-                : r.TotalParts == r.WaterParts ? RenderHandler.ColorPalette.LightGreen
-                : RenderHandler.ColorPalette.LightRed);
             wrote = true;
         }
 
@@ -384,6 +424,30 @@ public sealed partial class ModEntry
             RenderHandler.ColorPalette.LightTurquoise);
         return true;
     }
+
+    /// <summary>水质成分表的折行预算（字符数）；原版 tooltip 约 40，三列按像素补位后需要更宽。</summary>
+    private const int WaterTableWidth = 64;
+
+    /// <summary>杂质配色：每种杂质按出现顺序取一个不同颜色，超出调色板长度才循环。</summary>
+    private static readonly RenderHandler.ColorPalette[] ImpurityColors =
+    {
+        RenderHandler.ColorPalette.LightRed,
+        RenderHandler.ColorPalette.LightOrange,
+        RenderHandler.ColorPalette.LightYellow,
+        RenderHandler.ColorPalette.LightPurple,
+        RenderHandler.ColorPalette.LightBlue,
+        RenderHandler.ColorPalette.LightTurquoise,
+        RenderHandler.ColorPalette.ERed,
+        RenderHandler.ColorPalette.Orange,
+        RenderHandler.ColorPalette.Purple,
+    };
+
+    private static string VolumeOf(int parts, bool liters)
+        => WaterLayout.VolumeText(parts, liters, Loc.Culture)
+           + (liters ? WaterLayout.LiterUnit : WaterLayout.MilliliterUnit);
+
+    private static RenderHandler.ColorPalette ImpurityColor(int index)
+        => ImpurityColors[index % ImpurityColors.Length];
 
     /// <summary>「致死（2 倍致死量）、强烈欣快、戒瘾」</summary>
     private static string ChemEffects(WaterInfo.Result r)
@@ -470,7 +534,10 @@ public sealed partial class ModEntry
         try
         {
             if (ln.Text.Length > 0) builder.Add(ln.Text, ln.Color);
-            string bar = ProgressBarStyle.Format(ln.Bar, ln.BarLength, ln.BarDark, fullLength: true);
+            int visible = ProgressBarStyle.VisibleLength(ln.Text) + ln.BarLength + 1
+                + ProgressBarStyle.VisibleLength(ln.Tail);
+            string bar = ProgressBarStyle.Format(ln.Bar, ln.BarLength, ln.BarDark, fullLength: true,
+                allowSprite: ProgressBarStyle.FitsOneLine(builder, visible));
             builder.Add(bar, ln.Color, end: " ");
             AddLine(builder, ln.Tail ?? "", ln.Color);
         }

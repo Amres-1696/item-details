@@ -15,6 +15,9 @@ namespace ItemDetails;
 ///
 /// 字形用 U+2588：原版自己的背景色层就是用它铺底（RichTextBuilder.TextSlice.GetFillString），
 /// tooltip 字体里一定有这个字。
+///
+/// 物品 tooltip 里优先画成 sprite 条（外框 + 暗底 + 填充，见 <see cref="SpriteProgressBar"/>），
+/// 宽度仍按 length 格计；sprite 不可用或不在 tooltip 构建期间时退回 `█` 条。
 /// </summary>
 internal static class ProgressBarStyle
 {
@@ -103,7 +106,11 @@ internal static class ProgressBarStyle
         {
             string text = __0;
             if (text == null || text.Length < 2 || text[0] != '[' || text[text.Length - 1] != ']') return;
-            __0 = RenderBlocks(p.Ratio, p.Length, p.Dark, p.FullLength);
+            // 原版这一段带不折行标记，sprite 标签里的空格不会被当成断行点。
+            string? sprite = p.FullLength && TooltipPipeline.InTooltip
+                ? SpriteProgressBar.TryRender(p.Ratio, p.Length, p.Dark)
+                : null;
+            __0 = sprite ?? RenderBlocks(p.Ratio, p.Length, p.Dark, p.FullLength);
         }
         catch (Exception ex)
         {
@@ -114,13 +121,45 @@ internal static class ProgressBarStyle
     /// <summary>
     /// 直接生成进度条文本。供模组内新增行（如学习进度）直接写入 RichTextBuilder，
     /// 避免调用原生 AddProgressBar 引入 noBreak 影响整段 tooltip 折行宽度。
+    ///
+    /// allowSprite：调用方已确认整行不会被折行时才传 true。这条路径没有不折行标记，
+    /// 原版折行会在 slice 文本的空格处断开，而 sprite 标签内部带空格。
     /// </summary>
-    internal static string Format(float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true)
+    internal static string Format(float ratio, int length, RenderHandler.ColorPalette dark, bool fullLength = true,
+        bool allowSprite = false)
     {
         if (length <= 0) return "";
-        return ModSettings.BlockProgressBar
-            ? RenderBlocks(ratio, length, dark, fullLength)
-            : RenderAscii(ratio, length, fullLength);
+        if (!ModSettings.BlockProgressBar) return RenderAscii(ratio, length, fullLength);
+        string? sprite = allowSprite && fullLength && TooltipPipeline.InTooltip
+            ? SpriteProgressBar.TryRender(ratio, length, dark)
+            : null;
+        return sprite ?? RenderBlocks(ratio, length, dark, fullLength);
+    }
+
+    /// <summary>原版 RichTextBuilder 计折行时的可见字符数：跳过 &lt;…&gt; 标签与控制字符。</summary>
+    internal static int VisibleLength(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        int n = 0;
+        bool tag = false;
+        foreach (char c in text!)
+        {
+            if (c == '<') { tag = true; continue; }
+            if (c == '>') { tag = false; continue; }
+            if (!tag && !char.IsControl(c)) n++;
+        }
+        return n;
+    }
+
+    /// <summary>
+    /// 一行文字在原版 Build 里会不会折行。中日韩（字宽缩放 &gt; 1）取不带不折行片段时的 0.66 倍宽，
+    /// 这是两种系数里较窄的一个，判断偏保守。
+    /// </summary>
+    internal static bool FitsOneLine(RichTextBuilder builder, int visibleLength)
+    {
+        float scale = UISettings.current != null ? UISettings.current.GetCharWidthScale() : 1f;
+        int limit = scale > 1f ? Math.Max(1, (int)(builder.maxCharWidth * 0.66f)) : builder.maxCharWidth;
+        return visibleLength <= limit;
     }
 
     /// <summary>格数同原版 floor(比例 × 长度)，只是接近满时按满画（见 <see cref="ProgressFill"/>）。</summary>

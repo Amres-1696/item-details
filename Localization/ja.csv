@@ -1,4 +1,4 @@
-# Item Details 日本語 (ja)
+﻿# Item Details 日本語 (ja)
 auth.amount,スタンプの価格
 auth.body,本体の問題
 auth.box,箱の問題
@@ -123,11 +123,10 @@ value.perfect_range," ｜ 完璧 {0}–{1}"
 value.total_line,総額：{0}
 water.actives,有効成分：
 water.other,その他：
-water.head,水質：{0}% {1}
-water.impurities,不純物：
 water.mismatch,（ラベルと不一致）
 water.trace,微量（表示閾値未満）
 water.composition,成分：
+water.components,成分
 chem.effects,効果：{0}
 chem.lethal,致死（致死量の {0} 倍）
 chem.toxic,有毒

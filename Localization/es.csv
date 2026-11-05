@@ -1,4 +1,4 @@
-# Item Details Español (es)
+﻿# Item Details Español (es)
 auth.amount,Valor de la tarjeta
 auth.body,Desperfectos en el objeto
 auth.box,Caja
@@ -123,11 +123,10 @@ value.perfect_range," | perfecto {0}-{1}"
 value.total_line,Total: {0}
 water.actives,"Principios activos: "
 water.other,"Otros: "
-water.head,Agua: {0}% {1}
-water.impurities,"Impurezas: "
 water.mismatch," (etiqueta no coincide)"
 water.trace,trazas (bajo el umbral de visualización)
 water.composition,Composición: 
+water.components,Componentes
 chem.effects,Efectos: {0}
 chem.lethal,letal ({0}x dosis letal)
 chem.toxic,tóxico
