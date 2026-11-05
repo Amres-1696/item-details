@@ -1,6 +1,7 @@
 #if ITEMDETAILS_SELFTEST
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 
 namespace ItemDetails;
@@ -382,6 +383,53 @@ internal static partial class SelfTest
         {
             for (int i = saved.Count - 1; i >= 0; i--)
                 try { apply.Invoke(saved[i].Entry, new[] { saved[i].Value }); } catch { }
+            if (item != null) { try { item.Destroy(); } catch { } }
+        }
+    }
+
+    /// <summary>
+    /// 区块协议实机保真：同一物品、同一状态下，观察者的捕获+回放必须逐字复现无观察者的原生输出；
+    /// 接管区块后原生正文不再包含该区块，但快照仍保留它的结构化字段。
+    /// </summary>
+    private static string CheckSectionReplay(out bool ok)
+    {
+        ok = false;
+        GameItem? item = null;
+        IDisposable? watch = null, claim = null;
+        try
+        {
+            item = TryCreate("mirage_projector");
+            if (item == null) return "section replay: 无法创建样本";
+            var get = AccessTools.Method(typeof(GameItemElement), "GetTooltipBasic", Type.EmptyTypes)
+                ?? throw new MissingMethodException("GameItemElement.GetTooltipBasic");
+            RichTextBuilder Build() => (RichTextBuilder)get.Invoke(item, null)!;
+            string Text(RichTextBuilder b) => b.Build()?.richTextForeground ?? "";
+
+            string direct = Text(Build());
+            watch = Integration.ItemDetailsClient.WatchTooltipSections();
+            var watchedBuilder = Build();
+            string watched = Text(watchedBuilder);
+            bool identical = direct.Length > 0 && direct == watched;
+            bool snapshot = Integration.ItemDetailsClient.TryGetTooltipSections(watchedBuilder, out var sections)
+                && sections.Count > 0;
+
+            claim = Integration.ItemDetailsClient.RegisterTooltipSections(
+                (gameItem, builder, section) => section.Id == Integration.TooltipSectionIds.MachineSpeed);
+            var claimedBuilder = Build();
+            bool suppressed = Text(claimedBuilder).Length < watched.Length;
+            bool kept = Integration.ItemDetailsClient.TryGetTooltipSections(claimedBuilder, out var claimed)
+                && claimed.Any(s => s.Id == Integration.TooltipSectionIds.MachineSpeed
+                    && s.TryGet<int>("basePerDay", out _));
+
+            ok = identical && snapshot && suppressed && kept;
+            return $"section replay: identical={identical} snapshot={snapshot} suppressed={suppressed} kept={kept} " +
+                   $"lengths={direct.Length}/{watched.Length} (期望全部 True 且等长)";
+        }
+        catch (Exception ex) { return "section replay: " + ex; }
+        finally
+        {
+            claim?.Dispose();
+            watch?.Dispose();
             if (item != null) { try { item.Destroy(); } catch { } }
         }
     }

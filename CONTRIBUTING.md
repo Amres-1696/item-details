@@ -73,7 +73,7 @@ pwsh -NoProfile -File scripts/test.ps1 -GameDir "<游戏目录>"
 
 ### 可选的液体数据客户端（v1）
 
-把 [ItemDetailsClient.cs](sdk/ItemDetailsClient.cs) 复制到你的工程，使用 C# 12 或以上编译，并引入 `ItemDetails.Integration` 命名空间。只需引用游戏程序集。客户端随你的 Mod 编译，玩家可以单独安装任一 Mod。
+把 [ItemDetailsClient.cs](sdk/ItemDetailsClient.cs) 复制到你的工程，使用 C# 12 或以上编译，并引入 `ItemDetails.Integration` 命名空间。只需引用游戏程序集。客户端随你的 Mod 编译，玩家可以单独安装任一 Mod。完整上手示例与规则清单见 [sdk/README.md](sdk/README.md)。
 
 如果你在已有界面中读取数据，直接调用 `TryGetLiquidAnalysis(item, out var analysis)` 或 `TryGetWaterAdvice(item, out var methods)`。查询失败时继续走你已有的原版显示分支。查询本身不会接管任何提示行。
 

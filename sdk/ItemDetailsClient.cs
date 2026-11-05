@@ -18,6 +18,18 @@ internal static class ItemDetailsClient
     internal const string SectionQuery = "item_details.tooltip_sections.v1.read";
     internal const string SectionWatch = "item_details.tooltip_sections.v1.watch";
 
+    /// <summary>协议版本；与 AppDomain 键后缀一致。新增键时才递增。</summary>
+    internal const int SectionProtocolVersion = 1;
+
+    /// <summary>物品详情已启用区块协议。false 时全部走自己的原版显示路径。</summary>
+    internal static bool SectionProtocolAvailable =>
+        AppDomain.CurrentDomain.GetData(SectionQuery) != null;
+
+    /// <summary>物品详情已启用液体查询。区块可用不代表液体设置开启，仍以查询返回值为准。</summary>
+    internal static bool LiquidProtocolAvailable =>
+        AppDomain.CurrentDomain.GetData(AnalysisSlot) != null &&
+        AppDomain.CurrentDomain.GetData(AdviceSlot) != null;
+
     // Register once on enable. Returning false leaves this section in the original tooltip.
     internal static IDisposable RegisterTooltipSections(Func<GameItem, RichTextBuilder, TooltipSection, bool> prepare)
     {
@@ -199,4 +211,45 @@ internal sealed class TooltipSection
         value = default!;
         return false;
     }
+}
+
+/// <summary>
+/// 物品详情发出的稳定区块 ID。字段只增不改，读取方用 TryGet 并提供默认值。
+/// 内嵌改写区块（price/calories/machine-* 等）来自对原生行的改写，顺序与原版一致。
+/// </summary>
+internal static class TooltipSectionIds
+{
+    internal const string Authenticity = "auth";
+    internal const string Appraisal = "value";
+    internal const string InjectedAppraisal = "injected-value";
+    internal const string RibwichReasons = "ribwich";
+    internal const string Berry = "berry";
+    internal const string Hidden = "hidden";
+    internal const string ValueEnhance = "value-enhance";
+    internal const string FeatureReveal = "feature-reveal";
+    internal const string Storage = "storage";
+    internal const string MachineInterior = "machine-interior";
+    internal const string ModuleLearning = "module-learning";
+    internal const string Conditions = "conditions";
+    internal const string Contraband = "contraband";
+    internal const string Lottery = "lottery";
+    internal const string Liquid = "water";
+    internal const string SealedBox = "sealed-box";
+    internal const string Scratcher = "scratcher";
+    internal const string Seed = "seed";
+    internal const string WaterAdvice = "water-advice";
+    internal const string Wine = "wine";
+    internal const string Meat = "meat";
+    internal const string Market = "market";
+    internal const string Price = "price";
+    internal const string Calories = "calories";
+    internal const string MachineSpeed = "machine-speed";
+    internal const string MachinePower = "machine-power";
+    internal const string MachineEffect = "machine-effect";
+    internal const string Categories = "categories";
+    internal const string Contents = "contents";
+    internal const string SealedContents = "sealed-contents";
+    internal const string Label = "label";
+    internal const string Manufacturer = "manufacturer";
+    internal const string InspectHint = "inspect-hint";
 }

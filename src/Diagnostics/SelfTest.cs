@@ -506,6 +506,14 @@ internal static partial class SelfTest
             report.AppendLine((ok ? "PASS " : "FAIL ") + line);
         }
 
+        // 额外验证：区块快照捕获+回放与无观察者的原生输出逐字一致，接管后字段仍保留
+        {
+            string line = CheckSectionReplay(out bool ok);
+            if (ok) pass++; else fail++;
+            Log.Msg($"[SelfTest] {(ok ? "PASS" : "FAIL")} {line}");
+            report.AppendLine((ok ? "PASS " : "FAIL ") + line);
+        }
+
         // 额外验证：信息增强组位于透视后，全部设置关闭时不执行渲染器
         {
             string line = CheckSettingsLayoutAndDisable(out bool ok);
