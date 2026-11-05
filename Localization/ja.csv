@@ -211,7 +211,11 @@ machine.eta_battery,（電池は {0} 日分）
 machine.eta_battery_short,（電池が足りない）
 machine.eta_water,（水は {0} 日分）
 machine.paused,停止中：{0}
-hydro.water,水：{0}{3}、{1} 日分（1日 {2}ml）
+hydro.water,水量：{0}{3}（{2}{3}/日）、{1}日分
+hydro.water_short,水量：{0}{3}（{2}{3}/日）、1日未満
+hydro.status_label,状態：
+hydro.eta_paused,約{0}日、{1}
+hydro.eta_growing,約{0}日、{1}
 purifier.estimate,今夜の浄化予定量：{0}ml
 purifier.tier,（{0} → {1}）
 fridge.summary,{0}：{1} 個／{2}：{3} 個

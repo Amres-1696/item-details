@@ -160,6 +160,7 @@ public sealed partial class ModEntry : IMod
         Try("TooltipPipeline", TooltipPipeline.Apply);
         Try("MachineBattery", MachineBatteryInfo.Apply);
         Try("MachineSpeed", MachineSpeedLine.Apply);
+        Try("MachineHydroponic", MachineHydroponicLine.Apply);
         Try("ProbeDestroyGuard", ProbeDestroyGuard.Apply);
         Try("WaterWarmup", WaterWarmupPatch.Apply);
         Try("WaterContainerLine", WaterContainerLine.Apply);
@@ -215,6 +216,7 @@ public sealed partial class ModEntry : IMod
         Quiet(TooltipPipeline.Remove);
         Quiet(MachineBatteryInfo.Remove);
         Quiet(MachineSpeedLine.Remove);
+        Quiet(MachineHydroponicLine.Remove);
         Quiet(ConfigSectionRefresh.Remove);
         Quiet(TypeBadge.Remove);
         Quiet(ContentsGrid.Remove);

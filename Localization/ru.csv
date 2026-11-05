@@ -211,7 +211,11 @@ machine.eta_battery," (батареи хватит на {0} дн.)"
 machine.eta_battery_short," (батареи не хватит)"
 machine.eta_water," (воды хватит на {0} дн.)"
 machine.paused,Пауза: {0}
-hydro.water,"Вода {0}{3}, на {1} дн. ({2} мл/день)"
+hydro.water,"Вода: {0}{3} ({2}{3}/день), {1} дн."
+hydro.water_short,"Вода: {0}{3} ({2}{3}/день), <1 дня"
+hydro.status_label,Статус: 
+hydro.eta_paused,"прибл. {0} дн., {1}"
+hydro.eta_growing,"прибл. {0} дн., {1}"
 purifier.estimate,"Ожидаемое удаление этой ночью: {0} мл"
 purifier.tier," ({0} → {1})"
 fridge.summary,{0}: {1}; {2}: {3}

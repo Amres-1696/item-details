@@ -211,7 +211,11 @@ machine.eta_battery," (배터리 {0}일분)"
 machine.eta_battery_short," (배터리 부족)"
 machine.eta_water," (물 {0}일분)"
 machine.paused,일시 정지: {0}
-hydro.water,"물: {0}{3}, {1}일분 (하루 {2}ml)"
+hydro.water,"물: {0}{3} ({2}{3}/일), {1}일분"
+hydro.water_short,"물: {0}{3} ({2}{3}/일), 1일 미만"
+hydro.status_label,상태: 
+hydro.eta_paused,"약 {0}일, {1}"
+hydro.eta_growing,"약 {0}일, {1}"
 purifier.estimate,오늘 밤 예상 정화: {0}ml
 purifier.tier," ({0} → {1})"
 fridge.summary,{0}: {1}개; {2}: {3}개

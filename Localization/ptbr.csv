@@ -211,7 +211,11 @@ machine.eta_battery," (bateria para {0} {0|dia|dias})"
 machine.eta_battery_short," (bateria insuficiente)"
 machine.eta_water," (água para {0} {0|dia|dias})"
 machine.paused,Pausado: {0}
-hydro.water,"Água {0}{3}, para {1} {1|dia|dias} ({2} ml/dia)"
+hydro.water,"Água: {0}{3} ({2}{3}/dia), {1} {1|dia|dias}"
+hydro.water_short,"Água: {0}{3} ({2}{3}/dia), <1 dia"
+hydro.status_label,Status: 
+hydro.eta_paused,"aprox. {0} {0|dia|dias}, {1}"
+hydro.eta_growing,"aprox. {0} {0|dia|dias}, {1}"
 purifier.estimate,"Remoção estimada esta noite: {0} ml"
 purifier.tier," ({0} → {1})"
 fridge.summary,{0}: {1}; {2}: {3}

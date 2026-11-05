@@ -75,6 +75,10 @@ internal static class MachineAdapters
         // 没有电源面板的机器不知道它怎么取电，不推算。
         if (!ctx.HasPowerPanel) return;
 
+        // 水培机若已在首行合并显示了状态、进度条与工期推算，不在内部列表重复追加
+        if (ModSettings.TooltipFormatting && ModSettings.Machines && m.IsTag("HYDROPONIC_MACHINE_TAG"))
+            return;
+
         int cur = GameRead.TagInt(m, "MACHINE_PROGRESS_CURRENT_TAG") ?? 0;
         int target = GameRead.TagInt(m, "MACHINE_PROGRESS_TARGET_TAG") ?? 0;
         int speed = GameRead.TagInt(m, "CURRENT_PROCESSING_SPEED_TAG") ?? 0;
@@ -134,10 +138,16 @@ internal static class MachineAdapters
         ctx.WaterDays = days;
         waterPanel.Claimed = true;
         bool liters = ModSettings.ContainerUnits && Volume.UseLiters(WaterHelper.GetTotalCapacityML(water));
-        lines.Add(new TooltipLine(
-            Loc.T("hydro.water", "Water {0}{3}, enough for {1} {1|day|days} ({2} ml/day)",
-                Volume.Number(ml, liters, Loc.Culture), days, perNight, WaterInfo.VolumeUnit(liters)),
-            days == 0 ? Bad : days < 3 ? Warn : Info).WithData("waterSupply", (ml, perNight, days)));
+        string unit = liters ? WaterLayout.LiterUnit : WaterLayout.MilliliterUnit;
+        string currentAmount = Volume.Number(ml, liters, Loc.Culture);
+        string rateAmount = Volume.Number(perNight, liters, Loc.Culture);
+
+        string text = days == 0
+            ? Loc.T("hydro.water_short", "Water: {0}{3} ({2}{3}/day), <1 day", currentAmount, days, rateAmount, unit)
+            : Loc.T("hydro.water", "Water: {0}{3} ({2}{3}/day), {1} {1|day|days}", currentAmount, days, rateAmount, unit);
+
+        lines.Add(new TooltipLine(text, days == 0 ? Bad : days < 3 ? Warn : Info)
+            .WithData("waterSupply", (ml, perNight, days)));
     }
 
     // ---------------- 净水器：今晚还能净化多少、净化到哪一档 ----------------

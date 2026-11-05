@@ -80,6 +80,9 @@ internal static class TooltipSections
         private readonly Buffer? buffer;
         internal bool Capturing => buffer != null;
 
+        /// <summary>当前 tooltip 的折行预算（字符数）；原版按物品给 40/60/80。</summary>
+        internal int MaxCharWidth => Native.maxCharWidth;
+
         internal Writer(RichTextBuilder builder, GameItem item, string id)
         {
             Native = builder;
