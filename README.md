@@ -128,7 +128,7 @@ Open this mod's settings in the game's Mods menu and click Apply after editing. 
 
 The ten options default to on: **Price Modifiers, Black Market Markup, Lottery, Brewing, Meat, Machines, Batteries, Progress Bars, Container Volume Units, and Inline Company Name**. Lottery only displays results; Brewing includes ingredient wine values. Machines and Batteries are independent, including batteries inside chargers. Container Volume Units switches volumes above 3 L to L independently of Tooltip Text Formatting; disabling it keeps ml.
 
-The water localization fix applies when the mod is enabled or the game restarts. Chinese font fallback follows the mod's lifecycle without a separate setting and repairs missing Chinese glyphs in the console and other UI.
+Both the water probe prewarm and the water localization fix follow **Liquid Composition Analysis**: they run whenever it is set to With scanner or Always, so there is no separate switch for either. Chinese font fallback follows the mod's lifecycle without a separate setting and repairs missing Chinese glyphs in the console and other UI.
 
 **Design** — read-only: no price, customer or save changes. No capabilities, network access or processes; the only file written is the game's own mod settings. A breakdown is shown only when it exactly matches the game's own value. Other mods register their own breakdowns and effect notes instead of being guessed at.
 

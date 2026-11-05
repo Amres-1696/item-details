@@ -165,10 +165,6 @@ config.info_enhance,Zusätzliche Gegenstandsinfos
 config.info_enhance.tip,Aktiviert Zusatzinfos und zeigt ihre Einstellungen unter Enthüllung. Die Einzelauswahl bleibt beim Ausschalten erhalten.
 config.tooltip_formatting,Tooltip-Textformatierung
 config.tooltip_formatting.tip,Klarere Preisangaben, Beschreibungsumbrüche, Kalorienhinweise und Preisblockabstände. Deaktivieren erhält das originale Textlayout.
-config.water_warmup,Wassersonden vorbereiten
-config.water_warmup.tip,Erstellt Wasserberechnungssonden beim Laden eines Spielstands vorab, damit der erste Tooltip nicht stockt. Zeigt keine zusätzlichen Informationen.
-config.water_localization_fix,Wasser-Lokalisierungskorrektur
-config.water_localization_fix.tip,Korrigiert Wasserstufentexte, die durch frühe Patches anderer Mods in der falschen Sprache eingefroren wurden. Wird beim Aktivieren der Mod oder einem Neustart angewendet.
 config.type_badge,Kategorie-Plaketten
 config.type_badge.tip,"Zeigt die Kategorien des Gegenstands über dem Tooltip."
 config.type_badge_muted,Plakettenfarben dämpfen

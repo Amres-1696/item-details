@@ -165,10 +165,6 @@ config.info_enhance,追加アイテム情報
 config.info_enhance.tip,追加情報を有効にし、透視の下に設定を表示します。オフにしても個別の選択は保持されます。
 config.tooltip_formatting,ツールチップ文章の整形
 config.tooltip_formatting.tip,価格表記、説明文の折り返し、カロリー注記、価格ブロックの間隔を最適化します。オフで原版のレイアウトを維持します。
-config.water_warmup,水質プローブの事前準備
-config.water_warmup.tip,セーブデータ読み込み時に水質計算プローブを事前作成し、初回ホバー時の遅延を防ぎます。追加情報は表示しません。
-config.water_localization_fix,水質ローカライズ修正
-config.water_localization_fix.tip,他Modの早期パッチによって誤った言語で固定された水質ランク文字列を修復します。Mod有効化時またはゲーム再起動時に適用されます。
 config.type_badge,アイテム分類バッジ
 config.type_badge.tip,"ツールチップ上部にアイテム分類を表示します。"
 config.type_badge_muted,バッジの色を控えめに

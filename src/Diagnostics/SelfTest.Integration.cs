@@ -327,7 +327,6 @@ internal static partial class SelfTest
                 "show_info_enhance", "show_cost_performance", "show_container_contents",
                 "tooltip_text_formatting", "show_type_badge", "mute_type_badge_colors",
                 "show_container_name_display", "container_name_bg_opacity",
-                "water_probe_prewarm", "water_localization_fix",
             };
             string[] infoKeys =
             {

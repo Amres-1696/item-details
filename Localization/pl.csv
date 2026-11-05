@@ -165,10 +165,6 @@ config.info_enhance,Dodatkowe informacje
 config.info_enhance.tip,Włącza dodatkowe informacje i pokazuje ich ustawienia pod sekcją odkrywania. Wyłączenie zachowuje indywidualne wybory.
 config.tooltip_formatting,Formatowanie tekstu podpowiedzi
 config.tooltip_formatting.tip,Czytelniejsze ceny, zawijanie opisów, adnotacje kalorii i odstępy bloku ceny. Wyłącz, aby zachować oryginalny układ tekstu.
-config.water_warmup,Wstępne przygotowanie sond wody
-config.water_warmup.tip,Tworzy sondy obliczeń wody podczas wczytywania zapisu, aby uniknąć opóźnienia przy pierwszej podpowiedzi. Nie wyświetla dodatkowych informacji.
-config.water_localization_fix,Naprawa lokalizacji wody
-config.water_localization_fix.tip,Naprawia teksty poziomów wody zamrożone w niewłaściwym języku przez wczesne poprawki innych modów. Stosowane przy włączeniu moda lub ponownym uruchomieniu gry.
 config.type_badge,Plakietki kategorii
 config.type_badge.tip,"Pokazuje kategorie przedmiotu nad podpowiedzią."
 config.type_badge_muted,Stonowane kolory plakietek

@@ -165,10 +165,6 @@ config.info_enhance,Informações extras
 config.info_enhance.tip,Ativa as informações extras e mostra suas configurações abaixo de Revelação. Desativar preserva as escolhas individuais.
 config.tooltip_formatting,Formatação do texto das dicas
 config.tooltip_formatting.tip,Rótulos de preço mais claros, quebra de descrições, notas de calorias e espaçamento do bloco de preço. Desative para manter o layout original.
-config.water_warmup,Preparação de sondas de água
-config.water_warmup.tip,Cria sondas de cálculo de água ao carregar um save para evitar travamento na primeira dica. Não mostra informações adicionais.
-config.water_localization_fix,Correção de localização da água
-config.water_localization_fix.tip,Corrige textos de qualidade da água congelados no idioma errado por patches antecipados de outros mods. Aplicado ao ativar o mod ou reiniciar o jogo.
 config.type_badge,Selos de categoria
 config.type_badge.tip,"Mostra as categorias do item acima da dica."
 config.type_badge_muted,Cores de selos suavizadas

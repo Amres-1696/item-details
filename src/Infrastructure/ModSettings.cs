@@ -34,6 +34,7 @@ namespace ItemDetails;
 ///   show_wine                                      → show_info_enhance（果酿并入信息增强）
 ///   block_progress_bar    + manufacturer_inline    → show_info_enhance
 ///   show_contents_grid                              取消（图标格常开，默认即按图标显示）
+///   water_probe_prewarm    + water_localization_fix → liquid_analysis（跟随液体组分分析，不再独立成项）
 ///
 /// 实现注意：
 ///   - Define 的 label/tooltip 是 Func&lt;string&gt;，游戏渲染面板时才调用，所以条目文案
@@ -75,8 +76,6 @@ internal static class ModSettings
     private static readonly Toggle ContainerContentsToggle = new(true);  // 容器内容
     private static readonly Toggle InfoEnhanceToggle = new(true);        // 信息增强组总开关
     private static readonly Toggle TooltipFormattingToggle = new(true);  // 价格/描述等文字与间距优化
-    private static readonly Toggle WaterWarmupToggle = new(true);        // 存档加载时预建水质探针
-    private static readonly Toggle WaterLocalizationFixToggle = new(true); // 语言就绪后的水质静态表修复
     private static readonly Toggle TypeBadgeToggle = new(true);          // tooltip 上方分类标签
     private static readonly Toggle TypeBadgeMutedToggle = new(false);    // 非违禁标签淡化配色
     private static readonly Toggle ContainerNameToggle = new(false);     // 容器和机器外显文本
@@ -250,16 +249,6 @@ internal static class ModSettings
                 Text("config.container_name_bg", "Label Background"), 0, 100,
                 Text("config.container_name_bg.tip", "Opacity of the black background behind the label (0–100%). " +
                      "At 0 there is no background."));
-
-            WaterWarmupToggle.Define(_cfg, "water_probe_prewarm", SecDisplayKey, SecDisplayEn,
-                Text("config.water_warmup", "Water Probe Prewarm"),
-                Text("config.water_warmup.tip", "Creates water-calculation probes when a save loads to avoid the first " +
-                     "tooltip's creation cost. This only warms up data and shows no extra information."));
-
-            WaterLocalizationFixToggle.Define(_cfg, "water_localization_fix", SecDisplayKey, SecDisplayEn,
-                Text("config.water_localization_fix", "Water Localization Fix"),
-                Text("config.water_localization_fix.tip", "Repairs water-tier text frozen in the wrong language by other " +
-                     "mods' early patches. Applied when the mod is enabled or the game restarts."));
 
             // ================= 信息增强配置（透视组之后，界面按总开关隐藏） =================
             PriceImpactToggle.Define(_cfg, "info_price_modifiers", SecInfoKey, SecInfoEn,
@@ -542,8 +531,16 @@ internal static class ModSettings
     internal static bool ContentsGrid => Container || SealedBox;
     internal static bool TooltipFormatting => InfoEnhance && TooltipFormattingToggle.Value;
     internal static bool ContainerUnits => InfoEnhance && ContainerUnitsToggle.Value;
-    internal static bool WaterWarmupEnabled => InfoEnhance && WaterWarmupToggle.Value;
-    internal static bool WaterLocalizationFix => InfoEnhance && WaterLocalizationFixToggle.Value;
+
+    /// <summary>
+    /// 水质预热探针与水质本地化修复都跟随「液体组分分析」，不再各自成项：
+    /// 分析关掉时不读档预热、也不改写静态表；选「有扫描器」或「总是开启」时照常执行。
+    /// 二者只看这一项，不受「信息增强」总开关管辖（液体分析本来就在「透视」分组独立生效）。
+    /// </summary>
+    private static bool LiquidConfigured => LiquidAnalysis != LiquidMode.Off;
+
+    internal static bool WaterWarmupEnabled => LiquidConfigured;
+    internal static bool WaterLocalizationFix => LiquidConfigured;
     internal static bool Machines => InfoEnhance && MachineToggle.Value;
     internal static bool ModuleEffects => Machines;
     internal static bool MachineBattery => InfoEnhance && BatteryToggle.Value;
